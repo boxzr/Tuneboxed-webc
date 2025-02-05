@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/static/css/main.59e22fee.css",
+    "main.js": "/static/js/main.f4f58df4.js",
+    "static/js/453.ed3810f9.chunk.js": "/static/js/453.ed3810f9.chunk.js",
+    "static/media/tuneboxed-logo.png": "/static/media/tuneboxed-logo.202d612e7ff2bb934b9e.png",
+    "index.html": "/index.html",
+    "main.59e22fee.css.map": "/static/css/main.59e22fee.css.map",
+    "main.f4f58df4.js.map": "/static/js/main.f4f58df4.js.map",
+    "453.ed3810f9.chunk.js.map": "/static/js/453.ed3810f9.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.59e22fee.css",
+    "static/js/main.f4f58df4.js"
+  ]
+}
