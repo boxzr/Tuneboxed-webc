@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/static/css/main.a6951c5a.css",
-    "main.js": "/static/js/main.f4f58df4.js",
+    "main.css": "/static/css/main.422e0a0c.css",
+    "main.js": "/static/js/main.78dafeda.js",
     "static/js/453.ed3810f9.chunk.js": "/static/js/453.ed3810f9.chunk.js",
     "static/media/tuneboxed-logo.png": "/static/media/tuneboxed-logo.202d612e7ff2bb934b9e.png",
     "index.html": "/index.html",
-    "main.a6951c5a.css.map": "/static/css/main.a6951c5a.css.map",
-    "main.f4f58df4.js.map": "/static/js/main.f4f58df4.js.map",
+    "main.422e0a0c.css.map": "/static/css/main.422e0a0c.css.map",
+    "main.78dafeda.js.map": "/static/js/main.78dafeda.js.map",
     "453.ed3810f9.chunk.js.map": "/static/js/453.ed3810f9.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a6951c5a.css",
-    "static/js/main.f4f58df4.js"
+    "static/css/main.422e0a0c.css",
+    "static/js/main.78dafeda.js"
   ]
 }
