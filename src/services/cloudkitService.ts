@@ -51,7 +51,7 @@ class CloudKitService {
   private getHeaders(): HeadersInit {
     const jwt = this.generateJWT();
     return {
-      'Authorization': `Bearer ${jwt}`,
+      'Authorization': `CloudKit-Server-to-Server-Key ${jwt}`,
       'Content-Type': 'application/json'
     };
   }
