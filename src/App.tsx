@@ -7,13 +7,11 @@ import { trackPageView } from './firebase';
 import AdminDashboard from './components/AdminDashboard';
 import PasswordReset from './pages/PasswordReset';
 
-// Import test utility for development
-if (process.env.NODE_ENV === 'development') {
-  import('./utils/cloudkitTest').then(({ cloudKitTest }) => {
-    (window as any).cloudKitTest = cloudKitTest;
-    console.log('🧪 CloudKit Test Utility loaded! Run cloudKitTest.runAllTests() in console to test.');
-  });
-}
+// Import test utility for development and production
+import('./utils/cloudkitTest').then(({ cloudKitTest }) => {
+  (window as any).cloudKitTest = cloudKitTest;
+  console.log('🧪 CloudKit Test Utility loaded! Run cloudKitTest.runAllTests() in console to test.');
+});
 
 function MainWebsite() {
   const [email, setEmail] = useState('');
