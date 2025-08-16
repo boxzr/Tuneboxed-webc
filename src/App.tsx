@@ -1,11 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './App.css';
 import tuneboxedLogo from './tuneboxed-logo.png';
 import { trackPageView } from './firebase';
 import AdminDashboard from './components/AdminDashboard';
+import PasswordReset from './pages/PasswordReset';
 
-function App() {
+// Import test utility for development
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/cloudkitTest').then(({ cloudKitTest }) => {
+    (window as any).cloudKitTest = cloudKitTest;
+    console.log('🧪 CloudKit Test Utility loaded! Run cloudKitTest.runAllTests() in console to test.');
+  });
+}
+
+function MainWebsite() {
   const [email, setEmail] = useState('');
   const [currentSection, setCurrentSection] = useState('home');
   const [isBoxClicked, setIsBoxClicked] = useState(false);
@@ -34,6 +44,46 @@ function App() {
     trackView();
   }, [currentSection]);
 
+  // Admin access with Alt+Shift+A+T
+  useEffect(() => {
+    let keysPressed: string[] = [];
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.shiftKey) {
+        const key = e.key.toUpperCase();
+        keysPressed.push(key);
+        
+        if (keysPressed.includes('A') && keysPressed.includes('T')) {
+          const aIndex = keysPressed.lastIndexOf('A');
+          const tIndex = keysPressed.lastIndexOf('T');
+          
+          if (tIndex > aIndex) {
+            keysPressed = [];
+            setIsAdminVisible(prevState => !prevState);
+          }
+        }
+        
+        if (keysPressed.length > 10) {
+          keysPressed = keysPressed.slice(-10);
+        }
+      }
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!e.altKey || !e.shiftKey) {
+        keysPressed = [];
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   // Handle email sign-up
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,87 +98,27 @@ function App() {
       const randomName = `User_${Math.floor(Math.random() * 10000)}`;
       console.log('Generated random name:', randomName);
       
-      // Save the user with email
       const result = await signUpWithEmail(email, 'password123', randomName);
       console.log('Signup result:', result);
       
-      // Track the event
-      await trackPageView('sign_up_for_updates');
-      console.log(`Signed up for updates: ${email}`);
-      setSignUpSuccess(true);
-    } catch (error) {
-      console.error('Sign up error:', error);
-      setSignUpError('Failed to sign up. Please try again.');
+      if (result.user) {
+        setSignUpSuccess(true);
+        setSignUpError(null);
+        setEmail('');
+        console.log('Signup successful, user saved to database');
+      } else {
+        setSignUpError('Failed to sign up. Please try again.');
+        setSignUpSuccess(false);
+        console.error('Signup failed: No user returned');
+      }
+    } catch (error: any) {
+      console.error('Error during sign-up:', error);
+      setSignUpError(error.message || 'An unexpected error occurred');
+      setSignUpSuccess(false);
     } finally {
       setLoading(false);
     }
   };
-
-  // Admin access with Alt+Shift+A+T
-  useEffect(() => {
-    // Track keys pressed in sequence
-    let keysPressed: string[] = [];
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only track if Alt and Shift are held
-      if (e.altKey && e.shiftKey) {
-        // Convert key to uppercase for consistent checking
-        const key = e.key.toUpperCase();
-        
-        // Add to keys pressed array
-        keysPressed.push(key);
-        console.log("Key pressed:", key, "Current sequence:", keysPressed);
-        
-        // Check if we have the correct sequence A followed by T
-        if (keysPressed.includes('A') && keysPressed.includes('T')) {
-          // Look for the sequence A->T
-          const aIndex = keysPressed.lastIndexOf('A');
-          const tIndex = keysPressed.lastIndexOf('T');
-          
-          // If T comes after A, that's our sequence
-          if (tIndex > aIndex) {
-            // Reset keys and toggle admin
-            keysPressed = [];
-            console.log("Admin sequence detected! Toggling dashboard.");
-            
-            setIsAdminVisible(prevState => {
-              const newState = !prevState;
-              // If admin is being shown, check for new signups right away
-              if (newState) {
-                // Force a refresh of the admin data including new signups
-                console.log('Admin dashboard activated');
-              }
-              const trackAdminView = async () => {
-                await trackPageView(newState ? 'admin' : 'home');
-              };
-              trackAdminView();
-              return newState;
-            });
-          }
-        }
-        
-        // Limit array size to prevent memory issues
-        if (keysPressed.length > 10) {
-          keysPressed = keysPressed.slice(-10);
-        }
-      }
-    };
-    
-    const handleKeyUp = (e: KeyboardEvent) => {
-      // If either Alt or Shift is released, clear the sequence
-      if (!e.altKey || !e.shiftKey) {
-        keysPressed = [];
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
 
   // Add background animation
   const [backgroundElements, setBackgroundElements] = useState<JSX.Element[]>([]);
@@ -178,9 +168,12 @@ function App() {
   const handleNavClick = (section: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     setCurrentSection(section);
+    setSignUpSuccess(false);
+    setSignUpError(null);
   };
 
-  // Render the sign-up form
+
+
   const renderSignUpForm = () => {
     if (signUpSuccess) {
       return (
@@ -250,11 +243,7 @@ function App() {
               <a href="#signup" className="nav-link" onClick={handleNavClick('signup')}>
                 Sign Up
               </a>
-              {user && (
-                <a href="#admin" className="nav-link" onClick={() => setIsAdminVisible(true)}>
-                  Admin
-                </a>
-              )}
+              {/* Hidden admin link - Alt+Shift+A+T to access */}
             </div>
           </nav>
 
@@ -555,7 +544,7 @@ function App() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="about-mission">
                   <p className="gradient-text">Join us in redefining the future of music sharing</p>
                 </div>
@@ -565,7 +554,7 @@ function App() {
 
           {currentSection === 'signup' && (
             <section id="signup" className="section">
-              <motion.div 
+              <motion.div
                 className="signup-container"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -593,7 +582,6 @@ function App() {
               </a>
             </div>
           </nav>
-          
           <AdminDashboard />
         </>
       )}
@@ -602,6 +590,17 @@ function App() {
         <p>Made by Jonah Boxer © {new Date().getFullYear()}</p>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  const location = useLocation();
+  
+  return (
+    <Routes>
+      <Route path="/reset-password" element={<PasswordReset />} />
+      <Route path="/*" element={<MainWebsite />} />
+    </Routes>
   );
 }
 
