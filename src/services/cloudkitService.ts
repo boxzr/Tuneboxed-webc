@@ -1,5 +1,5 @@
 import { CLOUDKIT_CONFIG, CLOUDKIT_FIELDS, CLOUDKIT_RECORD_TYPES } from '../config/cloudkit';
-import jwt from 'jsonwebtoken';
+import * as jose from 'jose';
 import CryptoJS from 'crypto-js';
 
 export interface CloudKitRecord {
@@ -17,7 +17,7 @@ class CloudKitService {
     return `${CLOUDKIT_CONFIG.apiEndpoint}/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/${endpoint}`;
   }
 
-  private generateJWT(): string {
+  private async generateJWT(): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const payload = {
       iss: CLOUDKIT_CONFIG.serverToServerKeyAuth, // Key ID
@@ -26,20 +26,30 @@ class CloudKitService {
       sub: CLOUDKIT_CONFIG.containerIdentifier
     };
 
-    const options: jwt.SignOptions = {
-      algorithm: 'ES256',
-      header: {
-        alg: 'ES256',
-        kid: CLOUDKIT_CONFIG.serverToServerKeyAuth
-      }
-    };
-
-    return jwt.sign(payload, CLOUDKIT_CONFIG.privateKey, options);
+    try {
+      // Convert PEM private key to JWK format
+      const privateKey = await jose.importPKCS8(CLOUDKIT_CONFIG.privateKey, 'ES256');
+      
+      const jwt = await new jose.SignJWT(payload)
+        .setProtectedHeader({ 
+          alg: 'ES256',
+          kid: CLOUDKIT_CONFIG.serverToServerKeyAuth 
+        })
+        .setIssuedAt(now)
+        .setExpirationTime(now + 3600)
+        .sign(privateKey);
+      
+      return jwt;
+    } catch (error) {
+      console.error('JWT generation failed:', error);
+      throw new Error('Failed to generate JWT token');
+    }
   }
 
-  private getHeaders(): HeadersInit {
+  private async getHeaders(): Promise<HeadersInit> {
+    const jwt = await this.generateJWT();
     return {
-      'Authorization': `Bearer ${this.generateJWT()}`,
+      'Authorization': `Bearer ${jwt}`,
       'Content-Type': 'application/json'
     };
   }
@@ -51,7 +61,7 @@ class CloudKitService {
     try {
       const response = await fetch(this.getApiUrl('records/query'), {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers: await this.getHeaders(),
         body: JSON.stringify({
           query: {
             filterBy: [
@@ -90,7 +100,7 @@ class CloudKitService {
     try {
       const response = await fetch(this.getApiUrl('records/query'), {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers: await this.getHeaders(),
         body: JSON.stringify({
           query: {
             filterBy: [{
@@ -122,7 +132,7 @@ class CloudKitService {
     try {
       const response = await fetch(this.getApiUrl('records/modify'), {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers: await this.getHeaders(),
         body: JSON.stringify({
           operations: [{
             operationType: 'update',
