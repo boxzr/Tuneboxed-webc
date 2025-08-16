@@ -15,10 +15,7 @@ export class CloudKitTestUtility {
       // Try to query for any User records (should return 401 if auth fails, empty array if auth succeeds)
       const response = await fetch(`${CLOUDKIT_CONFIG.apiEndpoint}/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/query`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${(cloudKitService as any).generateJWT()}`,
-          'Content-Type': 'application/json'
-        },
+        headers: await cloudKitService.getHeaders(),
         body: JSON.stringify({
           query: {
             recordType: 'User',
