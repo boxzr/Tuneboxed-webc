@@ -4,34 +4,15 @@ import { cloudKitService } from '../services/cloudkitService';
 export class CloudKitTestUtility {
   async testConnection(): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-      console.log('Testing CloudKit connection...');
+      console.log('Testing CloudKit connection through server proxy...');
       console.log('Container:', CLOUDKIT_CONFIG.containerIdentifier);
       console.log('Environment:', CLOUDKIT_CONFIG.environment);
       
-      // Use the actual service to get proper headers
-      const headers = cloudKitService.getHeaders();
-      console.log('Using headers:', headers);
+      // Use the server proxy to test CloudKit connection
+      const result = await cloudKitService.testConnection();
+      console.log('Server response:', result);
       
-      const response = await fetch(`${CLOUDKIT_CONFIG.apiEndpoint}/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/query`, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ query: { recordType: 'User', resultsLimit: 1 } })
-      });
-      
-      const data = await response.json();
-      if (response.ok) {
-        return {
-          success: true,
-          message: `✅ CloudKit connection successful! Found ${data.records?.length || 0} user records.`,
-          data: data
-        };
-      } else {
-        return {
-          success: false,
-          message: `❌ CloudKit connection failed: ${data.serverErrorCode || response.status} - ${data.reason || response.statusText}`,
-          data: data
-        };
-      }
+      return result;
     } catch (error) {
       return {
         success: false,
@@ -45,13 +26,13 @@ export class CloudKitTestUtility {
     try {
       console.log('Testing token validation...');
       const result = await cloudKitService.validateResetToken('invalid-token-for-testing');
-      if (!result) {
-        return { success: true, message: '✅ Token validation working correctly. Invalid token rejected: No user found with this token' };
+      if (!result.valid) {
+        return { success: true, message: '✅ Token validation working correctly. Invalid token rejected: ' + result.message };
       } else {
         return { success: false, message: '❌ Token validation failed - invalid token was accepted' };
       }
     } catch (error) {
-      return { success: true, message: '✅ Token validation working correctly. Invalid token rejected with error: ' + error };
+      return { success: false, message: '❌ Token validation error: ' + error };
     }
   }
 
@@ -90,7 +71,7 @@ export class CloudKitTestUtility {
   }
 
   async runAllTests(): Promise<void> {
-    console.log('🧪 Running CloudKit Test Suite...\n');
+    console.log('🧪 Running CloudKit Test Suite (Server Proxy)...\n');
     
     const tests = [
       { name: 'JWT Generation', test: () => this.testJWTGeneration() },
@@ -111,7 +92,7 @@ export class CloudKitTestUtility {
 
     console.log('\n✅ Test suite completed!');
     console.log('📋 Next steps:');
-    console.log('1. If CloudKit connection failed, check your Key ID in src/config/cloudkit.ts');
+    console.log('1. If CloudKit connection failed, check your server is running on port 3001');
     console.log('2. Make sure your CloudKit schema has User records with resetToken field');
     console.log('3. Test with a real reset token from your iOS app');
   }

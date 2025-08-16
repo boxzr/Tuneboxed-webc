@@ -1,4 +1,4 @@
-import { CLOUDKIT_CONFIG, CLOUDKIT_FIELDS, CLOUDKIT_RECORD_TYPES } from '../config/cloudkit';
+import { CLOUDKIT_CONFIG, CLOUDKIT_FIELDS } from '../config/cloudkit';
 import * as jsrsasign from 'jsrsasign';
 import CryptoJS from 'crypto-js';
 
@@ -13,9 +13,7 @@ export interface CloudKitQueryResponse {
 }
 
 class CloudKitService {
-  private getApiUrl(endpoint: string): string {
-    return `${CLOUDKIT_CONFIG.apiEndpoint}/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/${endpoint}`;
-  }
+  private serverBaseUrl = 'http://localhost:3001'; // Local server proxy
 
   private generateJWT(): string {
     const now = Math.floor(Date.now() / 1000);
@@ -26,14 +24,13 @@ class CloudKitService {
     };
     
     const payload = {
-      iss: CLOUDKIT_CONFIG.serverToServerKeyAuth, // Key ID
+      iss: CLOUDKIT_CONFIG.serverToServerKeyAuth,
       iat: now,
-      exp: now + 3600, // 1 hour expiry
+      exp: now + 3600,
       sub: CLOUDKIT_CONFIG.containerIdentifier
     };
 
     try {
-      // Create JWT using jsrsasign
       const jwt = jsrsasign.KJUR.jws.JWS.sign(
         'ES256',
         JSON.stringify(header),
@@ -57,102 +54,70 @@ class CloudKitService {
   }
 
   /**
-   * Validates a password reset token
+   * Validates a password reset token using the local server proxy
    */
-  async validateResetToken(token: string): Promise<CloudKitRecord | null> {
+  async validateResetToken(token: string): Promise<{ valid: boolean; message: string; user?: CloudKitRecord }> {
     try {
-      const response = await fetch(this.getApiUrl('records/query'), {
+      const response = await fetch(`${this.serverBaseUrl}/api/cloudkit/validate-token`, {
         method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          query: {
-            filterBy: [
-              {
-                fieldName: CLOUDKIT_FIELDS.RESET_TOKEN,
-                fieldValue: { value: token },
-                comparator: 'EQUALS'
-              },
-              {
-                fieldName: CLOUDKIT_FIELDS.TOKEN_EXPIRY,
-                fieldValue: { value: new Date().getTime() },
-                comparator: 'GREATER_THAN'
-              }
-            ]
-          }
-        })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token })
       });
 
       if (!response.ok) {
-        throw new Error(`CloudKit API error: ${response.status}`);
+        throw new Error(`Server error: ${response.status}`);
       }
 
-      const data: CloudKitQueryResponse = await response.json();
-      return data.records && data.records.length > 0 ? data.records[0] : null;
+      const result = await response.json();
+      return {
+        valid: result.valid,
+        message: result.message,
+        user: result.user
+      };
 
     } catch (error) {
       console.error('Error validating reset token:', error);
-      throw error;
+      return { valid: false, message: 'Error validating token' };
     }
   }
 
   /**
-   * Finds a user record by reset token
+   * Finds a user record by reset token using the local server proxy
    */
   async findUserByResetToken(token: string): Promise<CloudKitRecord | null> {
     try {
-      const response = await fetch(this.getApiUrl('records/query'), {
+      const validation = await this.validateResetToken(token);
+      return validation.user || null;
+    } catch (error) {
+      console.error('Error finding user by reset token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Updates a user's password using the local server proxy
+   */
+  async updateUserPassword(userRecord: CloudKitRecord, hashedPassword: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.serverBaseUrl}/api/cloudkit/reset-password`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          query: {
-            filterBy: [{
-              fieldName: CLOUDKIT_FIELDS.RESET_TOKEN,
-              fieldValue: { value: token },
-              comparator: 'EQUALS'
-            }]
-          }
+          token: userRecord.fields.resetToken?.value,
+          newPassword: hashedPassword
         })
       });
 
       if (!response.ok) {
-        throw new Error(`CloudKit API error: ${response.status}`);
+        throw new Error(`Failed to update password: ${response.status}`);
       }
 
-      const data: CloudKitQueryResponse = await response.json();
-      return data.records && data.records.length > 0 ? data.records[0] : null;
-
-    } catch (error) {
-      console.error('Error finding user by reset token:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Updates a user's password and clears reset token
-   */
-  async updateUserPassword(userRecord: CloudKitRecord, hashedPassword: string): Promise<boolean> {
-    try {
-      const response = await fetch(this.getApiUrl('records/modify'), {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          operations: [{
-            operationType: 'update',
-            record: {
-              recordName: userRecord.recordName,
-              recordType: userRecord.recordType,
-              fields: {
-                ...userRecord.fields,
-                [CLOUDKIT_FIELDS.PASSWORD]: { value: hashedPassword },
-                [CLOUDKIT_FIELDS.RESET_TOKEN]: { value: null },
-                [CLOUDKIT_FIELDS.TOKEN_EXPIRY]: { value: null }
-              }
-            }
-          }]
-        })
-      });
-
-      return response.ok;
+      const result = await response.json();
+      return result.success;
 
     } catch (error) {
       console.error('Error updating user password:', error);
@@ -164,13 +129,11 @@ class CloudKitService {
    * Hash password using PBKDF2-SHA256 to match iOS app
    */
   async hashPassword(password: string): Promise<string> {
-    // Use PBKDF2 with SHA-256 to match iOS implementation
-    // This should match the hashing used in your iOS app
-    const salt = 'TuneBoxedSalt2024'; // Use the same salt as your iOS app
-    const iterations = 10000; // Use the same iteration count as your iOS app
+    const salt = 'TuneBoxedSalt2024';
+    const iterations = 10000;
     
     const hash = CryptoJS.PBKDF2(password, salt, {
-      keySize: 256 / 32, // 256 bits = 32 bytes = 8 words of 32 bits
+      keySize: 256 / 32,
       iterations: iterations,
       hasher: CryptoJS.algo.SHA256
     });
@@ -183,6 +146,30 @@ class CloudKitService {
    */
   generateAppDeepLink(action: string): string {
     return `tuneboxed://${action}`;
+  }
+
+  /**
+   * Test CloudKit connection through the local server proxy
+   */
+  async testConnection(): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await fetch(`${this.serverBaseUrl}/api/cloudkit/test`);
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+
+    } catch (error) {
+      console.error('Error testing CloudKit connection:', error);
+      return {
+        success: false,
+        message: `Connection test failed: ${error}`,
+        data: null
+      };
+    }
   }
 }
 
