@@ -28,7 +28,12 @@ class CloudKitService {
 
     try {
       // Convert PEM private key to JWK format
-      const privateKey = await jose.importPKCS8(CLOUDKIT_CONFIG.privateKey, 'ES256');
+      const pemKey = CLOUDKIT_CONFIG.privateKey
+        .replace('-----BEGIN EC PRIVATE KEY-----', '')
+        .replace('-----END EC PRIVATE KEY-----', '')
+        .replace(/\s/g, '');
+      
+      const privateKey = await jose.importPKCS8(pemKey, 'ES256');
       
       const jwt = await new jose.SignJWT(payload)
         .setProtectedHeader({ 
