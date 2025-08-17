@@ -133,6 +133,7 @@ export class PasswordResetService {
    * Generate a secure reset token
    */
   generateResetToken(): string {
+    // Generate a secure random token
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
@@ -142,6 +143,7 @@ export class PasswordResetService {
    * Get token expiry date (1 hour from now)
    */
   getTokenExpiry(): Date {
+    // Token expires in 1 hour
     const expiry = new Date();
     expiry.setHours(expiry.getHours() + 1); // 1 hour expiry
     return expiry;
