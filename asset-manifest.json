@@ -1,18 +1,18 @@
 {
   "files": {
     "main.css": "/static/css/main.fab89a34.css",
-    "main.js": "/static/js/main.ad7e3b17.js",
-    "static/js/601.48b6fdac.chunk.js": "/static/js/601.48b6fdac.chunk.js",
-    "static/js/453.68693753.chunk.js": "/static/js/453.68693753.chunk.js",
+    "main.js": "/static/js/main.deab2ca9.js",
+    "static/js/601.23e605f8.chunk.js": "/static/js/601.23e605f8.chunk.js",
+    "static/js/453.ed3810f9.chunk.js": "/static/js/453.ed3810f9.chunk.js",
     "static/media/tuneboxed-logo.png": "/static/media/tuneboxed-logo.da23f4f00be2afe4b9ba.png",
     "index.html": "/index.html",
     "main.fab89a34.css.map": "/static/css/main.fab89a34.css.map",
-    "main.ad7e3b17.js.map": "/static/js/main.ad7e3b17.js.map",
-    "601.48b6fdac.chunk.js.map": "/static/js/601.48b6fdac.chunk.js.map",
-    "453.68693753.chunk.js.map": "/static/js/453.68693753.chunk.js.map"
+    "main.deab2ca9.js.map": "/static/js/main.deab2ca9.js.map",
+    "601.23e605f8.chunk.js.map": "/static/js/601.23e605f8.chunk.js.map",
+    "453.ed3810f9.chunk.js.map": "/static/js/453.ed3810f9.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.fab89a34.css",
-    "static/js/main.ad7e3b17.js"
+    "static/js/main.deab2ca9.js"
   ]
 }
