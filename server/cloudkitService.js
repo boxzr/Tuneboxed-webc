@@ -1,56 +1,110 @@
 const { CLOUDKIT_CONFIG } = require('./config');
-const jsrsasign = require('jsrsasign');
-const CryptoJS = require('crypto-js');
+const crypto = require('crypto');
 
 class CloudKitService {
   constructor() {
     this.baseUrl = `${CLOUDKIT_CONFIG.apiEndpoint}/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}`;
   }
 
-  generateJWT() {
-    const now = Math.floor(Date.now() / 1000);
-    const header = {
-      alg: 'ES256',
-      kid: CLOUDKIT_CONFIG.serverToServerKeyAuth,
-      typ: 'JWT'
-    };
-    
-    const payload = {
-      iss: CLOUDKIT_CONFIG.serverToServerKeyAuth,
-      iat: now,
-      exp: now + 3600, // 1 hour expiry
-      sub: CLOUDKIT_CONFIG.containerIdentifier
-    };
+  // Normalize ISO date to avoid millisecond edge-cases
+  isoNow() {
+    return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  }
 
+  // Create SHA-256 hex hash
+  sha256hex(str) {
+    return crypto.createHash('sha256').update(str).digest('hex');
+  }
+
+  // Load private key with explicit format handling for OpenSSL 3
+  loadPrivateKeyPem() {
     try {
-      const jwt = jsrsasign.KJUR.jws.JWS.sign(
-        'ES256',
-        JSON.stringify(header),
-        JSON.stringify(payload),
-        CLOUDKIT_CONFIG.privateKey
-      );
+      // Handle base64 encoded PEM or plain PEM with escaped newlines
+      let pem;
+      if (CLOUDKIT_CONFIG.privateKey.includes('-----BEGIN')) {
+        // Plain PEM - replace escaped newlines
+        pem = CLOUDKIT_CONFIG.privateKey.replace(/\\n/g, '\n');
+      } else {
+        // Base64 encoded PEM
+        pem = Buffer.from(CLOUDKIT_CONFIG.privateKey, 'base64').toString('utf8');
+      }
       
-      return jwt;
+      console.log('🔐 Loading private key in PKCS#8 format');
+      
+      // Try PKCS#8 first (recommended for OpenSSL 3)
+      try {
+        return crypto.createPrivateKey({ key: pem, format: 'pem', type: 'pkcs8' });
+      } catch (pkcs8Error) {
+        console.log('🔐 PKCS#8 failed, trying SEC1 format');
+        // Fallback to SEC1 (traditional EC format)
+        return crypto.createPrivateKey({ key: pem, format: 'pem', type: 'sec1' });
+      }
     } catch (error) {
-      console.error('JWT generation failed:', error);
-      throw new Error('Failed to generate JWT token');
+      console.error('🔐 Private key loading error:', error);
+      throw new Error(`Failed to load private key: ${error.message}`);
     }
   }
 
-  getHeaders() {
-    const jwt = this.generateJWT();
+  // Sign string with EC private key using explicit KeyObject
+  signString(str) {
+    try {
+      const keyObj = this.loadPrivateKeyPem();
+      
+      const signer = crypto.createSign('sha256');
+      signer.update(str);
+      signer.end();
+      
+      const signature = signer.sign(keyObj).toString('base64');
+      console.log('🔐 Signing successful, signature length:', signature.length);
+      
+      return signature;
+    } catch (error) {
+      console.error('🔐 Signing error:', error);
+      throw error;
+    }
+  }
+
+  generateCloudKitHeaders(method, path, body) {
+    const date = this.isoNow();
+    const bodyString = JSON.stringify(body || {});
+    const bodyHash = this.sha256hex(bodyString);
+    
+    // Create the string to sign: METHOD:PATH:ISO8601DATE:SHA256(REQUEST_BODY)
+    const stringToSign = `${method}:${path}:${date}:${bodyHash}`;
+    
+    console.log('🔐 String to sign:', stringToSign);
+    
+    const signature = this.signString(stringToSign);
+    
+    console.log('🔐 Generated signature:', signature.substring(0, 50) + '...');
+    console.log('🔑 Key ID:', CLOUDKIT_CONFIG.serverToServerKeyAuth);
+    console.log('🌍 Environment:', CLOUDKIT_CONFIG.environment);
+    console.log('📦 Container:', CLOUDKIT_CONFIG.containerIdentifier);
+    
     return {
-      'Authorization': `CloudKit-Server-to-Server-Key ${jwt}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'X-Apple-CloudKit-Request-KeyID': CLOUDKIT_CONFIG.serverToServerKeyAuth,
+      'X-Apple-CloudKit-Request-ISO8601Date': date,
+      'X-Apple-CloudKit-Request-SignatureV1': signature
     };
   }
 
   async queryRecords(query) {
     try {
-      const response = await fetch(`${this.baseUrl}/records/query`, {
+      const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/query`;
+      const body = { query };
+      const headers = this.generateCloudKitHeaders('POST', path, body);
+      const url = `https://api.apple-cloudkit.com${path}`;
+      
+      console.log('🌐 Making CloudKit request to:', url);
+      console.log('📋 Headers:', JSON.stringify(headers, null, 2));
+      console.log('📦 Query:', JSON.stringify(query, null, 2));
+      console.log('🔐 Path used for signing:', path);
+      
+      const response = await fetch(url, {
         method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ query })
+        headers: headers,
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
@@ -106,24 +160,30 @@ class CloudKitService {
 
   async updateUserPassword(userRecord, hashedPassword) {
     try {
-      const response = await fetch(`${this.baseUrl}/records/modify`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          operations: [{
-            operationType: 'update',
-            record: {
-              recordName: userRecord.recordName,
-              recordType: userRecord.recordType,
-              fields: {
-                ...userRecord.fields,
-                password: { value: hashedPassword },
-                resetToken: { value: null },
-                resetTokenExpiry: { value: null }
-              }
+      const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
+      const body = {
+        operations: [{
+          operationType: 'update',
+          record: {
+            recordName: userRecord.recordName,
+            recordType: userRecord.recordType,
+            fields: {
+              ...userRecord.fields,
+              password: { value: hashedPassword },
+              resetToken: { value: null },
+              resetTokenExpiry: { value: null }
             }
-          }]
-        })
+          }
+        }]
+      };
+      
+      const headers = this.generateCloudKitHeaders('POST', path, body);
+      const url = `https://api.apple-cloudkit.com${path}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
@@ -139,16 +199,163 @@ class CloudKitService {
   }
 
   hashPassword(password) {
-    const salt = 'TuneBoxedSalt2024';
-    const iterations = 10000;
-    
-    const hash = CryptoJS.PBKDF2(password, salt, {
-      keySize: 256 / 32,
-      iterations: iterations,
-      hasher: CryptoJS.algo.SHA256
-    });
-    
-    return hash.toString(CryptoJS.enc.Hex);
+    // Generate unique random salt per user
+    const salt = crypto.randomBytes(16);
+    // Use scrypt for better security (defaults: N=16384, r=8, p=1)
+    const hash = crypto.scryptSync(password, salt, 64);
+    // Return salt:hash format for storage
+    return `${salt.toString('base64')}:${hash.toString('base64')}`;
+  }
+
+  verifyPassword(password, storedHash) {
+    try {
+      const [saltB64, hashB64] = storedHash.split(':');
+      const salt = Buffer.from(saltB64, 'base64');
+      const hash = crypto.scryptSync(password, salt, 64);
+      return crypto.timingSafeEqual(hash, Buffer.from(hashB64, 'base64'));
+    } catch (error) {
+      console.error('Password verification error:', error);
+      return false;
+    }
+  }
+
+  // New method: Hash password using scrypt (recommended)
+  hashPasswordScrypt(password) {
+    const salt = crypto.randomBytes(16);
+    const key = crypto.scryptSync(password, salt, 64);
+    return { 
+      hashB64: key.toString('base64'), 
+      saltB64: salt.toString('base64') 
+    };
+  }
+
+  // New method: Find user by email
+  async findUserByEmail(email) {
+    try {
+      const query = {
+        recordType: 'User',
+        filterBy: [{
+          fieldName: 'emailString',
+          comparator: 'EQUALS',
+          fieldValue: { value: email }
+        }],
+        resultsLimit: 1
+      };
+
+      const result = await this.queryRecords(query);
+      return result.records?.[0] || null;
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
+  // New method: Find user by reset token hash
+  async findUserByResetTokenHash(tokenHash) {
+    try {
+      const query = {
+        recordType: 'User',
+        filterBy: [{
+          fieldName: 'resetTokenString',
+          comparator: 'EQUALS',
+          fieldValue: { value: tokenHash }
+        }],
+        resultsLimit: 1
+      };
+
+      const result = await this.queryRecords(query);
+      return result.records?.[0] || null;
+    } catch (error) {
+      console.error('Error finding user by reset token hash:', error);
+      return null;
+    }
+  }
+
+  // New method: Update user with reset token
+  async updateUserResetToken(userRecord, tokenHash, expiresAt) {
+    try {
+      const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
+      const body = {
+        operations: [{
+          operationType: 'update',
+          record: {
+            recordName: userRecord.recordName,
+            recordType: userRecord.recordType,
+            recordChangeTag: userRecord.recordChangeTag,
+            fields: {
+              ...userRecord.fields,
+              resetTokenString: { value: tokenHash },
+              resetTokenExpiryDate: { value: expiresAt }
+            }
+          }
+        }]
+      };
+      
+      const headers = this.generateCloudKitHeaders('POST', path, body);
+      const url = `https://api.apple-cloudkit.com${path}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to update reset token: ${response.status} - ${errorData.reason || response.statusText}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating user reset token:', error);
+      throw error;
+    }
+  }
+
+  // New method: Update user password and clear reset fields
+  async updateUserPasswordAndClearReset(userRecord, hashB64, saltB64) {
+    try {
+      const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
+      const body = {
+        operations: [{
+          operationType: 'update',
+          record: {
+            recordName: userRecord.recordName,
+            recordType: userRecord.recordType,
+            recordChangeTag: userRecord.recordChangeTag,
+            fields: {
+              ...userRecord.fields,
+              passwordHashString: { value: hashB64 },
+              saltString: { value: saltB64 },
+              passwordAlgorithmString: { value: 'scrypt' },
+              passwordKeyLengthInt64: { value: 64 },
+              passwordIterationsInt64: { value: 0 },
+              resetTokenString: { value: null },
+              resetTokenExpiryDate: { value: null }
+            }
+          }
+        }]
+      };
+      
+      const headers = this.generateCloudKitHeaders('POST', path, body);
+      const url = `https://api.apple-cloudkit.com${path}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to update password: ${response.status} - ${errorData.reason || response.statusText}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating user password and clearing reset:', error);
+      throw error;
+    }
   }
 }
 

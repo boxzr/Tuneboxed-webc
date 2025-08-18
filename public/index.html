@@ -9,7 +9,57 @@
     <meta
       name="description"
       content="TuneBoxed - Showcase your music taste. Share and Express Yourself Through Sound."
-    />
+    />Progress! Your key loads and you’re signing—great. A 401 “Authentication failed” at this stage almost always means one of these:
+
+    The 5 usual culprits (and how to fix)
+    
+    Wrong environment for the Key ID
+    
+    In CloudKit Dashboard → API Access, open your key ff4a…a418.
+    
+    Make sure Development is enabled (your request path is /…/development/…).
+    
+    If only Production is enabled, either:
+    
+    flip on Development for this key, or
+    
+    switch your code/ENV to production so the path becomes /…/production/….
+    
+    Public key in Dashboard doesn’t match the private key you’re using
+    
+    If you regenerated/converted keys recently, it’s easy to mix them up.
+    
+    Fix: re-upload the public key that corresponds to the exact private key you’re loading on Railway, or generate a fresh pair and start clean:
+    
+    openssl ecparam -name prime256v1 -genkey -noout -out ec.pem
+    
+    openssl pkcs8 -topk8 -nocrypt -in ec.pem -out private-pkcs8.pem
+    
+    openssl ec -in ec.pem -pubout -out public.pem
+    
+    Upload public.pem → note new Key ID → put that Key ID + private-pkcs8.pem (in env) into your server.
+    
+    Body or path mismatch in the signature
+    
+    Your logs show you’re signing /database/1/.../development/public/records/query (✅ correct).
+    
+    Make sure the body you hash is exactly what you send:
+    
+    You’re hashing JSON.stringify({ query: { recordType:'User', resultsLimit:1 }})
+    
+    You must send that same string as the request body (same field order/whitespace because it’s the same JSON.stringify result).
+    
+    Also ensure Content-Length matches those bytes (Fetch/Node handles this if you pass the same string).
+    
+    Clock skew
+    
+    The X-Apple-CloudKit-Request-ISO8601Date must be near real time (±5–10 min).
+    
+    Your log shows …T02:56:35Z which looks fine; just make sure the host’s clock is synced (Railway typically is).
+    
+    Container typo
+    
+    Confirm the container string is exactly iCloud.AuraBrand.TuneBoxed in Dashboard and in your path.
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a

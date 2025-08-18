@@ -1,16 +1,22 @@
 // CloudKit Configuration for Server
 const CLOUDKIT_CONFIG = {
-  containerIdentifier: 'iCloud.AuraBrand.TuneBoxed',
-  environment: 'development', // Change to 'production' when ready
-  serverToServerKeyAuth: 'a15e8398eb9f01cab4b5f3cd9d65c4bc6143fa88d15067de97860560e71df9f0',
-  privateKey: `-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIJBYILxe5I+owLrIktPuzy59saOGMq4w+kaKrNJzgLrhoAoGCCqGSM49
-AwEHoUQDQgAEEZhnE/DpSol682PsGMQNmx5RPLrTnRMkL9ekrddQF/FiYJD00mut
-7SuRpNl86toObo7BIm3ThhpzT0ghqltDQg==
------END EC PRIVATE KEY-----`,
-  databaseType: 'public',
+  containerIdentifier: process.env.CK_CONTAINER || 'iCloud.AuraBrand.TuneBoxed',
+  environment: process.env.CK_ENV || 'development',
+  serverToServerKeyAuth: process.env.CK_KEY_ID || '',
+  privateKey: process.env.CK_PRIVATE_KEY || '',
+  databaseType: process.env.CK_DB || 'public',
   apiEndpoint: 'https://api.apple-cloudkit.com/database/1'
 };
+
+// Validate required environment variables
+if (!CLOUDKIT_CONFIG.serverToServerKeyAuth || !CLOUDKIT_CONFIG.privateKey) {
+  console.error('❌ Missing required CloudKit environment variables:');
+  console.error('   CK_KEY_ID: Your CloudKit Key ID');
+  console.error('   CK_PRIVATE_KEY: Your EC private key (PEM format)');
+  console.error('   CK_CONTAINER: Your CloudKit container identifier');
+  console.error('   CK_ENV: Environment (development/production)');
+  process.exit(1);
+}
 
 const SERVER_CONFIG = {
   port: process.env.PORT || 3001,

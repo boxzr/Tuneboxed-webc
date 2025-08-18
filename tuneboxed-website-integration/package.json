@@ -1,0 +1,16 @@
+{
+  "name": "tuneboxed-password-reset-integration",
+  "version": "1.0.0",
+  "description": "Backend integration for TuneBoxed password reset functionality",
+  "main": "api-endpoint.js",
+  "dependencies": {
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node -e \"console.log('TuneBoxed integration files ready!')\""
+  },
+  "keywords": ["tuneboxed", "password-reset", "cloudkit", "api"],
+  "author": "TuneBoxed Team",
+  "license": "MIT"
+}

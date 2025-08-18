@@ -1,326 +1,250 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { passwordResetService } from '../services/passwordResetService';
-import { cloudKitService } from '../services/cloudkitService';
+import { useLocation } from 'react-router-dom';
 
 const PasswordReset: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
-  
-  const token = searchParams.get('token');
+  const [messageType, setMessageType] = useState<'success' | 'error' | 'warning' | ''>('');
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      setError('Invalid reset link. No token provided.');
-      setTokenValid(false);
+    // Get reset token from URL parameters
+    const urlParams = new URLSearchParams(location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      setResetToken(token);
+      console.log('🔗 Reset token found:', token.substring(0, 8) + '...');
+    } else {
+      showMessage('error', 'Invalid reset link. Please request a new password reset from the TuneBoxed app.');
+    }
+  }, [location]);
+
+  const showMessage = (type: 'success' | 'error' | 'warning', msg: string) => {
+    setMessageType(type);
+    setMessage(msg);
+  };
+
+  const clearMessages = () => {
+    setMessage('');
+    setMessageType('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Clear any previous messages
+    clearMessages();
+    
+    // Validation
+    if (!resetToken) {
+      showMessage('error', 'Invalid reset link. Please request a new password reset.');
       return;
     }
     
-    // Validate token with CloudKit
-    validateResetToken(token);
-  }, [token]);
-
-  const validateResetToken = async (resetToken: string) => {
-    try {
-      setLoading(true);
-      
-      const validation = await passwordResetService.validateResetToken(resetToken);
-      
-      if (validation.valid) {
-        setTokenValid(true);
-      } else {
-        setTokenValid(false);
-        setError(validation.message);
-      }
-    } catch (err) {
-      setTokenValid(false);
-      setError('Failed to validate reset token. Please try again.');
-      console.error('Token validation error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
     if (!newPassword || !confirmPassword) {
-      setError('Please fill in all fields.');
+      showMessage('error', 'Please fill in all fields.');
       return;
     }
     
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      showMessage('error', 'Passwords do not match.');
       return;
     }
     
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      showMessage('error', 'Password must be at least 8 characters long.');
       return;
     }
-
-    setLoading(true);
-    setError('');
+    
+    // Basic password strength check
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      showMessage('warning', 'For better security, use a mix of uppercase, lowercase, and numbers.');
+    }
     
     try {
-      // Use the password reset service to handle the complete flow
-      const result = await passwordResetService.resetPassword(token!, newPassword);
-
-      if (result.success) {
-        setMessage(result.message + ' Redirecting you back to the app...');
+      setIsLoading(true);
+      console.log('🔄 Sending password reset request...');
+      
+      // Call YOUR backend API (same domain = no CORS issues!)
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: resetToken,
+          newPassword: newPassword
+        })
+      });
+      
+      const result = await response.json();
+      console.log('📡 API Response:', result);
+      
+      if (response.ok && result.success) {
+        showMessage('success', '✅ Password reset successful! Redirecting to app...');
+        
+        // Redirect back to iOS app after 3 seconds
         setTimeout(() => {
-          // Redirect to app using deep link
-          window.location.href = cloudKitService.generateAppDeepLink('password-reset-success');
+          console.log('🔗 Redirecting to app...');
+          window.location.href = result.redirectUrl || 'tuneboxed://password-reset-success';
         }, 3000);
+        
       } else {
-        setError(result.message);
+        showMessage('error', result.error || 'Password reset failed. Please try again.');
       }
-
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-      console.error('Password reset error:', err);
+      
+    } catch (error) {
+      console.error('❌ Network error:', error);
+      showMessage('error', 'Network error. Please check your connection and try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-
-
-  if (tokenValid === null) {
-    return (
-      <div className="password-reset-container">
-        <div className="password-reset-card">
-          <div className="loading-spinner">Validating reset link...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (tokenValid === false) {
-    return (
-      <div className="password-reset-container">
-        <div className="password-reset-card">
-          <h2>Invalid Reset Link</h2>
-          <p className="error-message">{error}</p>
-          <p>Please request a new password reset from the TuneBoxed app.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="password-reset-container">
-      <motion.div 
-        className="password-reset-card"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="password-reset-header">
-          <h2>Reset Your Password</h2>
-          <p>Enter your new password for TuneBoxed</p>
-        </div>
-
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif'
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '20px',
+        padding: '40px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+        maxWidth: '450px',
+        width: '100%',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '3em', marginBottom: '10px' }}>🎵</div>
+        <h1 style={{ color: '#333', marginBottom: '10px', fontSize: '1.8em', fontWeight: 600 }}>
+          Reset Your Password
+        </h1>
+        <p style={{ color: '#666', marginBottom: '30px', fontSize: '1em' }}>
+          Enter your new password for TuneBoxed
+        </p>
+        
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              color: '#333', 
+              fontWeight: 500, 
+              fontSize: '0.95em' 
+            }}>
+              New Password
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={8}
+              placeholder="Enter your new password"
+              disabled={isLoading}
+              style={{
+                width: '100%',
+                padding: '16px',
+                border: '2px solid #e1e5e9',
+                borderRadius: '12px',
+                fontSize: '16px',
+                background: isLoading ? '#f8f9fa' : 'white',
+                transition: 'all 0.3s ease'
+              }}
+            />
+            <div style={{ fontSize: '0.85em', color: '#666', marginTop: '5px' }}>
+              <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+                <li>At least 8 characters long</li>
+                <li>Mix of letters and numbers recommended</li>
+                <li>Avoid common passwords</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              color: '#333', 
+              fontWeight: 500, 
+              fontSize: '0.95em' 
+            }}>
+              Confirm New Password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              placeholder="Confirm your new password"
+              disabled={isLoading}
+              style={{
+                width: '100%',
+                padding: '16px',
+                border: '2px solid #e1e5e9',
+                borderRadius: '12px',
+                fontSize: '16px',
+                background: isLoading ? '#f8f9fa' : 'white',
+                transition: 'all 0.3s ease'
+              }}
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: isLoading ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              marginTop: '10px'
+            }}
+          >
+            {isLoading ? '🔄 Resetting...' : 'Reset Password'}
+          </button>
+        </form>
+        
+        {/* Message Display */}
         {message && (
-          <motion.div 
-            className="success-message"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <div style={{
+            marginTop: '20px',
+            padding: '15px',
+            borderRadius: '10px',
+            fontWeight: 500,
+            background: messageType === 'error' ? '#fee' : 
+                       messageType === 'success' ? '#f0fff4' : '#fffaf0',
+            color: messageType === 'error' ? '#c53030' : 
+                   messageType === 'success' ? '#38a169' : '#d69e2e',
+            border: `1px solid ${messageType === 'error' ? '#feb2b2' : 
+                                 messageType === 'success' ? '#9ae6b4' : '#fbd38d'}`
+          }}>
             {message}
-          </motion.div>
+          </div>
         )}
-
-        {error && (
-          <motion.div 
-            className="error-message"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            {error}
-          </motion.div>
-        )}
-
-        {!message && (
-          <form onSubmit={handlePasswordReset} className="password-reset-form">
-            <div className="form-group">
-              <label htmlFor="newPassword">New Password</label>
-              <input
-                type="password"
-                id="newPassword"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
-                required
-                minLength={8}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
-              <input
-                type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                required
-                minLength={8}
-                disabled={loading}
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              className="reset-button"
-              disabled={loading}
-            >
-              {loading ? 'Resetting Password...' : 'Reset Password'}
-            </button>
-          </form>
-        )}
-
-        <div className="app-redirect">
-          <p>Return to the TuneBoxed app to log in with your new password.</p>
+        
+        <div style={{ marginTop: '30px', fontSize: '0.9em', color: '#666' }}>
+          <p>Having trouble? <a href="mailto:support@tuneboxed.com" style={{ color: '#667eea', textDecoration: 'none' }}>Contact Support</a></p>
+          <p style={{ marginTop: '10px', fontSize: '0.8em' }}>
+            This link expires in 1 hour for security.
+          </p>
         </div>
-      </motion.div>
-
-      <style>{`
-        .password-reset-container {
-          min-height: 100vh;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          padding: 20px;
-        }
-
-        .password-reset-card {
-          background: white;
-          border-radius: 12px;
-          padding: 40px;
-          max-width: 400px;
-          width: 100%;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .password-reset-header {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-
-        .password-reset-header h2 {
-          color: #333;
-          margin-bottom: 10px;
-          font-size: 24px;
-        }
-
-        .password-reset-header p {
-          color: #666;
-          font-size: 14px;
-        }
-
-        .password-reset-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-group label {
-          margin-bottom: 5px;
-          color: #333;
-          font-weight: 500;
-        }
-
-        .form-group input {
-          padding: 12px;
-          border: 2px solid #e1e5e9;
-          border-radius: 8px;
-          font-size: 16px;
-          transition: border-color 0.3s;
-        }
-
-        .form-group input:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-
-        .form-group input:disabled {
-          background-color: #f5f5f5;
-          cursor: not-allowed;
-        }
-
-        .reset-button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          padding: 14px;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
-
-        .reset-button:hover:not(:disabled) {
-          transform: translateY(-1px);
-        }
-
-        .reset-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .success-message {
-          background: #d4edda;
-          color: #155724;
-          padding: 12px;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          text-align: center;
-        }
-
-        .error-message {
-          background: #f8d7da;
-          color: #721c24;
-          padding: 12px;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          text-align: center;
-        }
-
-        .app-redirect {
-          text-align: center;
-          margin-top: 30px;
-          padding-top: 20px;
-          border-top: 1px solid #e1e5e9;
-        }
-
-        .app-redirect p {
-          color: #666;
-          font-size: 14px;
-        }
-
-        .loading-spinner {
-          text-align: center;
-          color: #666;
-          font-size: 16px;
-        }
-      `}</style>
+      </div>
     </div>
   );
 };
