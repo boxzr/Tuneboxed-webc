@@ -6,9 +6,14 @@ const { SERVER_CONFIG, CLOUDKIT_CONFIG } = require('./config');
 
 const app = express();
 
-// CORS configuration - allow only your website domain for security
+// CORS configuration - allow multiple domains for password reset
 app.use(cors({
-  origin: "https://tuneboxed.com",
+  origin: [
+    "https://tuneboxed.com",
+    "https://boxzr.github.io",
+    "http://localhost:3000",
+    "http://localhost:3001"
+  ],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"],
   credentials: false
