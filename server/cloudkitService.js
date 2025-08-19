@@ -203,11 +203,11 @@ class CloudKitService {
   }
 
   hashPassword(password) {
-    // Generate unique random salt per user
+    // Generate 16-byte salt to match iOS
     const salt = crypto.randomBytes(16);
-    // Use scrypt for better security (defaults: N=16384, r=8, p=1)
-    const hash = crypto.scryptSync(password, salt, 64);
-    // Return salt:hash format for storage
+    // Use 32-byte key length to match iOS app (changed from 64)
+    const hash = crypto.scryptSync(password, salt, 32);
+    // Return salt:hash format for storage (Base64 as iOS expects)
     return `${salt.toString('base64')}:${hash.toString('base64')}`;
   }
 
@@ -215,7 +215,8 @@ class CloudKitService {
     try {
       const [saltB64, hashB64] = storedHash.split(':');
       const salt = Buffer.from(saltB64, 'base64');
-      const hash = crypto.scryptSync(password, salt, 64);
+      // Use 32-byte key length to match iOS app (changed from 64)
+      const hash = crypto.scryptSync(password, salt, 32);
       return crypto.timingSafeEqual(hash, Buffer.from(hashB64, 'base64'));
     } catch (error) {
       console.error('Password verification error:', error);
@@ -223,10 +224,12 @@ class CloudKitService {
     }
   }
 
-  // New method: Hash password using scrypt (recommended)
+  // Hash password using scrypt to match iOS app implementation
   hashPasswordScrypt(password) {
+    // Generate 16-byte salt (same as iOS)
     const salt = crypto.randomBytes(16);
-    const key = crypto.scryptSync(password, salt, 64);
+    // Use 32-byte key length to match iOS (changed from 64)
+    const key = crypto.scryptSync(password, salt, 32);
     return { 
       hashB64: key.toString('base64'), 
       saltB64: salt.toString('base64') 
