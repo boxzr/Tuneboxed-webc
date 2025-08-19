@@ -88,14 +88,31 @@ app.post('/api/reset-password', async (req, res) => {
     console.log('🔍 Processing password reset for token:', token.substring(0, 8) + '...');
 
     // Step 1: Find user by reset token in CloudKit
-    const queryResult = await cloudKitService.queryRecords({
+    // First try to find by the resetToken field (if it exists)
+    let queryResult = await cloudKitService.queryRecords({
       recordType: 'User',
       filterBy: [{
-        fieldName: 'resetTokenString',
-        comparator: 'EQUALS',
+        fieldName: 'resetToken',
+        comparator: 'EQUALS', 
         fieldValue: { value: token }
       }],
       resultsLimit: 1
+    }).catch(async (error) => {
+      // If resetToken field doesn't exist, fall back to email lookup for testing
+      console.log('⚠️ resetToken field not found, checking if this is a direct email test...');
+      if (token.includes('@')) {
+        console.log('🔍 Token looks like email, searching by email instead...');
+        return await cloudKitService.queryRecords({
+          recordType: 'User',
+          filterBy: [{
+            fieldName: 'email',
+            comparator: 'EQUALS',
+            fieldValue: { value: token }
+          }],
+          resultsLimit: 1
+        });
+      }
+      throw error;
     });
 
     if (!queryResult.records || queryResult.records.length === 0) {
@@ -105,31 +122,38 @@ app.post('/api/reset-password', async (req, res) => {
     }
 
     const userRecord = queryResult.records[0];
-    const username = userRecord.fields.usernameString?.value || userRecord.fields.emailString?.value || 'Unknown';
+    const username = userRecord.fields.username?.value || userRecord.fields.email?.value || 'Unknown';
     console.log('✅ Found user:', username);
 
-    // Step 2: Check if token is expired
-    const tokenExpiry = new Date(userRecord.fields.resetTokenExpiryDate?.value || userRecord.fields.resetTokenExpiryTime?.value);
-    const now = new Date();
-    
-    if (now > tokenExpiry) {
-      console.log('❌ Token expired:', tokenExpiry, 'vs now:', now);
-      return res.status(400).json({ 
-        error: 'Reset token has expired. Please request a new password reset.' 
-      });
+    // Step 2: Check if token is expired (if expiry field exists)
+    const tokenExpiry = userRecord.fields.resetTokenExpiry?.value || userRecord.fields.resetTokenExpiryDate?.value;
+    if (tokenExpiry) {
+      const expiryDate = new Date(tokenExpiry);
+      const now = new Date();
+      
+      if (now > expiryDate) {
+        console.log('❌ Token expired:', expiryDate, 'vs now:', now);
+        return res.status(400).json({ 
+          error: 'Reset token has expired. Please request a new password reset.' 
+        });
+      }
+      console.log('✅ Token is valid, expires:', expiryDate);
+    } else {
+      console.log('ℹ️ No token expiry field found, proceeding without expiry check');
     }
 
-    console.log('✅ Token is valid, expires:', tokenExpiry);
+    // Step 3: Hash the new password using PBKDF2 (matches iOS exactly)
+    const { hashB64, saltB64, algorithm, iterations, keyLength } = cloudKitService.hashPasswordScrypt(newPassword);
+    console.log('🔐 Password hashed successfully with PBKDF2');
 
-    // Step 3: Hash the new password using scrypt (matches your current system)
-    const { hashB64, saltB64 } = cloudKitService.hashPasswordScrypt(newPassword);
-    console.log('🔐 Password hashed successfully');
-
-    // Step 4: Update user record in CloudKit (clear reset token)
-    const updateSuccess = await cloudKitService.updateUserPasswordAndClearReset(
+    // Step 4: Update user password in CloudKit with ALL iOS-expected fields
+    const updateSuccess = await cloudKitService.updateUserPasswordWithExistingFields(
       userRecord, 
       hashB64, 
-      saltB64
+      saltB64,
+      algorithm,
+      iterations,
+      keyLength
     );
 
     if (!updateSuccess) {

@@ -204,19 +204,29 @@ class CloudKitService {
 
   hashPassword(password) {
     // Generate 16-byte salt to match iOS
-    const salt = crypto.randomBytes(16);
-    // Use 32-byte key length to match iOS app (changed from 64)
-    const hash = crypto.scryptSync(password, salt, 32);
+    const saltBytes = crypto.randomBytes(16);
+    const saltBase64 = saltBytes.toString('base64');
+    
+    // PBKDF2 with EXACT iOS parameters
+    const iterations = 310000; // Same as iOS
+    const keyLength = 32; // Same as iOS (32 bytes = 256 bits)
+    
+    // Hash using PBKDF2-SHA256 (same as iOS)
+    const hashBytes = crypto.pbkdf2Sync(password, saltBytes, iterations, keyLength, 'sha256');
+    const hashBase64 = hashBytes.toString('base64');
+    
     // Return salt:hash format for storage (Base64 as iOS expects)
-    return `${salt.toString('base64')}:${hash.toString('base64')}`;
+    return `${saltBase64}:${hashBase64}`;
   }
 
   verifyPassword(password, storedHash) {
     try {
       const [saltB64, hashB64] = storedHash.split(':');
-      const salt = Buffer.from(saltB64, 'base64');
-      // Use 32-byte key length to match iOS app (changed from 64)
-      const hash = crypto.scryptSync(password, salt, 32);
+      const saltBytes = Buffer.from(saltB64, 'base64');
+      // Use PBKDF2 with exact iOS parameters
+      const iterations = 310000;
+      const keyLength = 32;
+      const hash = crypto.pbkdf2Sync(password, saltBytes, iterations, keyLength, 'sha256');
       return crypto.timingSafeEqual(hash, Buffer.from(hashB64, 'base64'));
     } catch (error) {
       console.error('Password verification error:', error);
@@ -224,15 +234,26 @@ class CloudKitService {
     }
   }
 
-  // Hash password using scrypt to match iOS app implementation
+  // Hash password using PBKDF2 to EXACTLY match iOS app implementation
   hashPasswordScrypt(password) {
-    // Generate 16-byte salt (same as iOS)
-    const salt = crypto.randomBytes(16);
-    // Use 32-byte key length to match iOS (changed from 64)
-    const key = crypto.scryptSync(password, salt, 32);
+    // Generate 16-byte salt (exactly like iOS)
+    const saltBytes = crypto.randomBytes(16);
+    const saltBase64 = saltBytes.toString('base64');
+    
+    // PBKDF2 with EXACT iOS parameters
+    const iterations = 310000; // Same as iOS
+    const keyLength = 32; // Same as iOS (32 bytes = 256 bits)
+    
+    // Hash using PBKDF2-SHA256 (same as iOS)
+    const hashBytes = crypto.pbkdf2Sync(password, saltBytes, iterations, keyLength, 'sha256');
+    const hashBase64 = hashBytes.toString('base64');
+    
     return { 
-      hashB64: key.toString('base64'), 
-      saltB64: salt.toString('base64') 
+      hashB64: hashBase64, 
+      saltB64: saltBase64,
+      algorithm: 'PBKDF2',
+      iterations: iterations,
+      keyLength: keyLength
     };
   }
 
@@ -365,12 +386,12 @@ class CloudKitService {
     }
   }
 
-  // Method: Update user password using existing CloudKit field structure
-  async updateUserPasswordWithExistingFields(userRecord, hashB64, saltB64) {
+  // Method: Update user password using iOS-compatible field structure
+  async updateUserPasswordWithExistingFields(userRecord, hashB64, saltB64, algorithm = 'PBKDF2', iterations = 310000, keyLength = 32) {
     try {
       const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
       
-      // Use the existing field structure from CloudKit
+      // Update ALL fields that iOS expects
       const body = {
         operations: [{
           operationType: 'update',
@@ -379,13 +400,19 @@ class CloudKitService {
             recordType: userRecord.recordType,
             recordChangeTag: userRecord.recordChangeTag,
             fields: {
+              // Keep existing fields
               ...userRecord.fields,
-              // Update password using existing field structure
-              password: { value: `${saltB64}:${hashB64}` }, // salt:hash format to match existing
-              salt: { value: saltB64 },
-              // Clear reset token fields if they exist
+              // Update ALL password-related fields iOS expects
+              password: { value: hashB64 }, // The hash itself
+              salt: { value: saltB64 }, // The salt
+              passwordAlgorithm: { value: algorithm }, // "PBKDF2"
+              passwordIterations: { value: iterations }, // 310000
+              passwordKeyLength: { value: keyLength }, // 32
+              // Clear ALL possible reset token fields
               resetToken: { value: null },
-              resetTokenExpiry: { value: null }
+              resetTokenExpiry: { value: null },
+              resetTokenExpires: { value: null },
+              resetTokens: { value: null }
             }
           }
         }]
