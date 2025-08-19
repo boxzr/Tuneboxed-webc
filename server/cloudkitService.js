@@ -11,9 +11,9 @@ class CloudKitService {
     return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   }
 
-  // Create SHA-256 hex hash
-  sha256hex(str) {
-    return crypto.createHash('sha256').update(str).digest('hex');
+  // Create SHA-256 base64 hash (as required by Apple's CloudKit Web Services)
+  sha256base64(str) {
+    return crypto.createHash('sha256').update(str).digest('base64');
   }
 
   // Load private key with explicit format handling for OpenSSL 3
@@ -25,19 +25,20 @@ class CloudKitService {
         // Plain PEM - replace escaped newlines
         pem = CLOUDKIT_CONFIG.privateKey.replace(/\\n/g, '\n');
       } else {
-        // Base64 encoded PEM
-        pem = Buffer.from(CLOUDKIT_CONFIG.privateKey, 'base64').toString('utf8');
+        // Base64 content only - wrap in PEM format
+        console.log('🔐 Converting base64 content to PEM format');
+        pem = `-----BEGIN EC PRIVATE KEY-----\n${CLOUDKIT_CONFIG.privateKey}\n-----END EC PRIVATE KEY-----`;
       }
       
-      console.log('🔐 Loading private key in PKCS#8 format');
+      console.log('🔐 Loading private key in SEC1 format');
       
-      // Try PKCS#8 first (recommended for OpenSSL 3)
+      // Try SEC1 first (traditional EC format)
       try {
-        return crypto.createPrivateKey({ key: pem, format: 'pem', type: 'pkcs8' });
-      } catch (pkcs8Error) {
-        console.log('🔐 PKCS#8 failed, trying SEC1 format');
-        // Fallback to SEC1 (traditional EC format)
         return crypto.createPrivateKey({ key: pem, format: 'pem', type: 'sec1' });
+      } catch (sec1Error) {
+        console.log('🔐 SEC1 failed, trying PKCS#8 format');
+        // Fallback to PKCS#8
+        return crypto.createPrivateKey({ key: pem, format: 'pem', type: 'pkcs8' });
       }
     } catch (error) {
       console.error('🔐 Private key loading error:', error);
@@ -64,14 +65,17 @@ class CloudKitService {
     }
   }
 
-  generateCloudKitHeaders(method, path, body) {
+  generateCloudKitHeaders(method, path, bodyString) {
     const date = this.isoNow();
-    const bodyString = JSON.stringify(body || {});
-    const bodyHash = this.sha256hex(bodyString);
+    const bodyHash = this.sha256base64(bodyString || '');
     
-    // Create the string to sign: METHOD:PATH:ISO8601DATE:SHA256(REQUEST_BODY)
-    const stringToSign = `${method}:${path}:${date}:${bodyHash}`;
+    // Create the string to sign: [Current date]:[Request body]:[Web service URL subpath]
+    // Apple's official format from CloudKit Web Services documentation
+    const stringToSign = `${date}:${bodyHash}:${path}`;
     
+    console.log('🔐 Path:', path);
+    console.log('🔐 ISO8601:', date);
+          console.log('🔐 Body SHA256 BASE64:', bodyHash);
     console.log('🔐 String to sign:', stringToSign);
     
     const signature = this.signString(stringToSign);
@@ -83,6 +87,7 @@ class CloudKitService {
     
     return {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'X-Apple-CloudKit-Request-KeyID': CLOUDKIT_CONFIG.serverToServerKeyAuth,
       'X-Apple-CloudKit-Request-ISO8601Date': date,
       'X-Apple-CloudKit-Request-SignatureV1': signature
@@ -93,18 +98,17 @@ class CloudKitService {
     try {
       const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/query`;
       const body = { query };
-      const headers = this.generateCloudKitHeaders('POST', path, body);
+      const bodyString = JSON.stringify(body);
+      const headers = this.generateCloudKitHeaders('POST', path, bodyString);
       const url = `https://api.apple-cloudkit.com${path}`;
       
       console.log('🌐 Making CloudKit request to:', url);
-      console.log('📋 Headers:', JSON.stringify(headers, null, 2));
-      console.log('📦 Query:', JSON.stringify(query, null, 2));
-      console.log('🔐 Path used for signing:', path);
+      console.log('📦 Body being sent:', bodyString);
       
       const response = await fetch(url, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(body)
+        body: bodyString
       });
 
       if (!response.ok) {
@@ -354,6 +358,54 @@ class CloudKitService {
       return true;
     } catch (error) {
       console.error('Error updating user password and clearing reset:', error);
+      throw error;
+    }
+  }
+
+  // Method: Update user password using existing CloudKit field structure
+  async updateUserPasswordWithExistingFields(userRecord, hashB64, saltB64) {
+    try {
+      const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
+      
+      // Use the existing field structure from CloudKit
+      const body = {
+        operations: [{
+          operationType: 'update',
+          record: {
+            recordName: userRecord.recordName,
+            recordType: userRecord.recordType,
+            recordChangeTag: userRecord.recordChangeTag,
+            fields: {
+              ...userRecord.fields,
+              // Update password using existing field structure
+              password: { value: `${saltB64}:${hashB64}` }, // salt:hash format to match existing
+              salt: { value: saltB64 },
+              // Clear reset token fields if they exist
+              resetToken: { value: null },
+              resetTokenExpiry: { value: null }
+            }
+          }
+        }]
+      };
+      
+      const bodyString = JSON.stringify(body);
+      const headers = this.generateCloudKitHeaders('POST', path, bodyString);
+      const url = `https://api.apple-cloudkit.com${path}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: bodyString
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to update password: ${response.status} - ${errorData.reason || response.statusText}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating user password with existing fields:', error);
       throw error;
     }
   }
