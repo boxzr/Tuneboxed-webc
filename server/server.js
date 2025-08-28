@@ -66,6 +66,51 @@ app.get('/api/cloudkit/test', async (req, res) => {
   }
 });
 
+// 🎯 UNIFIED CREDENTIALS ENDPOINT - All API credentials for iOS app
+app.get('/api/config/all-credentials', async (req, res) => {
+  try {
+    // Check authorization header
+    const authHeader = req.headers.authorization;
+    const expectedBearer = 'Bearer tuneboxed-ios-app';
+    
+    if (!authHeader || authHeader !== expectedBearer) {
+      return res.status(401).json({ 
+        error: 'Unauthorized - Invalid bearer token' 
+      });
+    }
+
+    console.log('📱 iOS app requesting all API credentials');
+
+    // Return all API credentials from environment variables
+    const credentials = {
+      spotify_client_id: process.env.SPOTIFY_CLIENT_ID || '',
+      spotify_client_secret: process.env.SPOTIFY_CLIENT_SECRET || '',
+      supabase_api_key: process.env.SUPABASE_API_KEY || '',
+      supabase_jwt_secret: process.env.SUPABASE_JWT_SECRET || '',
+      supabase_service_role_key: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      resend_api_key: process.env.RESEND_API_KEY || '',
+      email_from: process.env.EMAIL_FROM || 'onboarding@resend.dev'
+    };
+
+    // Log which credentials are available (without exposing values)
+    const availableCredentials = Object.entries(credentials)
+      .filter(([key, value]) => value && value.length > 0)
+      .map(([key]) => key);
+    
+    console.log('✅ Available credentials:', availableCredentials);
+    console.log('❌ Missing credentials:', Object.keys(credentials).filter(key => !credentials[key]));
+
+    res.json(credentials);
+
+  } catch (error) {
+    console.error('❌ Credentials endpoint error:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to retrieve credentials',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // 🎯 EMAIL SENDING ENDPOINT - Send password reset emails
 app.post('/api/send-reset-email', async (req, res) => {
   try {
@@ -310,10 +355,11 @@ app.post('/api/reset-password', async (req, res) => {
 // Start server
 const port = process.env.PORT || SERVER_CONFIG.port;
 app.listen(port, () => {
-  console.log(`🚀 TuneBoxed Password Reset Server running on port ${port}`);
+  console.log(`🚀 TuneBoxed API Server running on port ${port}`);
   console.log(`🌍 Environment: ${SERVER_CONFIG.environment}`);
   console.log(`🔗 Health check: http://localhost:${port}/health`);
   console.log(`🧪 Test endpoint: http://localhost:${port}/api/cloudkit/test`);
+  console.log(`🔑 All credentials: http://localhost:${port}/api/config/all-credentials`);
   console.log(`📧 Send reset email: http://localhost:${port}/api/send-reset-email`);
   console.log(`🔑 Password reset: http://localhost:${port}/api/reset-password`);
   console.log(`📡 Railway URL: ${process.env.RAILWAY_STATIC_URL || 'Not deployed yet'}`);
