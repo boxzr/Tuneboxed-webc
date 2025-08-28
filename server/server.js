@@ -66,8 +66,129 @@ app.get('/api/cloudkit/test', async (req, res) => {
   }
 });
 
-// 🎯 NEW SIMPLIFIED PASSWORD RESET ENDPOINT (from integration files)
-// This replaces all the complex authentication endpoints with one clean endpoint
+// 🎯 EMAIL SENDING ENDPOINT - Send password reset emails
+app.post('/api/send-reset-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ 
+        error: 'Valid email address is required' 
+      });
+    }
+
+    console.log('📧 Processing reset email request for:', email);
+
+    // Step 1: Find user by email in CloudKit
+    const queryResult = await cloudKitService.queryRecords({
+      recordType: 'User',
+      filterBy: [{
+        fieldName: 'email',
+        comparator: 'EQUALS',
+        fieldValue: { value: email }
+      }],
+      resultsLimit: 1
+    });
+
+    if (!queryResult.records || queryResult.records.length === 0) {
+      // Don't reveal if email exists for security - always return success
+      console.log('⚠️ Email not found, but returning success for security');
+      return res.json({ 
+        success: true, 
+        message: 'If an account with that email exists, a reset link has been sent.' 
+      });
+    }
+
+    const userRecord = queryResult.records[0];
+    const username = userRecord.fields.username?.value || 'User';
+    console.log('✅ Found user for reset:', username);
+
+    // Step 2: Generate reset token and expiry
+    const resetToken = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    console.log('🔑 Generated reset token:', resetToken.substring(0, 8) + '...');
+
+    // Step 3: Update user with reset token in CloudKit
+    await cloudKitService.updateUserResetToken(userRecord, resetToken, expiresAt);
+    console.log('✅ Reset token stored in CloudKit');
+
+    // Step 4: Send email via Resend
+    const resetLink = `https://tuneboxed.com/reset-password?token=${resetToken}`;
+    
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'TuneBoxed <noreply@tuneboxed.com>',
+        to: [email],
+        subject: 'Reset your TuneBoxed password',
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #667eea; font-size: 28px; margin: 0;">🎵 TuneBoxed</h1>
+            </div>
+            
+            <h2 style="color: #333; font-size: 24px; margin-bottom: 20px;">Reset Your Password</h2>
+            
+            <p style="color: #666; font-size: 16px; line-height: 1.5; margin-bottom: 25px;">
+              Hi ${username},<br><br>
+              We received a request to reset your TuneBoxed password. Click the button below to create a new password:
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px; line-height: 1.5; margin-bottom: 20px;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <a href="${resetLink}" style="color: #667eea; word-break: break-all;">${resetLink}</a>
+            </p>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #999; font-size: 12px; line-height: 1.4;">
+                This link will expire in 1 hour for security reasons.<br>
+                If you didn't request this password reset, you can safely ignore this email.<br>
+                Your password will remain unchanged.
+              </p>
+            </div>
+          </div>
+        `
+      })
+    });
+
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.text();
+      console.error('❌ Resend API error:', errorData);
+      throw new Error('Failed to send email via Resend');
+    }
+
+    const emailData = await emailResponse.json();
+    console.log('✅ Email sent successfully via Resend:', emailData.id);
+
+    // Step 5: Return success
+    res.json({ 
+      success: true, 
+      message: 'Password reset email sent successfully!' 
+    });
+
+    console.log('🎉 Reset email process completed for:', email);
+
+  } catch (error) {
+    console.error('❌ Send reset email error:', error.message);
+    
+    res.status(500).json({ 
+      error: 'Failed to send reset email. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// 🎯 PASSWORD RESET ENDPOINT - Complete password reset with token
 app.post('/api/reset-password', async (req, res) => {
   try {
     const { token, newPassword } = req.body;
@@ -191,6 +312,7 @@ app.listen(port, () => {
   console.log(`🌍 Environment: ${SERVER_CONFIG.environment}`);
   console.log(`🔗 Health check: http://localhost:${port}/health`);
   console.log(`🧪 Test endpoint: http://localhost:${port}/api/cloudkit/test`);
+  console.log(`📧 Send reset email: http://localhost:${port}/api/send-reset-email`);
   console.log(`🔑 Password reset: http://localhost:${port}/api/reset-password`);
   console.log(`📡 Railway URL: ${process.env.RAILWAY_STATIC_URL || 'Not deployed yet'}`);
 });
