@@ -156,6 +156,28 @@ app.post('/api/send-reset-email', async (req, res) => {
     // Step 3: Update user with reset token in CloudKit
     await cloudKitService.updateUserResetToken(userRecord, resetToken, expiresAt);
     console.log('✅ Reset token stored in CloudKit');
+    
+    // Debug: Verify token was stored by querying it back
+    console.log('🔍 Verifying token storage...');
+    const verifyResult = await cloudKitService.queryRecords({
+      recordType: 'User',
+      filterBy: [{
+        fieldName: 'resetToken',
+        comparator: 'EQUALS',
+        fieldValue: { value: resetToken }
+      }],
+      resultsLimit: 1
+    }).catch(error => {
+      console.log('⚠️ Could not verify token storage:', error.message);
+      return { records: [] };
+    });
+    
+    if (verifyResult.records && verifyResult.records.length > 0) {
+      console.log('✅ Token verification successful - token found in CloudKit');
+    } else {
+      console.log('❌ Token verification failed - token NOT found in CloudKit after storage');
+      console.log('🔍 Current user record fields:', Object.keys(userRecord.fields));
+    }
 
     // Step 4: Send email via Resend
     const resetLink = `https://tuneboxed.com/reset-password?token=${resetToken}`;

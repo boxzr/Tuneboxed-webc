@@ -303,6 +303,20 @@ class CloudKitService {
   async updateUserResetToken(userRecord, tokenHash, expiresAt) {
     try {
       const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
+      
+      // Ensure we preserve existing fields and add reset token fields
+      const updatedFields = {
+        ...userRecord.fields,
+        resetToken: { 
+          value: tokenHash,
+          type: 'STRING'
+        },
+        resetTokenExpiry: { 
+          value: expiresAt,
+          type: 'TIMESTAMP'
+        }
+      };
+      
       const body = {
         operations: [{
           operationType: 'update',
@@ -310,14 +324,14 @@ class CloudKitService {
             recordName: userRecord.recordName,
             recordType: userRecord.recordType,
             recordChangeTag: userRecord.recordChangeTag,
-            fields: {
-              ...userRecord.fields,
-              resetToken: { value: tokenHash },
-              resetTokenExpiry: { value: expiresAt }
-            }
+            fields: updatedFields
           }
         }]
       };
+      
+      console.log('🔍 Updating CloudKit record with fields:', Object.keys(updatedFields));
+      console.log('🔑 Setting resetToken:', tokenHash.substring(0, 8) + '...');
+      console.log('⏰ Setting resetTokenExpiry:', new Date(expiresAt).toISOString());
       
       const bodyString = JSON.stringify(body);
       const headers = this.generateCloudKitHeaders('POST', path, bodyString);
@@ -339,6 +353,21 @@ class CloudKitService {
       // Check if CloudKit returned any errors for the record update
       if (responseData.records && responseData.records[0]?.serverErrorCode) {
         throw new Error(`CloudKit record update failed: ${responseData.records[0].reason}`);
+      }
+
+      // Check if the update was successful and returned the updated record
+      if (responseData.records && responseData.records[0]?.fields) {
+        const updatedRecord = responseData.records[0];
+        const hasResetToken = updatedRecord.fields.resetToken?.value;
+        const hasExpiry = updatedRecord.fields.resetTokenExpiry?.value;
+        
+        console.log('✅ CloudKit update successful:');
+        console.log('   - resetToken present:', !!hasResetToken);
+        console.log('   - resetTokenExpiry present:', !!hasExpiry);
+        
+        if (!hasResetToken) {
+          throw new Error('Reset token was not saved to CloudKit record');
+        }
       }
 
       return true;
