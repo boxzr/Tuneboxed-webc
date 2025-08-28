@@ -240,9 +240,9 @@ class CloudKitService {
     const saltBytes = crypto.randomBytes(16);
     const saltBase64 = saltBytes.toString('base64');
     
-    // PBKDF2 with EXACT iOS parameters
-    const iterations = 310000; // Same as iOS
-    const keyLength = 32; // Same as iOS (32 bytes = 256 bits)
+    // PBKDF2 with EXACT iOS parameters from CloudKit record
+    const iterations = 600000; // Match current CloudKit: 600000 (not 310000)
+    const keyLength = 64; // Match current CloudKit: 64 (not 32)
     
     // Hash using PBKDF2-SHA256 (same as iOS)
     const hashBytes = crypto.pbkdf2Sync(password, saltBytes, iterations, keyLength, 'sha256');
@@ -251,7 +251,7 @@ class CloudKitService {
     return { 
       hashB64: hashBase64, 
       saltB64: saltBase64,
-      algorithm: 'PBKDF2',
+      algorithm: 'PBKDF2-SHA256-Enhanced', // Match current CloudKit exactly
       iterations: iterations,
       keyLength: keyLength
     };
@@ -424,7 +424,7 @@ class CloudKitService {
   }
 
   // Method: Update user password using iOS-compatible field structure
-  async updateUserPasswordWithExistingFields(userRecord, hashB64, saltB64, algorithm = 'PBKDF2', iterations = 310000, keyLength = 32) {
+  async updateUserPasswordWithExistingFields(userRecord, hashB64, saltB64, algorithm = 'PBKDF2-SHA256-Enhanced', iterations = 600000, keyLength = 64) {
     try {
       const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
       
@@ -447,11 +447,9 @@ class CloudKitService {
         passwordAlgorithm: { value: algorithm }, // "PBKDF2"
         passwordIterations: { value: iterations }, // 310000
         passwordKeyLength: { value: keyLength }, // 32
-        // Clear ALL possible reset token fields
+        // Clear reset token fields (only clear fields that exist)
         resetToken: { value: null },
-        resetTokenExpiry: { value: null },
-        resetTokenExpires: { value: null },
-        resetTokens: { value: null }
+        resetTokenExpiry: { value: null }
       };
       
       const body = {
