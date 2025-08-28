@@ -122,7 +122,7 @@ app.post('/api/send-reset-email', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'TuneBoxed <noreply@tuneboxed.com>',
+        from: 'TuneBoxed <onboarding@resend.dev>',
         to: [email],
         subject: 'Reset your TuneBoxed password',
         html: `
