@@ -428,7 +428,32 @@ class CloudKitService {
     try {
       const path = `/database/1/${CLOUDKIT_CONFIG.containerIdentifier}/${CLOUDKIT_CONFIG.environment}/${CLOUDKIT_CONFIG.databaseType}/records/modify`;
       
+      console.log('🔐 Password Update Debug:');
+      console.log('   📝 User:', userRecord.fields.username?.value || userRecord.fields.email?.value);
+      console.log('   🔑 New password hash (first 10 chars):', hashB64.substring(0, 10) + '...');
+      console.log('   🧂 New salt (first 10 chars):', saltB64.substring(0, 10) + '...');
+      console.log('   ⚙️ Algorithm:', algorithm);
+      console.log('   🔢 Iterations:', iterations);
+      console.log('   📏 Key Length:', keyLength);
+      console.log('   📋 Current user fields:', Object.keys(userRecord.fields));
+      
       // Update ALL fields that iOS expects
+      const updatedFields = {
+        // Keep existing fields
+        ...userRecord.fields,
+        // Update ALL password-related fields iOS expects
+        password: { value: hashB64 }, // The hash itself
+        salt: { value: saltB64 }, // The salt
+        passwordAlgorithm: { value: algorithm }, // "PBKDF2"
+        passwordIterations: { value: iterations }, // 310000
+        passwordKeyLength: { value: keyLength }, // 32
+        // Clear ALL possible reset token fields
+        resetToken: { value: null },
+        resetTokenExpiry: { value: null },
+        resetTokenExpires: { value: null },
+        resetTokens: { value: null }
+      };
+      
       const body = {
         operations: [{
           operationType: 'update',
@@ -436,24 +461,12 @@ class CloudKitService {
             recordName: userRecord.recordName,
             recordType: userRecord.recordType,
             recordChangeTag: userRecord.recordChangeTag,
-            fields: {
-              // Keep existing fields
-              ...userRecord.fields,
-              // Update ALL password-related fields iOS expects
-              password: { value: hashB64 }, // The hash itself
-              salt: { value: saltB64 }, // The salt
-              passwordAlgorithm: { value: algorithm }, // "PBKDF2"
-              passwordIterations: { value: iterations }, // 310000
-              passwordKeyLength: { value: keyLength }, // 32
-              // Clear ALL possible reset token fields
-              resetToken: { value: null },
-              resetTokenExpiry: { value: null },
-              resetTokenExpires: { value: null },
-              resetTokens: { value: null }
-            }
+            fields: updatedFields
           }
         }]
       };
+      
+      console.log('📦 Updating CloudKit with fields:', Object.keys(updatedFields));
       
       const bodyString = JSON.stringify(body);
       const headers = this.generateCloudKitHeaders('POST', path, bodyString);
@@ -465,9 +478,23 @@ class CloudKitService {
         body: bodyString
       });
 
+      const responseData = await response.json();
+      console.log('🔍 CloudKit password update response:', JSON.stringify(responseData, null, 2));
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to update password: ${response.status} - ${errorData.reason || response.statusText}`);
+        throw new Error(`Failed to update password: ${response.status} - ${responseData.reason || response.statusText}`);
+      }
+
+      // Verify the updated fields in the response
+      if (responseData.records && responseData.records[0]?.fields) {
+        const updatedRecord = responseData.records[0].fields;
+        console.log('✅ Password update verification:');
+        console.log('   🔑 password field updated:', !!updatedRecord.password?.value);
+        console.log('   🧂 salt field updated:', !!updatedRecord.salt?.value);
+        console.log('   ⚙️ passwordAlgorithm field updated:', !!updatedRecord.passwordAlgorithm?.value);
+        console.log('   🔢 passwordIterations field updated:', !!updatedRecord.passwordIterations?.value);
+        console.log('   📏 passwordKeyLength field updated:', !!updatedRecord.passwordKeyLength?.value);
+        console.log('   🗑️ resetToken cleared:', !updatedRecord.resetToken?.value);
       }
 
       return true;
