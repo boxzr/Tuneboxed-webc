@@ -312,20 +312,21 @@ class CloudKitService {
             recordChangeTag: userRecord.recordChangeTag,
             fields: {
               ...userRecord.fields,
-              resetTokenString: { value: tokenHash },
-              resetTokenExpiryDate: { value: expiresAt }
+              resetToken: { value: tokenHash },
+              resetTokenExpiry: { value: expiresAt }
             }
           }
         }]
       };
       
-      const headers = this.generateCloudKitHeaders('POST', path, body);
+      const bodyString = JSON.stringify(body);
+      const headers = this.generateCloudKitHeaders('POST', path, bodyString);
       const url = `https://api.apple-cloudkit.com${path}`;
       
       const response = await fetch(url, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(body)
+        body: bodyString
       });
 
       if (!response.ok) {
