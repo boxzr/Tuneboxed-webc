@@ -105,7 +105,7 @@ app.post('/api/send-reset-email', async (req, res) => {
 
     // Step 2: Generate reset token and expiry
     const resetToken = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour from now (timestamp)
     console.log('🔑 Generated reset token:', resetToken.substring(0, 8) + '...');
 
     // Step 3: Update user with reset token in CloudKit

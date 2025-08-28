@@ -329,13 +329,18 @@ class CloudKitService {
         body: bodyString
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to update reset token: ${response.status} - ${errorData.reason || response.statusText}`);
-      }
-
       const responseData = await response.json();
       console.log('🔍 CloudKit update response:', JSON.stringify(responseData, null, 2));
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update reset token: ${response.status} - ${responseData.reason || response.statusText}`);
+      }
+
+      // Check if CloudKit returned any errors for the record update
+      if (responseData.records && responseData.records[0]?.serverErrorCode) {
+        throw new Error(`CloudKit record update failed: ${responseData.records[0].reason}`);
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating user reset token:', error);
