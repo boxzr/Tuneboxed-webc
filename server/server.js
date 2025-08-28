@@ -237,6 +237,8 @@ app.post('/api/reset-password', async (req, res) => {
     });
 
     if (!queryResult.records || queryResult.records.length === 0) {
+      console.log('❌ No user found with reset token:', token);
+      console.log('📊 Query result:', JSON.stringify(queryResult, null, 2));
       return res.status(400).json({ 
         error: 'Invalid or expired reset token. Please request a new password reset.' 
       });
