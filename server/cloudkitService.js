@@ -334,6 +334,8 @@ class CloudKitService {
         throw new Error(`Failed to update reset token: ${response.status} - ${errorData.reason || response.statusText}`);
       }
 
+      const responseData = await response.json();
+      console.log('🔍 CloudKit update response:', JSON.stringify(responseData, null, 2));
       return true;
     } catch (error) {
       console.error('Error updating user reset token:', error);
