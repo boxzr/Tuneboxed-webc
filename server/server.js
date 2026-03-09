@@ -10,7 +10,7 @@ const app = express();
 app.use(cors({
   origin: [
     "https://tuneboxed.com",
-    "https://boxzr.github.io",
+    "https://www.tuneboxed.com",
     "http://localhost:3000",
     "http://localhost:3001"
   ],
@@ -21,7 +21,18 @@ app.use(cors({
 
 // Handle preflight requests explicitly
 app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const allowedOrigins = [
+    "https://tuneboxed.com",
+    "https://www.tuneboxed.com",
+    "http://localhost:3000",
+    "http://localhost:3001"
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-cloudkit-auth');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -89,7 +100,7 @@ app.get('/api/config/all-credentials', async (req, res) => {
       supabase_jwt_secret: process.env.SUPABASE_JWT_SECRET || '',
       supabase_service_role_key: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
       resend_api_key: process.env.RESEND_API_KEY || '',
-      email_from: process.env.EMAIL_FROM || 'onboarding@resend.dev'
+      email_from: process.env.EMAIL_FROM || 'noreply@tuneboxed.com'
     };
 
     // Log which credentials are available (without exposing values)
@@ -123,6 +134,8 @@ app.post('/api/send-reset-email', async (req, res) => {
     }
 
     console.log('📧 Processing reset email request for:', email);
+    console.log('🌍 CloudKit Environment:', CLOUDKIT_CONFIG.environment);
+    console.log('📦 CloudKit Container:', CLOUDKIT_CONFIG.containerIdentifier);
 
     // Step 1: Find user by email in CloudKit
     const queryResult = await cloudKitService.queryRecords({
@@ -159,6 +172,10 @@ app.post('/api/send-reset-email', async (req, res) => {
     
     // Debug: Verify token was stored by querying it back
     console.log('🔍 Verifying token storage...');
+    
+    // Add a small delay to account for CloudKit's eventual consistency
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     const verifyResult = await cloudKitService.queryRecords({
       recordType: 'User',
       filterBy: [{
@@ -169,14 +186,41 @@ app.post('/api/send-reset-email', async (req, res) => {
       resultsLimit: 1
     }).catch(error => {
       console.log('⚠️ Could not verify token storage:', error.message);
+      console.log('🔧 Error details:', JSON.stringify(error, null, 2));
       return { records: [] };
     });
     
     if (verifyResult.records && verifyResult.records.length > 0) {
       console.log('✅ Token verification successful - token found in CloudKit');
+      const foundRecord = verifyResult.records[0];
+      console.log('🔍 Found token value:', foundRecord.fields.resetToken?.value?.substring(0, 8) + '...');
+      console.log('🔍 Token expiry:', new Date(foundRecord.fields.resetTokenExpiry?.value).toISOString());
     } else {
       console.log('❌ Token verification failed - token NOT found in CloudKit after storage');
       console.log('🔍 Current user record fields:', Object.keys(userRecord.fields));
+      console.log('🔍 Looking for token:', resetToken.substring(0, 8) + '...');
+      
+      // Try to query the user by their original criteria to see current state
+      const recheckResult = await cloudKitService.queryRecords({
+        recordType: 'User',
+        filterBy: [{
+          fieldName: 'email',
+          comparator: 'EQUALS',
+          fieldValue: { value: email }
+        }],
+        resultsLimit: 1
+      }).catch(error => {
+        console.log('⚠️ Could not recheck user record:', error.message);
+        return { records: [] };
+      });
+      
+      if (recheckResult.records && recheckResult.records.length > 0) {
+        const currentRecord = recheckResult.records[0];
+        console.log('🔍 Current user record after update:');
+        console.log('   - resetToken:', currentRecord.fields.resetToken?.value?.substring(0, 8) + '...' || 'NOT SET');
+        console.log('   - resetTokenExpiry:', currentRecord.fields.resetTokenExpiry?.value ? new Date(currentRecord.fields.resetTokenExpiry.value).toISOString() : 'NOT SET');
+        console.log('   - recordChangeTag:', currentRecord.recordChangeTag);
+      }
     }
 
     // Step 4: Send email via Resend
@@ -189,7 +233,7 @@ app.post('/api/send-reset-email', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'TuneBoxed <onboarding@resend.dev>',
+        from: `TuneBoxed <${process.env.EMAIL_FROM || 'noreply@tuneboxed.com'}>`,
         to: [email],
         subject: 'Reset your TuneBoxed password',
         html: `

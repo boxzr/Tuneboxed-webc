@@ -1,7 +1,7 @@
 // CloudKit Configuration for Server
 const CLOUDKIT_CONFIG = {
   containerIdentifier: process.env.CK_CONTAINER || 'iCloud.AuraBrand.TuneBoxed',
-  environment: process.env.CK_ENV || 'development',
+  environment: process.env.CK_ENV || 'production',  // Changed default to production
   serverToServerKeyAuth: process.env.CK_KEY_ID || '',
   privateKey: process.env.CK_PRIVATE_KEY || '',
   databaseType: process.env.CK_DB || 'public',

@@ -17,7 +17,6 @@ const PasswordReset: React.FC = () => {
     
     if (token) {
       setResetToken(token);
-      console.log('🔗 Reset token found:', token.substring(0, 8) + '...');
     } else {
       showMessage('error', 'Invalid reset link. Please request a new password reset from the TuneBoxed app.');
     }
@@ -67,10 +66,9 @@ const PasswordReset: React.FC = () => {
     
     try {
       setIsLoading(true);
-      console.log('🔄 Sending password reset request...');
       
-      // Call YOUR backend API (same domain = no CORS issues!)
-      const response = await fetch('/api/reset-password', {
+      // Call Railway backend API
+      const response = await fetch('https://tuneboxed-production.up.railway.app/api/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -82,14 +80,12 @@ const PasswordReset: React.FC = () => {
       });
       
       const result = await response.json();
-      console.log('📡 API Response:', result);
       
       if (response.ok && result.success) {
         showMessage('success', '✅ Password reset successful! Redirecting to app...');
         
         // Redirect back to iOS app after 3 seconds
         setTimeout(() => {
-          console.log('🔗 Redirecting to app...');
           window.location.href = result.redirectUrl || 'tuneboxed://password-reset-success';
         }, 3000);
         
@@ -98,7 +94,6 @@ const PasswordReset: React.FC = () => {
       }
       
     } catch (error) {
-      console.error('❌ Network error:', error);
       showMessage('error', 'Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);

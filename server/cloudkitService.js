@@ -125,6 +125,8 @@ class CloudKitService {
 
   async findUserByResetToken(token) {
     try {
+      console.log('🔍 Searching for reset token:', token.substring(0, 8) + '...');
+      
       const query = {
         recordType: 'User',
         filterBy: [{
@@ -134,10 +136,24 @@ class CloudKitService {
         }]
       };
 
+      console.log('📋 Query details:', JSON.stringify(query, null, 2));
       const result = await this.queryRecords(query);
-      return result.records && result.records.length > 0 ? result.records[0] : null;
+      
+      console.log('📊 Query result summary:');
+      console.log('   - Records found:', result.records?.length || 0);
+      
+      if (result.records && result.records.length > 0) {
+        const record = result.records[0];
+        console.log('   - Found record:', record.recordName);
+        console.log('   - Token in record:', record.fields.resetToken?.value?.substring(0, 8) + '...');
+        console.log('   - Token expiry:', record.fields.resetTokenExpiry?.value);
+        return record;
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error finding user by reset token:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       throw error;
     }
   }
@@ -332,6 +348,8 @@ class CloudKitService {
       console.log('🔍 Updating CloudKit record with fields:', Object.keys(updatedFields));
       console.log('🔑 Setting resetToken:', tokenHash.substring(0, 8) + '...');
       console.log('⏰ Setting resetTokenExpiry:', new Date(expiresAt).toISOString());
+      console.log('📋 Record name:', userRecord.recordName);
+      console.log('🏷️ Record change tag:', userRecord.recordChangeTag);
       
       const bodyString = JSON.stringify(body);
       const headers = this.generateCloudKitHeaders('POST', path, bodyString);

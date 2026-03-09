@@ -7,11 +7,7 @@ import { trackPageView } from './firebase';
 import AdminDashboard from './components/AdminDashboard';
 import PasswordReset from './pages/PasswordReset';
 
-// Import test utility for development and production
-import('./utils/cloudkitTest').then(({ cloudKitTest }) => {
-  (window as any).cloudKitTest = cloudKitTest;
-  console.log('🧪 CloudKit Test Utility loaded! Run cloudKitTest.runAllTests() in console to test.');
-});
+
 
 function MainWebsite() {
   const [email, setEmail] = useState('');
@@ -238,9 +234,14 @@ function MainWebsite() {
               <a href="#about" className="nav-link" onClick={handleNavClick('about')}>
                 About
               </a>
-              <a href="#signup" className="nav-link" onClick={handleNavClick('signup')}>
-                Sign Up
-              </a>
+              <span style={{ position: 'relative', display: 'inline-block' }}>
+                <a href="https://apps.apple.com/us/app/tuneboxed/id6747647968" className="nav-link" target="_blank" rel="noopener noreferrer" style={{ border: '2px solid currentColor', borderRadius: '8px', padding: '6px 14px' }}>
+                  Download Now
+                </a>
+                <span style={{ position: 'absolute', top: '-18px', right: '-10px', background: '#4A90D9', color: '#fff', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap' }}>
+                  Now on the App Store!
+                </span>
+              </span>
               {/* Hidden admin link - Alt+Shift+A+T to access */}
             </div>
           </nav>
@@ -317,8 +318,8 @@ function MainWebsite() {
                       style={{ width: 'auto', height: 'auto', padding: 0 }}
                     >
                       <img 
-                        src="/story1.png" 
-                        alt="Story 1" 
+                        src="/story5.png" 
+                        alt="Feed" 
                         style={{ 
                           display: 'block',
                           maxWidth: '220px',
@@ -335,8 +336,8 @@ function MainWebsite() {
                       style={{ width: 'auto', height: 'auto', padding: 0 }}
                     >
                       <img 
-                        src="/story2.png" 
-                        alt="Story 2" 
+                        src="/story1.png" 
+                        alt="Music Matching" 
                         style={{ 
                           display: 'block',
                           maxWidth: '220px',
@@ -353,8 +354,8 @@ function MainWebsite() {
                       style={{ width: 'auto', height: 'auto', padding: 0 }}
                     >
                       <img 
-                        src="/story3.png" 
-                        alt="Story 3" 
+                        src="/story2.png" 
+                        alt="Communities" 
                         style={{ 
                           display: 'block',
                           maxWidth: '220px',
@@ -458,6 +459,35 @@ function MainWebsite() {
                   <div className="feature-item">
                     <button 
                       className="feature-trigger"
+                      onClick={() => setActiveFeature(activeFeature === 'crowns' ? null : 'crowns')}
+                    >
+                      <span className="feature-title">TuneCrown & Competition</span>
+                      <span className="feature-arrow">{activeFeature === 'crowns' ? '▲' : '▼'}</span>
+                    </button>
+                    
+                    {activeFeature === 'crowns' && (
+                      <motion.div 
+                        className="feature-content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <p>Compete with others for Song of the Day and earn crowns to show off your music taste.</p>
+                        <div className="feature-details">
+                          <ul>
+                            <li>Win Song of the Day to earn crowns</li>
+                            <li>Compete with others for the top spot</li>
+                            <li>Show off your crowned songs on your profile</li>
+                          </ul>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <div className="feature-item">
+                    <button 
+                      className="feature-trigger"
                       onClick={() => setActiveFeature(activeFeature === 'vision' ? null : 'vision')}
                     >
                       <span className="feature-title">Vision & Innovation</span>
@@ -550,19 +580,27 @@ function MainWebsite() {
             </section>
           )}
 
-          {currentSection === 'signup' && (
-            <section id="signup" className="section">
+          {currentSection === 'download' && (
+            <section id="download" className="section">
               <motion.div
                 className="signup-container"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <h2 className="signup-title">Join Tuneboxed</h2>
+                <h2 className="signup-title">Get TuneBoxed</h2>
                 <p className="signup-subtitle">Start showcasing your music taste today</p>
                 
                 <div className="signup-options">
-                  {renderSignUpForm()}
+                  <a
+                    href="https://apps.apple.com/us/app/tuneboxed/id6747647968"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="signup-button"
+                    style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
+                  >
+                    Download on the App Store
+                  </a>
                 </div>
               </motion.div>
             </section>
@@ -585,7 +623,7 @@ function MainWebsite() {
       )}
 
       <footer className="footer">
-        <p>Made by Jonah Boxer © {new Date().getFullYear()}</p>
+        <p>Aura Brand LLC © {new Date().getFullYear()}</p>
       </footer>
     </div>
   );
