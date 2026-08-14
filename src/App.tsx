@@ -2,20 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './App.css';
-import tuneboxedLogo from './tuneboxed-logo.png';
+import tuneboxedLogo from './assets/tuneboxed-battle-logo.png';
 import { trackPageView } from './firebase';
 import AdminDashboard from './components/AdminDashboard';
 import PasswordReset from './pages/PasswordReset';
 import BattleHome from './pages/BattleHome';
 import BattleRoom from './pages/BattleRoom';
+import BattleEntry from './battle/BattleEntry';
+import './battle/battle.css';
 
 
 
 function MainWebsite() {
   const [email, setEmail] = useState('');
   const [currentSection, setCurrentSection] = useState('home');
-  const [isBoxClicked, setIsBoxClicked] = useState(false);
-  const audioRef = useRef(new Audio('/explosion.mp3'));
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -250,44 +250,45 @@ function MainWebsite() {
 
           {currentSection === 'home' && (
             <section id="home" className="section">
-              {!isBoxClicked ? (
-                <div className="box-container">
-                  <motion.div
-                    className="cardboard-box"
-                    initial={{ scale: 1 }}
-                    animate={{
-                      scale: [1, 1.15, 0.9, 1.2, 0.85, 1.1, 0.95],
-                      rotate: [0, -8, 12, -15, 15, -10, 8],
-                      y: [0, -15, 8, -20, 10, -15, 5],
-                      x: [0, -12, 15, -20, 15, -15, 10]
-                    }}
-                    transition={{
-                      duration: 2.5,
-                      times: [0, 0.2, 0.4, 0.6, 0.7, 0.8, 1],
-                      ease: "easeInOut"
-                    }}
-                    onAnimationComplete={() => {
-                      setIsBoxClicked(true);
-                      audioRef.current.play().catch(error => console.log('Audio playback failed:', error));
-                    }}
-                  >
-                    <div className="box-content">
-                      <motion.div 
-                        className="box-lid"
-                        animate={{ 
-                          rotateX: [0, 25, -20, 30, -15, 20, -10],
-                          y: [0, -5, 4, -6, 3, -4, 2]
-                        }}
-                        transition={{
-                          duration: 2.5,
-                          times: [0, 0.2, 0.4, 0.6, 0.7, 0.8, 1],
-                          ease: "easeInOut"
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                </div>
-              ) : (
+              <div className="battle-hero">
+                <motion.img
+                  className="battle-hero-logo"
+                  src={tuneboxedLogo}
+                  alt="TuneBoxed"
+                  initial={{ opacity: 0, scale: 0.8, rotate: -12 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
+
+                <motion.h1
+                  className="battle-hero-title"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, duration: 0.5 }}
+                >
+                  Song battles, live on your stream
+                </motion.h1>
+
+                <motion.p
+                  className="battle-hero-sub"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25, duration: 0.5 }}
+                >
+                  Your chat picks the tracks, everyone hears them at the same moment, and the
+                  room votes for a winner. Viewers join from the browser. No app, no account.
+                </motion.p>
+
+                <motion.div
+                  className="battle battle--embedded battle-hero-card"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35, duration: 0.5 }}
+                >
+                  <BattleEntry showIntro={false} />
+                </motion.div>
+              </div>
+
                 <div className="content-container">
                   <motion.h1
                     className="logo-text"
@@ -445,7 +446,6 @@ function MainWebsite() {
                     })}
                   </div>
                 </div>
-              )}
             </section>
           )}
 

@@ -7,7 +7,7 @@ import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { secondsUntil, syncClock } from '../battle/clock';
 import SongPicker from '../battle/SongPicker';
 import type { BattlePlayer, BattleSubmission } from '../types/battle';
-import logo from '../tuneboxed-logo.png';
+import logo from '../assets/tuneboxed-battle-logo.png';
 import '../battle/battle.css';
 
 export default function BattleRoom() {
