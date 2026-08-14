@@ -1,0 +1,328 @@
+/* Content pages: rules, FAQ, streamers, winners, about.
+   App.css sets `* { font-family: 'Space Mono' }`, which hits these elements
+   directly rather than by inheritance, so the descendant selector below is
+   what actually wins. Same reason as battle.css. */
+
+.page,
+.page * {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  letter-spacing: normal;
+}
+
+.page {
+  min-height: 100vh;
+  background: #fff;
+  color: #1b2d4e;
+}
+
+/* ---------- Nav ---------- */
+
+.page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid rgba(27, 45, 78, 0.1);
+}
+
+.page-nav-logo {
+  display: flex;
+  align-items: center;
+}
+
+.page-nav-logo img {
+  height: 40px;
+  width: auto;
+}
+
+.page-nav-cta {
+  display: inline-block;
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: #ff7a00;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.page-nav-cta:hover {
+  background: #e56e00;
+}
+
+/* ---------- Body ---------- */
+
+.page-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 56px 24px 80px;
+}
+
+.page-title {
+  margin: 0 0 12px;
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.page-intro {
+  margin: 0 0 40px;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  opacity: 0.72;
+}
+
+.page-section {
+  margin: 0 0 40px;
+}
+
+.page-section h2 {
+  margin: 0 0 14px;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.page-section p {
+  margin: 0 0 12px;
+  line-height: 1.65;
+  opacity: 0.82;
+}
+
+.page-section p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- Numbered steps ---------- */
+
+.page-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  counter-reset: step;
+}
+
+.page-steps li {
+  display: flex;
+  gap: 16px;
+}
+
+.page-step-num {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  background: #ff7a00;
+  color: #fff;
+}
+
+.page-step-body h3 {
+  margin: 4px 0 6px;
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.page-step-body p {
+  margin: 0;
+  line-height: 1.6;
+  opacity: 0.78;
+}
+
+/* ---------- FAQ ---------- */
+
+.page-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Native details/summary rather than a JS accordion: it is keyboard
+   accessible for free, and the answers stay in the DOM for crawlers even
+   while collapsed. */
+.page-faq details {
+  border-bottom: 1px solid rgba(27, 45, 78, 0.1);
+}
+
+.page-faq summary {
+  padding: 18px 28px 18px 0;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.02rem;
+  list-style: none;
+  position: relative;
+}
+
+.page-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.page-faq summary::after {
+  content: '+';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: #ff7a00;
+}
+
+.page-faq details[open] summary::after {
+  content: '−';
+}
+
+.page-faq .page-faq-answer {
+  padding: 0 0 20px;
+  line-height: 1.65;
+  opacity: 0.82;
+}
+
+.page-faq .page-faq-answer p {
+  margin: 0 0 10px;
+}
+
+.page-faq .page-faq-answer p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- Winners ---------- */
+
+.page-winners {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-winner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid rgba(27, 45, 78, 0.1);
+  border-radius: 14px;
+}
+
+.page-winner-art {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgba(27, 45, 78, 0.06);
+}
+
+.page-winner-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.page-winner-title {
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-winner-meta {
+  font-size: 0.88rem;
+  opacity: 0.65;
+  margin-top: 3px;
+}
+
+.page-winner-date {
+  flex: none;
+  font-size: 0.82rem;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+
+.page-empty {
+  padding: 40px 20px;
+  text-align: center;
+  border: 1px dashed rgba(27, 45, 78, 0.2);
+  border-radius: 14px;
+  line-height: 1.6;
+  opacity: 0.7;
+}
+
+/* ---------- Stats ---------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 14px;
+  margin: 44px auto 0;
+  max-width: 560px;
+}
+
+.stat {
+  padding: 16px 12px;
+  border-radius: 14px;
+  background: rgba(27, 45, 78, 0.04);
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.stat-label {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+
+/* ---------- Footer ---------- */
+
+.page-footer {
+  border-top: 1px solid rgba(27, 45, 78, 0.1);
+  padding: 32px 24px 40px;
+  text-align: center;
+}
+
+.page-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 22px;
+  margin-bottom: 18px;
+}
+
+.page-footer-links a {
+  color: #1b2d4e;
+  text-decoration: none;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.page-footer-links a:hover {
+  opacity: 1;
+  color: #ff7a00;
+}
+
+.page-footer p {
+  margin: 0;
+  font-size: 0.82rem;
+  opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+  .page-nav {
+    padding: 14px 18px;
+  }
+
+  .page-main {
+    padding: 36px 18px 64px;
+  }
+}

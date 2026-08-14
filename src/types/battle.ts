@@ -3,6 +3,30 @@
 
 export type BattleMode = 'group' | 'bar_for_bar';
 export type BattleFormat = 'rounds' | 'bracket';
+
+/**
+ * A published bracket winner. Denormalised server-side so a champion outlives
+ * the room it was won in.
+ */
+export interface BattleChampion {
+  id: string;
+  room_id: string | null;
+  song_title: string;
+  song_artist: string;
+  artwork_url: string | null;
+  /** Null when the host published without the winner's name. */
+  winner_display_name: string | null;
+  host_twitch_login: string | null;
+  player_count: number;
+  created_at: string;
+}
+
+export interface PublicStats {
+  battles_played: number;
+  songs_battled: number;
+  players_joined: number;
+  champions_crowned: number;
+}
 export type BattleVotingMode = 'judge' | 'host' | 'everyone';
 export type BattleRoomStatus = 'lobby' | 'in_round' | 'judging' | 'results' | 'complete';
 export type BattleRoundPhase = 'picking' | 'playing' | 'judging' | 'revealed';

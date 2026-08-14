@@ -1,87 +1,61 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import PageLayout, { APP_STORE_URL } from './PageLayout';
+import Stats from '../components/Stats';
 
-function About() {
+export default function About() {
   return (
-    <div className="page about-page">
-      <div className="content-container">
-        <motion.h1 
-          className="page-title"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          About Tuneboxed
-        </motion.h1>
+    <PageLayout
+      title="About | TuneBoxed"
+      description="TuneBoxed is a music game. On the web it is song battles for streamers; on iOS it is a daily music feed where you post the song that fits the genre."
+      heading="About TuneBoxed"
+      intro="A music game about the one thing every group argues over: whose taste is better."
+    >
+      <section className="page-section">
+        <h2>Song battles, on the web</h2>
+        <p>
+          A streamer starts a room, viewers join from a browser with a code, and
+          everyone picks a song. Two tracks play head to head, chat votes for
+          the better one, and the bracket runs until a single song is left.
+        </p>
+        <p>
+          It is built to be watched. Songs play in sync so the whole room hears
+          the same thing at the same moment, the scoreboard drops into OBS as a
+          browser source, and voting happens in the chat that is already there
+          rather than on a second screen.
+        </p>
+      </section>
 
-        <motion.div 
-          className="about-content"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          <div className="intro-section">
-            <p className="main-description">
-              Tuneboxed is your personal music time capsule. We help you track, 
-              visualize, and share your music journey.
-            </p>
-          </div>
+      <section className="page-section">
+        <h2>The iOS app</h2>
+        <p>
+          TuneBoxed started on iPhone and still lives there. Every day brings a
+          new genre, you post the song that fits it best, and the community
+          votes. There are battles too, with formats the web does not have, plus
+          ranks and matching with people who post the same things you do.
+        </p>
+        <p>
+          <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+            Download on the App Store
+          </a>
+        </p>
+      </section>
 
-          <div className="features">
-            <motion.div 
-              className="feature"
-              whileHover={{ scale: 1.03 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3>Track Your Favorites</h3>
-              <p>Keep up with your most played artists and tracks</p>
-            </motion.div>
+      <section className="page-section">
+        <Stats heading="By the numbers" />
+      </section>
 
-            <motion.div 
-              className="feature"
-              whileHover={{ scale: 1.03 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3>Visualize Trends</h3>
-              <p>See how your music taste evolves over time</p>
-            </motion.div>
+      <section className="page-section">
+        <h2>Who makes it</h2>
+        <p>
+          TuneBoxed is built by Aura Brand LLC.
+        </p>
+      </section>
 
-            <motion.div 
-              className="feature"
-              whileHover={{ scale: 1.03 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3>Share Your Style</h3>
-              <p>Create shareable music boxes to show off your unique taste</p>
-            </motion.div>
-
-            <motion.div 
-              className="feature"
-              whileHover={{ scale: 1.03 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3>Earn Crowns</h3>
-              <p>Win Song of the Day and earn crowns by competing with other music lovers</p>
-            </motion.div>
-          </div>
-
-          <motion.div 
-            className="mission-statement"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            <h2>Our Mission</h2>
-            <p>
-              We believe every music journey tells a unique story. 
-              Tuneboxed helps you capture and share those musical moments 
-              that make your story special.
-            </p>
-          </motion.div>
-        </motion.div>
-      </div>
-    </div>
+      <p>
+        <Link to="/battle">Start a battle</Link>, read the{' '}
+        <Link to="/rules">game rules</Link>, or see the{' '}
+        <Link to="/winners">winners board</Link>.
+      </p>
+    </PageLayout>
   );
 }
-
-export default About;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './App.css';
 import tuneboxedLogo from './assets/tuneboxed-battle-logo.png';
@@ -10,7 +10,15 @@ import BattleHome from './pages/BattleHome';
 import BattleRoom from './pages/BattleRoom';
 import BattleOverlay from './pages/BattleOverlay';
 import BattleEntry from './battle/BattleEntry';
+import Rules from './pages/Rules';
+import Faq from './pages/Faq';
+import Streamers from './pages/Streamers';
+import About from './pages/About';
+import Winners from './pages/Winners';
+import Stats from './components/Stats';
+import { CONTENT_PAGES } from './pages/PageLayout';
 import './battle/battle.css';
+import './pages/pages.css';
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/tuneboxed/id6747647968';
 
@@ -158,6 +166,8 @@ function MainWebsite() {
               Two tracks play head to head, chat votes, the bracket advances
             </li>
           </motion.ul>
+
+          <Stats />
         </section>
 
         <section className="home-app">
@@ -175,7 +185,19 @@ function MainWebsite() {
         </section>
       </main>
 
-      <footer className="footer">
+      <footer className="page-footer">
+        {/* Same list the sitemap is built from, so every content page is
+            reachable by a crawler from the home page. */}
+        <nav className="page-footer-links">
+          {CONTENT_PAGES.map((p) => (
+            <Link key={p.path} to={p.path}>
+              {p.label}
+            </Link>
+          ))}
+          <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+            iOS app
+          </a>
+        </nav>
         <p>Aura Brand LLC © {new Date().getFullYear()}</p>
       </footer>
     </div>
@@ -191,6 +213,14 @@ function App() {
       <Route path="/battle" element={<BattleHome />} />
       <Route path="/battle/:code" element={<BattleRoom />} />
       <Route path="/overlay/:code" element={<BattleOverlay />} />
+      {/* Content routes. scripts/prerender.mjs emits a real HTML file for each
+          of these, so they return 200 and can be indexed rather than being
+          served by GitHub's 404 handler. Keep the two lists in step. */}
+      <Route path="/rules" element={<Rules />} />
+      <Route path="/faq" element={<Faq />} />
+      <Route path="/streamers" element={<Streamers />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/winners" element={<Winners />} />
       <Route path="/*" element={<MainWebsite />} />
     </Routes>
   );

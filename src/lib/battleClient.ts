@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type {
+  BattleChampion,
   BattleFormat,
   BattleMatch,
   BattlePlayer,
@@ -11,6 +12,7 @@ import type {
   BattleSubmission,
   BattleVote,
   BattleVotingMode,
+  PublicStats,
 } from '../types/battle';
 
 // The RPCs raise bare codes so every client can phrase them for itself.
@@ -237,9 +239,35 @@ export async function getMatches(roomId: string): Promise<BattleMatch[]> {
   return data ?? [];
 }
 
+/**
+ * Recent published champions for the winners page.
+ *
+ * Only battles a host chose to publish appear here, and the winner's name is
+ * present only when they also opted into that.
+ */
+export async function getChampions(limit = 30): Promise<BattleChampion[]> {
+  const { data, error } = await supabase
+    .from('battle_champions')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw toBattleError(error.message);
+  return data ?? [];
+}
+
+/** Cumulative counters for the marketing site. */
+export const getPublicStats = () => rpc<PublicStats>('battle_public_stats', {});
+
 // ---------------------------------------------------------------
 // Writes, all token-validated server-side
 // ---------------------------------------------------------------
+
+/** Put a finished bracket on the public winners board. Host only. */
+export const publishChampion = (token: string, includeWinnerName: boolean) =>
+  rpc<BattleChampion>('battle_publish_champion', {
+    p_token: token,
+    p_include_winner_name: includeWinnerName,
+  });
 
 export const heartbeat = (token: string, isConnected = true) =>
   rpc<void>('battle_heartbeat', { p_token: token, p_is_connected: isConnected });
