@@ -19,6 +19,10 @@ SRC = Path(
 )
 OUT = Path(__file__).parent.parent / "src" / "assets" / "tuneboxed-battle-logo.png"
 
+# Longest edge of the web copy. The hero draws it at 112px tall, so this leaves
+# headroom for a 3x display without shipping the full-resolution crop.
+WEB_MAX_EDGE = 360
+
 # A pixel counts as matte if it is bright and close to grey. The chroma test is
 # what keeps the pale peach highlights on the glove from being read as matte.
 WHITE_MIN = 238
@@ -107,12 +111,18 @@ def main() -> None:
     alpha[fringe] = (ramp[fringe] * 255.0)
 
     out = np.dstack([rgb, alpha.astype(np.uint8)])
-    img = Image.fromarray(out, "RGBA")
+    img = Image.fromarray(out)
 
     # The source is mostly padding, so a fixed CSS height renders the mark far
     # smaller than the box suggests. Trimming lets the height mean the artwork.
     bbox = Image.fromarray((alpha > 8).astype(np.uint8) * 255).getbbox()
     img = img.crop(bbox)
+
+    # The largest this is ever drawn is the 112px hero, so shipping the full
+    # crop meant sending roughly 380KB to render 112 pixels. Capping the long
+    # edge keeps enough for a 3x display and cuts the file by about 8x.
+    if max(img.size) > WEB_MAX_EDGE:
+        img.thumbnail((WEB_MAX_EDGE, WEB_MAX_EDGE), Image.LANCZOS)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUT, optimize=True)

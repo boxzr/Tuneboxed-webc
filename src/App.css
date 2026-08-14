@@ -568,7 +568,9 @@ html {
   display: flex;
   align-items: center;
   text-decoration: none;
-  flex: 1;
+  /* Hug the image. With flex: 1 the anchor stretched across most of the bar,
+     so clicks far from the logo still navigated home. */
+  flex: none;
 }
 
 .nav-logo-image {
@@ -578,10 +580,9 @@ html {
 
 .nav-links {
   display: flex;
-  justify-content: center;
-  gap: 4rem;
-  flex: 2;
-  margin-right: 1/3;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.5rem;
 }
 
 .nav-link {
@@ -597,6 +598,102 @@ html {
 .nav-link:hover {
   background: rgba(0, 0, 0, 0.03);
   color: var(--primary-orange);
+}
+
+/* Admin toggle. A button rather than an anchor because it navigates nowhere,
+   which also stops it inheriting the link underline on hover. */
+.nav-link--plain {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.nav-cta {
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  padding: 6px 14px;
+}
+
+/* ---------- Home ---------- */
+
+.home {
+  /* Clears the fixed nav. */
+  padding-top: 132px;
+}
+
+.home-hero,
+.home-hero *,
+.home-app,
+.home-app * {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  letter-spacing: normal;
+}
+
+/* Three lines under the form rather than a section each. */
+.home-steps {
+  list-style: none;
+  margin: 40px auto 0;
+  padding: 0;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.home-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  opacity: 0.75;
+}
+
+.home-step-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: var(--primary-orange);
+  color: #fff;
+}
+
+.home-app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 40px 20px 72px;
+  text-align: center;
+  border-top: 1px solid rgba(27, 45, 78, 0.1);
+}
+
+.home-app-text {
+  margin: 0 0 14px;
+  font-size: 0.95rem;
+  opacity: 0.7;
+}
+
+.home-app-link {
+  color: var(--primary-navy);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 2px solid var(--primary-orange);
+  padding-bottom: 2px;
+}
+
+.home-app-link:hover {
+  color: var(--primary-orange);
+}
+
+@media (max-width: 600px) {
+  .home {
+    padding-top: 104px;
+  }
 }
 
 /* iPhone and mobile optimizations */

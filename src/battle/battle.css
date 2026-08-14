@@ -72,12 +72,15 @@
    Same note as above about App.css: `* { font-family }` hits these elements
    directly, so the descendant selector is what actually wins. */
 .battle-hero,
-.battle-hero * {
+.battle-hero *,
+.home-hero,
+.home-hero * {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   letter-spacing: normal;
 }
 
-.battle-hero {
+.battle-hero,
+.home-hero {
   max-width: 560px;
   margin: 0 auto 72px;
   padding: 0 20px;
