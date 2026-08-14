@@ -1,3 +1,24 @@
+/* ---------- Motion ----------
+   One vocabulary for the whole site, so nothing has to invent its own timing.
+   These live here rather than in App.css because index.css is imported from the
+   entry point and so is guaranteed to load for every route, including the OBS
+   overlay. The battle and page stylesheets both reference these tokens.
+
+   The short durations are the point: hovers land in around a tenth of a second
+   and entrances in three, which is what makes motion feel responsive rather
+   than decorative. Anything slower starts to feel like waiting for the
+   interface. Travel is 8px for the same reason, since a longer slide reads as
+   the page assembling itself rather than simply arriving. */
+:root {
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-swift: cubic-bezier(0.175, 0.885, 0.32, 1.1); /* slight overshoot */
+  --dur-hover: 0.1s;
+  --dur-control: 0.15s;
+  --dur-enter: 0.3s;
+  --rise: 8px;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -10,4 +31,24 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Anyone who has asked their system to reduce motion gets none of it. Vestibular
+   disorders make sliding and scaling genuinely unpleasant, and every animation
+   here is decorative, so there is nothing to trade off. Scroll-linked reveals
+   are handled separately in Reveal.tsx, which renders the finished state
+   outright rather than animating to it. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

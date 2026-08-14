@@ -236,7 +236,7 @@
   background: transparent;
   border: 2px solid var(--hairline);
   border-radius: 14px;
-  transition: border-color 0.15s ease;
+  transition: border-color var(--dur-control) var(--ease-standard);
 }
 
 .battle-input:focus {
@@ -270,7 +270,11 @@
   border-bottom: 4px solid var(--aura-orange-deep);
   border-radius: 16px;
   cursor: pointer;
-  transition: transform 0.08s ease, filter 0.15s ease;
+  /* The press is faster than the hover on purpose: a button should feel like it
+     goes down under the finger with no lag, while colour can afford to settle. */
+  transition:
+    transform 0.08s var(--ease-standard),
+    filter var(--dur-control) var(--ease-standard);
 }
 
 .battle-btn:hover:not(:disabled) {
@@ -452,7 +456,9 @@
   border: 2px solid var(--hairline);
   border-radius: 14px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color var(--dur-control) var(--ease-standard),
+    background-color var(--dur-control) var(--ease-standard);
 }
 
 .battle-result:hover:not(:disabled) {

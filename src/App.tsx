@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import './App.css';
 import tuneboxedLogo from './assets/tuneboxed-battle-logo.png';
 import { trackPageView } from './firebase';
@@ -16,14 +16,23 @@ import Streamers from './pages/Streamers';
 import About from './pages/About';
 import Winners from './pages/Winners';
 import Stats from './components/Stats';
+import Reveal, { MOTION } from './components/Reveal';
 import { CONTENT_PAGES } from './pages/PageLayout';
 import './battle/battle.css';
 import './pages/pages.css';
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/tuneboxed/id6747647968';
 
+/* Shared by every element in the hero so the whole sequence has one rhythm. */
+const heroItem = {
+  hidden: { opacity: 0, y: MOTION.rise },
+  shown: { opacity: 1, y: 0 },
+};
+const heroTransition = { duration: MOTION.duration, ease: MOTION.easeOut };
+
 function MainWebsite() {
   const [isAdminVisible, setIsAdminVisible] = useState(false);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     void trackPageView('home');
@@ -106,31 +115,28 @@ function MainWebsite() {
       </nav>
 
       <main className="home">
-        <section className="home-hero">
+        {/* The hero is above the fold, so it animates on mount rather than on
+            scroll. Each piece is offset by a beat so the eye is led from the
+            headline down to the form instead of everything landing at once. */}
+        <motion.section
+          className="home-hero"
+          initial={reduced ? undefined : 'hidden'}
+          animate={reduced ? undefined : 'shown'}
+          variants={{ hidden: {}, shown: { transition: { staggerChildren: MOTION.stagger } } }}
+        >
           <motion.img
             className="battle-hero-logo"
             src={tuneboxedLogo}
             alt=""
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            variants={heroItem}
+            transition={heroTransition}
           />
 
-          <motion.h1
-            className="battle-hero-title"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.45 }}
-          >
+          <motion.h1 className="battle-hero-title" variants={heroItem} transition={heroTransition}>
             The Kahoot of song battles
           </motion.h1>
 
-          <motion.p
-            className="battle-hero-sub"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18, duration: 0.45 }}
-          >
+          <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
             Host a bracket for your stream. Your viewers join with a room code, everyone
             hears each track at the same moment, and Twitch chat types 1 or 2 to pick the
             winner. No app, no account.
@@ -138,21 +144,15 @@ function MainWebsite() {
 
           <motion.div
             className="battle battle--embedded battle-hero-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.26, duration: 0.45 }}
+            variants={heroItem}
+            transition={heroTransition}
           >
             <BattleEntry showIntro={false} />
           </motion.div>
 
           {/* Three lines rather than a section each: the page exists to get a
               streamer into a room, so anything longer competes with the form. */}
-          <motion.ul
-            className="home-steps"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
+          <motion.ul className="home-steps" variants={heroItem} transition={heroTransition}>
             <li>
               <span className="home-step-num">1</span>
               Start a room and read the code out on stream
@@ -167,10 +167,12 @@ function MainWebsite() {
             </li>
           </motion.ul>
 
-          <Stats />
-        </section>
+          <motion.div variants={heroItem} transition={heroTransition}>
+            <Stats />
+          </motion.div>
+        </motion.section>
 
-        <section className="home-app">
+        <Reveal as="section" className="home-app">
           <p className="home-app-text">
             TuneBoxed is also an iOS app for showing off your music taste.
           </p>
@@ -182,24 +184,26 @@ function MainWebsite() {
           >
             Download on the App Store
           </a>
-        </section>
+        </Reveal>
       </main>
 
-      <footer className="page-footer">
-        {/* Same list the sitemap is built from, so every content page is
-            reachable by a crawler from the home page. */}
-        <nav className="page-footer-links">
-          {CONTENT_PAGES.map((p) => (
-            <Link key={p.path} to={p.path}>
-              {p.label}
-            </Link>
-          ))}
-          <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
-            iOS app
-          </a>
-        </nav>
-        <p>Aura Brand LLC © {new Date().getFullYear()}</p>
-      </footer>
+      <Reveal as="div">
+        <footer className="page-footer">
+          {/* Same list the sitemap is built from, so every content page is
+              reachable by a crawler from the home page. */}
+          <nav className="page-footer-links">
+            {CONTENT_PAGES.map((p) => (
+              <Link key={p.path} to={p.path}>
+                {p.label}
+              </Link>
+            ))}
+            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+              iOS app
+            </a>
+          </nav>
+          <p>Aura Brand LLC © {new Date().getFullYear()}</p>
+        </footer>
+      </Reveal>
     </div>
   );
 }
