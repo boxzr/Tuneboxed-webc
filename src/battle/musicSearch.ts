@@ -1,9 +1,15 @@
+/** Where a pick came from, and so which player can sound it. */
+export type SongSource = 'itunes' | 'soundcloud' | 'youtube';
+
 export interface Song {
   title: string;
   artist: string;
   artworkUrl: string | null;
+  /** A plain audio URL. Null for embeds, which play in a provider iframe. */
   previewUrl: string | null;
+  /** Track id for iTunes, video id for YouTube, track URL for SoundCloud. */
   externalId: string;
+  source: SongSource;
 }
 
 interface ITunesTrack {
@@ -43,5 +49,6 @@ export async function searchSongs(term: string, signal?: AbortSignal): Promise<S
       artworkUrl: t.artworkUrl100?.replace('100x100bb', '300x300bb') ?? null,
       previewUrl: t.previewUrl!,
       externalId: String(t.trackId ?? ''),
+      source: 'itunes' as const,
     }));
 }

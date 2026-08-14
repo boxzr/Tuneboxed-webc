@@ -9,6 +9,12 @@ interface Playback {
   total: number;
   /** How far into the current song we are, in seconds. */
   offset: number;
+  /**
+   * Seconds until the next song takes over, or null once this is the last one.
+   * Drives the shared countdown, which is what keeps a room of embedded
+   * players changing track together despite their uneven load times.
+   */
+  secondsUntilNext: number | null;
   finished: boolean;
   /** True when the browser refused to autoplay and needs a tap. */
   blocked: boolean;
@@ -62,7 +68,14 @@ export function useSyncedPlayback(
     return submissions.find((s) => s.id === id) ?? null;
   }, [index, finished, order, submissions]);
 
+  const secondsUntilNext =
+    startedAt === null || finished || index < 0 || index >= order.length - 1
+      ? null
+      : Math.max(0, perSong - offset);
+
   // Drive the audio element toward wherever the clock says we should be.
+  // A submission with no preview URL is an embed, which plays in the provider's
+  // own iframe instead; falling through here leaves the audio element paused.
   useEffect(() => {
     if (!enabled || !current?.preview_url || finished) {
       audioRef.current?.pause();
@@ -127,6 +140,7 @@ export function useSyncedPlayback(
     index: Math.max(0, index),
     total: order.length,
     offset,
+    secondsUntilNext,
     finished,
     blocked,
     unblock,

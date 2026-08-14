@@ -77,12 +77,21 @@ export default function Rules() {
       </section>
 
       <section className="page-section">
-        <h2>Songs and previews</h2>
+        <h2>Where songs come from</h2>
         <p>
-          Tracks are searched from Apple's public music catalogue, and each one
-          plays as a 30 second preview. A handful of tracks have no preview
-          available, in which case the pick is skipped rather than played
-          silently.
+          Search covers Apple's public music catalogue, and each result plays as
+          a 30 second preview. Nobody needs a Spotify or Apple Music
+          subscription, because everyone in the room plays the same preview
+          rather than a stream only some of them can reach.
+        </p>
+        <p>
+          You can also paste a SoundCloud or YouTube link instead of searching,
+          which is how to battle a song the Apple catalogue does not carry. Those
+          play in SoundCloud's and YouTube's own players, so they stay on screen
+          during the matchup. They also start a beat less precisely than a
+          preview does, since the player has to load first and YouTube may run
+          an ad, so expect a second or two of slack rather than the exact sync
+          you get from search.
         </p>
       </section>
 

@@ -44,6 +44,10 @@ const FAQS: { q: string; a: string }[] = [
     a: "Players search Apple's public music catalogue, and each track plays as a 30 second preview. Nobody needs a Spotify or Apple Music subscription.",
   },
   {
+    q: 'Can I use SoundCloud or YouTube?',
+    a: 'Yes. Instead of searching, paste a SoundCloud or YouTube link, which is how to battle something the Apple catalogue does not carry. Those tracks play in SoundCloud\u2019s and YouTube\u2019s own players rather than as a preview, so the player stays visible during the matchup and the start is a second or two less tight, particularly if YouTube runs an ad first.',
+  },
+  {
     q: 'Is it free?',
     a: 'Yes. Hosting and joining a battle on the web is free.',
   },

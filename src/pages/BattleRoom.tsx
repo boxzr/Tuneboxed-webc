@@ -7,6 +7,7 @@ import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useChatVotes } from '../battle/useChatVotes';
 import { secondsUntil, syncClock } from '../battle/clock';
 import SongPicker from '../battle/SongPicker';
+import EmbedPlayer from '../battle/EmbedPlayer';
 import type { BattlePlayer, BattleSubmission } from '../types/battle';
 import logo from '../assets/tuneboxed-battle-logo.png';
 import '../battle/battle.css';
@@ -51,6 +52,9 @@ export default function BattleRoom() {
   const phase = round?.phase ?? null;
   const playing = phase === 'playing';
   const playback = useSyncedPlayback(round, submissions, playing);
+  // Embed players report their own autoplay refusals, which are separate from
+  // the audio element's.
+  const [embedBlocked, setEmbedBlocked] = useState(false);
 
   // Only the host reads chat. Every viewer opening an IRC connection would
   // multiply the load for no gain, and the tally is host-only to write anyway.
@@ -206,7 +210,7 @@ export default function BattleRoom() {
                     artworkUrl: song.artworkUrl,
                     previewUrl: song.previewUrl,
                     externalId: song.externalId,
-                    source: 'itunes',
+                    source: song.source,
                   })
                 )
               }
@@ -246,20 +250,50 @@ export default function BattleRoom() {
             deadline={round?.phase_deadline_at ?? null}
           />
 
-          {playback.blocked && (
-            <button className="battle-btn" onClick={playback.unblock}>
+          {(playback.blocked || embedBlocked) && (
+            <button
+              className="battle-btn"
+              onClick={() => {
+                playback.unblock();
+                setEmbedBlocked(false);
+              }}
+            >
               Tap to hear the battle
             </button>
           )}
 
           {playback.current ? (
-            <SubmissionRow
-              submission={playback.current}
-              subtitle={`Picked by ${nameOf(playback.current.player_id)}`}
-            />
+            <>
+              <SubmissionRow
+                submission={playback.current}
+                subtitle={`Picked by ${nameOf(playback.current.player_id)}`}
+              />
+
+              {/* SoundCloud and YouTube picks play in the provider's own
+                  player, which has to stay on screen. iTunes previews are
+                  plain audio and need nothing here. */}
+              {embedSourceOf(playback.current) && (
+                <EmbedPlayer
+                  source={embedSourceOf(playback.current)!}
+                  externalId={playback.current.external_id ?? ''}
+                  offset={playback.offset}
+                  playing
+                  onBlocked={setEmbedBlocked}
+                />
+              )}
+            </>
           ) : (
             <p className="battle-sub" style={{ margin: 0 }}>
               Getting the first track ready…
+            </p>
+          )}
+
+          {/* One shared countdown, read off the same server clock everywhere, so
+              a room full of embeds changes track together even though each
+              player takes a different amount of time to load. */}
+          {playback.secondsUntilNext !== null && playback.secondsUntilNext <= 3 && (
+            <p className="battle-countdown" aria-live="polite">
+              Next up in {Math.ceil(playback.secondsUntilNext)}
             </p>
           )}
         </div>
@@ -502,6 +536,19 @@ function OverlayCard({ code }: { code: string }) {
       </button>
     </div>
   );
+}
+
+/**
+ * Which embedded player a submission needs, or null when it is a plain audio
+ * preview. Keyed off `source` rather than the absence of a preview URL, so a
+ * pick that simply failed to resolve does not silently mount a player with
+ * nothing to play.
+ */
+function embedSourceOf(submission: BattleSubmission): 'soundcloud' | 'youtube' | null {
+  if (!submission.external_id) return null;
+  if (submission.source === 'soundcloud') return 'soundcloud';
+  if (submission.source === 'youtube') return 'youtube';
+  return null;
 }
 
 function PhaseHeading({ title, deadline }: { title: string; deadline: string | null }) {

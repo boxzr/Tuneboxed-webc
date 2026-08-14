@@ -434,6 +434,84 @@
   border-radius: 999px;
 }
 
+/* ---------- Source tabs ---------- */
+
+.battle-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 16px;
+  background: rgba(22, 24, 29, 0.05);
+  border-radius: 12px;
+}
+
+.battle-tab {
+  flex: 1;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition:
+    background-color var(--dur-control) var(--ease-standard),
+    opacity var(--dur-control) var(--ease-standard);
+}
+
+.battle-tab--on {
+  background: #fff;
+  opacity: 1;
+  box-shadow: 0 1px 3px rgba(22, 24, 29, 0.12);
+}
+
+/* ---------- Embedded players ---------- */
+
+/* SoundCloud and YouTube have to render their own player, and both require it
+   stay visible rather than being used as a hidden audio source. */
+.battle-embed {
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(22, 24, 29, 0.05);
+}
+
+.battle-embed__host iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
+.battle-embed--youtube .battle-embed__host iframe {
+  aspect-ratio: 16 / 9;
+  height: auto;
+}
+
+.battle-embed__note {
+  margin: 0;
+  padding: 14px;
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.65;
+}
+
+.battle-embed__note--error {
+  color: #c0392b;
+  opacity: 1;
+}
+
+.battle-countdown {
+  margin: 14px 0 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--aura-orange-deep);
+}
+
 .battle-results {
   list-style: none;
   margin: 12px 0 0;
