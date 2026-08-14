@@ -271,3 +271,121 @@
   font-size: 0.9rem;
   line-height: 1.5;
 }
+
+/* Rounds */
+
+.battle-h2 {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.battle-phase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.battle-timer {
+  padding: 4px 12px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--aura-orange-deep);
+  background: rgba(253, 156, 7, 0.14);
+  border-radius: 999px;
+}
+
+.battle-results {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.battle-results li + li {
+  margin-top: 8px;
+}
+
+.battle-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 2px solid var(--hairline);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.battle-result:hover:not(:disabled) {
+  border-color: var(--aura-orange);
+}
+
+.battle-result:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.battle-result--chosen {
+  border-color: var(--aura-orange);
+  background: rgba(253, 156, 7, 0.12);
+  opacity: 1;
+}
+
+.battle-result--static {
+  cursor: default;
+  margin-top: 12px;
+}
+
+.battle-art {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.battle-art--empty {
+  background: var(--hairline);
+}
+
+.battle-result__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.battle-result__text strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-result__text span {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-result__cta {
+  margin-left: auto;
+  padding-left: 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--aura-orange-deep);
+  flex-shrink: 0;
+}

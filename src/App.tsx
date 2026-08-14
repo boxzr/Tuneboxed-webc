@@ -7,7 +7,7 @@ import { trackPageView } from './firebase';
 import AdminDashboard from './components/AdminDashboard';
 import PasswordReset from './pages/PasswordReset';
 import BattleHome from './pages/BattleHome';
-import BattleLobby from './pages/BattleLobby';
+import BattleRoom from './pages/BattleRoom';
 
 
 
@@ -638,7 +638,7 @@ function App() {
       {/* /join/:code is the shareable form a streamer reads out on air. */}
       <Route path="/join/:code" element={<BattleHome />} />
       <Route path="/battle" element={<BattleHome />} />
-      <Route path="/battle/:code" element={<BattleLobby />} />
+      <Route path="/battle/:code" element={<BattleRoom />} />
       <Route path="/*" element={<MainWebsite />} />
     </Routes>
   );
