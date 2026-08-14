@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
 import { supabaseConfigured } from '../lib/supabase';
+import { signInWithTwitch, signOut, useTwitchIdentity } from '../lib/twitchAuth';
 
 type Props = {
   /** Prefilled when a viewer follows a share link that already names the room. */
@@ -34,6 +35,14 @@ export default function BattleEntry({
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [busy, setBusy] = useState<'join' | 'create' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { identity } = useTwitchIdentity();
+
+  // Signing in fills the name in, but does not pin it. A streamer may want to
+  // appear under something other than their channel name, so this only writes
+  // into an empty field and never overwrites what they typed.
+  useEffect(() => {
+    if (identity) setName((current) => current || identity.displayName);
+  }, [identity]);
 
   const run = async (kind: 'join' | 'create') => {
     setError(null);
@@ -41,7 +50,11 @@ export default function BattleEntry({
     try {
       const session =
         kind === 'create'
-          ? await battle.createRoom({ displayName: name.trim() })
+          ? await battle.createRoom({
+              displayName: name.trim(),
+              twitchLogin: identity?.login ?? null,
+              twitchAvatarUrl: identity?.avatarUrl ?? null,
+            })
           : await battle.joinRoom(code.trim(), name.trim());
       navigate(`/battle/${session.room.code}`);
     } catch (e) {
@@ -127,6 +140,29 @@ export default function BattleEntry({
       >
         {busy === 'create' ? 'Creating…' : 'Host a battle'}
       </button>
+
+      {/* Only offered to hosts. A viewer following a share link has no use for
+          it, and asking them to authorise an app to join a game would cost
+          more of them than it gains. */}
+      {!invited &&
+        (identity ? (
+          <div className="battle-twitch battle-twitch--on">
+            {identity.avatarUrl && (
+              <img className="battle-twitch-avatar" src={identity.avatarUrl} alt="" />
+            )}
+            <span className="battle-twitch-name">{identity.login}</span>
+            <button className="battle-twitch-signout" onClick={() => void signOut()}>
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <button
+            className="battle-twitch-btn"
+            onClick={() => void signInWithTwitch().catch((e) => setError(e.message))}
+          >
+            Sign in with Twitch
+          </button>
+        ))}
 
       {error && <div className="battle-error">{error}</div>}
     </div>

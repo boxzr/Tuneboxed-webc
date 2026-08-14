@@ -127,6 +127,8 @@ export default function BattleRoom() {
           <h2 className="battle-h2">Players</h2>
           <Roster players={players} hostId={room.host_player_id} meId={me?.id ?? null} />
 
+          {isHost && <OverlayCard code={room.code} />}
+
           {isHost ? (
             <>
               {connected.length < room.min_players ? (
@@ -408,6 +410,42 @@ function RoomHeader({
       <p className="battle-sub" style={{ margin: '4px 0 0', textAlign: 'center', fontSize: '0.8rem' }}>
         {joinUrl}
       </p>
+    </div>
+  );
+}
+
+/**
+ * The bridge between a browser room and the stream: the URL a streamer pastes
+ * into OBS as a Browser Source. Shown to the host only, since nobody else can
+ * do anything with it.
+ */
+function OverlayCard({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/overlay/${code}`;
+
+  return (
+    <div className="battle-overlay-cta">
+      <span className="battle-label">Put this on your stream</span>
+      <p className="battle-sub" style={{ margin: '4px 0 10px' }}>
+        In OBS add a Browser Source, paste this URL, and set it to 1920 by 1080. The background
+        is transparent, so it sits over whatever you are already showing.
+      </p>
+      <code className="battle-overlay-url">{url}</code>
+      <button
+        className="battle-btn battle-btn--secondary"
+        style={{ marginTop: 10 }}
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+          } catch {
+            /* clipboard can be blocked; the URL is on screen to copy by hand */
+          }
+        }}
+      >
+        {copied ? 'Copied' : 'Copy overlay URL'}
+      </button>
     </div>
   );
 }

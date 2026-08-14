@@ -24,6 +24,9 @@ export interface BattleRoom {
   host_speaker_enabled: boolean | null;
   current_match_id: string | null;
   bracket_size: number | null;
+  /** Set when a signed-in streamer hosts from the web. Null for iOS rooms. */
+  host_twitch_login: string | null;
+  host_avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }

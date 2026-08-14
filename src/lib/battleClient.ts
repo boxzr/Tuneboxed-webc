@@ -108,6 +108,9 @@ export async function createRoom(opts: {
   mode?: 'group' | 'bar_for_bar';
   format?: BattleFormat;
   votingMode?: BattleVotingMode;
+  /** Set when a signed-in streamer hosts, so the room and overlay show them. */
+  twitchLogin?: string | null;
+  twitchAvatarUrl?: string | null;
 }): Promise<BattleSession> {
   const session = await rpc<BattleSession>('battle_create_room', {
     p_mode: opts.mode ?? 'group',
@@ -115,6 +118,8 @@ export async function createRoom(opts: {
     p_host_is_guest: true,
     p_format: opts.format ?? 'rounds',
     p_voting_mode: opts.votingMode ?? 'judge',
+    p_host_twitch_login: opts.twitchLogin ?? null,
+    p_host_avatar_url: opts.twitchAvatarUrl ?? null,
   });
   saveSession(session);
   return session;

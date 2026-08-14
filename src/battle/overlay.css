@@ -1,0 +1,210 @@
+/* OBS Browser Source styling.
+   Sized for a 1920x1080 source. Everything is in px rather than rem or vw
+   because OBS renders at a fixed canvas size, so scaling to the viewport
+   would resize the panel whenever the streamer changed the source dimensions.
+
+   Note the deliberate lack of a background on .ov: OBS composites whatever is
+   transparent, so leaving it unset is what puts the panel over gameplay. */
+
+/* Set by BattleOverlay while it is mounted. Transparency only works if every
+   layer behind the panel is clear, and body is painted opaque by App.css. */
+html.ov-active,
+html.ov-active body,
+html.ov-active #root {
+  background: transparent !important;
+}
+
+.ov {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 48px;
+  color: #fff;
+}
+
+/* App.css sets `* { font-family: 'Space Mono' }`, which hits these elements
+   directly and so beats anything they would inherit from .ov. Naming the
+   descendants is what actually overrides it. */
+.ov,
+.ov * {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  letter-spacing: normal;
+}
+
+.ov--solid {
+  background: #0f1116;
+}
+
+.ov-card {
+  width: 460px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: rgba(15, 17, 22, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* A stream sits on top of arbitrary video, so the panel carries its own
+     contrast rather than assuming a dark scene behind it. */
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+}
+
+.ov-card--waiting {
+  opacity: 0.6;
+}
+
+.ov-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ov-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex: none;
+  border: 2px solid #fd9c07;
+}
+
+.ov-head-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.ov-host {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fd9c07;
+  text-transform: lowercase;
+}
+
+.ov-title {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-timer {
+  flex: none;
+  min-width: 54px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ov-timer--urgent {
+  color: #fff;
+  background: #e0504a;
+}
+
+/* ---------- Lobby ---------- */
+
+.ov-join {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.ov-code-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.ov-code {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+  color: #fd9c07;
+}
+
+.ov-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ov-chip {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ---------- Round ---------- */
+
+.ov-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ov-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.ov-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.ov-dot--on {
+  background: #58a700;
+}
+
+.ov-name {
+  font-weight: 700;
+  flex: none;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-state {
+  font-size: 13px;
+  opacity: 0.55;
+  margin-left: auto;
+}
+
+.ov-song {
+  margin-left: auto;
+  font-size: 14px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-artist {
+  opacity: 0.6;
+}
+
+.ov-foot {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+  opacity: 0.7;
+}

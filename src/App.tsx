@@ -8,6 +8,7 @@ import AdminDashboard from './components/AdminDashboard';
 import PasswordReset from './pages/PasswordReset';
 import BattleHome from './pages/BattleHome';
 import BattleRoom from './pages/BattleRoom';
+import BattleOverlay from './pages/BattleOverlay';
 import BattleEntry from './battle/BattleEntry';
 import './battle/battle.css';
 
@@ -639,6 +640,7 @@ function App() {
       <Route path="/join/:code" element={<BattleHome />} />
       <Route path="/battle" element={<BattleHome />} />
       <Route path="/battle/:code" element={<BattleRoom />} />
+      <Route path="/overlay/:code" element={<BattleOverlay />} />
       <Route path="/*" element={<MainWebsite />} />
     </Routes>
   );

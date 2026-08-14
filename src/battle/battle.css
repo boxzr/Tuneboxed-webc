@@ -110,6 +110,83 @@
   text-align: left;
 }
 
+/* OBS Browser Source prompt in the lobby, host only. */
+.battle-overlay-cta {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--hairline);
+  background: rgba(145, 70, 255, 0.06);
+}
+
+.battle-overlay-url {
+  display: block;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: rgba(22, 24, 29, 0.06);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  /* URLs have no spaces, so without this the card would set the room width. */
+  overflow-wrap: anywhere;
+}
+
+/* Twitch sign-in, offered to hosts only. */
+.battle-twitch-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #9146ff;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.battle-twitch-btn:hover {
+  background: #7d2ff5;
+}
+
+.battle-twitch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(145, 70, 255, 0.1);
+  border: 1px solid rgba(145, 70, 255, 0.28);
+}
+
+.battle-twitch-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.battle-twitch-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #9146ff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-twitch-signout {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .battle-card {
   background: var(--card);
   border: 1px solid var(--hairline);
