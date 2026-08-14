@@ -33,6 +33,41 @@ code {
     monospace;
 }
 
+/* ---------- App Store button ----------
+   Shared by the home page and the About page, so it lives here rather than in
+   either stylesheet. Borrows the raised bottom edge from .battle-btn, which is
+   the button language the rest of the product already uses, so the press reads
+   as the same physical thing. */
+.app-store-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  padding: 0 28px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  background: #ff7a00;
+  border: none;
+  border-bottom: 4px solid #c25700;
+  border-radius: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    filter var(--dur-control) var(--ease-standard),
+    transform 0.08s var(--ease-standard);
+}
+
+.app-store-btn:hover {
+  filter: brightness(1.05);
+  color: #fff;
+}
+
+.app-store-btn:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
 /* Anyone who has asked their system to reduce motion gets none of it. Vestibular
    disorders make sliding and scaling genuinely unpleasant, and every animation
    here is decorative, so there is nothing to trade off. Scroll-linked reveals

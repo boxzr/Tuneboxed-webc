@@ -34,7 +34,12 @@ export default function About() {
           ranks and matching with people who post the same things you do.
         </p>
         <p>
-          <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+          <a
+            href={APP_STORE_URL}
+            className="app-store-btn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Download on the App Store
           </a>
         </p>

@@ -98,6 +98,25 @@
   margin-bottom: 0;
 }
 
+/* Inline links, which were inheriting the browser's default blue and reading as
+   unstyled next to everything else. Navy text with an orange underline rather
+   than orange text: brand orange on white is only about 2.4:1, well short of
+   the 4.5:1 that body text needs to stay readable. The underline carries the
+   brand colour instead, where contrast does not matter as much.
+   Excludes the App Store button, which sets its own colour. */
+.page-main a:not(.app-store-btn) {
+  color: #1b2d4e;
+  font-weight: 700;
+  text-decoration-color: #ff7a00;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition: color var(--dur-hover) var(--ease-standard);
+}
+
+.page-main a:not(.app-store-btn):hover {
+  color: #b35400;
+}
+
 /* ---------- Numbered steps ---------- */
 
 .page-steps {

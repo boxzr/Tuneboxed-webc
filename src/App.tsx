@@ -178,7 +178,7 @@ function MainWebsite() {
           </p>
           <a
             href={APP_STORE_URL}
-            className="home-app-link"
+            className="app-store-btn"
             target="_blank"
             rel="noopener noreferrer"
           >
