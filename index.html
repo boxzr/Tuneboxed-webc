@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FF8A3D" />
+    <meta
+      name="description"
+      content="TuneBoxed - Showcase your music taste. Share and Express Yourself Through Sound."
+    />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta property="og:title" content="TuneBoxed" />
+    <meta property="og:description" content="Showcase your music taste." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tuneboxed.com" />
+    <meta property="og:image" content="https://tuneboxed.com/logo512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <title>Tuneboxed</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+
+    <!--
+      Pairs with the redirect in public/404.html. GitHub Pages serves 404.html for
+      any path it has no file for, which is every client-side route. That page
+      encodes the path into a query string; this restores it before React Router
+      reads the URL. Both halves must ship together or deep links break.
+    -->
+    <script>
+      (function (location) {
+        if (location.search[1] === '/') {
+          var decoded = location.search
+            .slice(1)
+            .split('&')
+            .map(function (s) {
+              return s.replace(/~and~/g, '&');
+            })
+            .join('?');
+          window.history.replaceState(
+            null,
+            '',
+            location.pathname.slice(0, -1) + decoded + location.hash
+          );
+        }
+      })(window.location);
+    </script>
+
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
