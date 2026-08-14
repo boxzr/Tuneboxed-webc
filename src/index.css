@@ -68,6 +68,27 @@ code {
   border-bottom-width: 2px;
 }
 
+/* Compact enough to sit in a nav bar without setting the bar's height. */
+.app-store-btn--nav {
+  height: 40px;
+  padding: 0 18px;
+  font-size: 0.9rem;
+  border-radius: 11px;
+  border-bottom-width: 3px;
+}
+
+.app-store-btn--nav:active {
+  border-bottom-width: 1px;
+}
+
+@media (max-width: 480px) {
+  .app-store-btn--nav {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+  }
+}
+
 /* Anyone who has asked their system to reduce motion gets none of it. Vestibular
    disorders make sliding and scaling genuinely unpleasant, and every animation
    here is decorative, so there is nothing to trade off. Scroll-linked reveals

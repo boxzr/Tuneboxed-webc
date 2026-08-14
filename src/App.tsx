@@ -105,11 +105,11 @@ function MainWebsite() {
         <div className="nav-links">
           <a
             href={APP_STORE_URL}
-            className="nav-link nav-cta"
+            className="app-store-btn app-store-btn--nav"
             target="_blank"
             rel="noopener noreferrer"
           >
-            Get the app
+            Download on the App Store
           </a>
         </div>
       </nav>
@@ -172,19 +172,6 @@ function MainWebsite() {
           </motion.div>
         </motion.section>
 
-        <Reveal as="section" className="home-app">
-          <p className="home-app-text">
-            TuneBoxed is also an iOS app for showing off your music taste.
-          </p>
-          <a
-            href={APP_STORE_URL}
-            className="app-store-btn"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Download on the App Store
-          </a>
-        </Reveal>
       </main>
 
       <Reveal as="div">
