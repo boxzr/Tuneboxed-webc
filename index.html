@@ -12,14 +12,43 @@
     <link rel="apple-touch-icon" href="/logo192.png" />
     <link rel="manifest" href="/manifest.json" />
 
+    <!--
+      scripts/prerender.mjs rewrites the canonical, title, description and og
+      tags below for each route it emits, so the shapes here have to stay
+      predictable. Check that script before reformatting them.
+    -->
+    <link rel="canonical" href="https://tuneboxed.com/" />
+    <meta property="og:site_name" content="TuneBoxed" />
     <meta property="og:title" content="TuneBoxed" />
     <meta property="og:description" content="Showcase your music taste." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://tuneboxed.com" />
+    <meta property="og:url" content="https://tuneboxed.com/" />
     <meta property="og:image" content="https://tuneboxed.com/logo512.png" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <title>Tuneboxed</title>
+    <title>TuneBoxed</title>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://tuneboxed.com/#organization",
+            "name": "TuneBoxed",
+            "url": "https://tuneboxed.com/",
+            "logo": "https://tuneboxed.com/logo512.png"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://tuneboxed.com/#website",
+            "name": "TuneBoxed",
+            "url": "https://tuneboxed.com/",
+            "publisher": { "@id": "https://tuneboxed.com/#organization" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
