@@ -6,6 +6,8 @@ import tuneboxedLogo from './tuneboxed-logo.png';
 import { trackPageView } from './firebase';
 import AdminDashboard from './components/AdminDashboard';
 import PasswordReset from './pages/PasswordReset';
+import BattleHome from './pages/BattleHome';
+import BattleLobby from './pages/BattleLobby';
 
 
 
@@ -630,11 +632,13 @@ function MainWebsite() {
 }
 
 function App() {
-  const location = useLocation();
-  
   return (
     <Routes>
       <Route path="/reset-password" element={<PasswordReset />} />
+      {/* /join/:code is the shareable form a streamer reads out on air. */}
+      <Route path="/join/:code" element={<BattleHome />} />
+      <Route path="/battle" element={<BattleHome />} />
+      <Route path="/battle/:code" element={<BattleLobby />} />
       <Route path="/*" element={<MainWebsite />} />
     </Routes>
   );
