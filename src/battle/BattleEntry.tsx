@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
 import { supabaseConfigured } from '../lib/supabase';
@@ -36,6 +36,22 @@ export default function BattleEntry({
   const [busy, setBusy] = useState<'join' | 'create' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { identity } = useTwitchIdentity();
+
+  /**
+   * Hosting is the default because that is who arrives here by typing the
+   * address. Viewers almost always come through a share link, which sets
+   * `invited` and puts the code in for them, so asking everyone for a code up
+   * front only ever blocked the person who does not have one yet.
+   */
+  const [mode, setMode] = useState<'host' | 'join'>(invited ? 'join' : 'host');
+  const codeRef = useRef<HTMLInputElement>(null);
+
+  // Choosing to join is a request to type a code, so the cursor goes there
+  // rather than making them reach for the field they just asked for. Skipped
+  // when invited, where the code is already filled in and the name is blank.
+  useEffect(() => {
+    if (mode === 'join' && !invited) codeRef.current?.focus();
+  }, [mode, invited]);
 
   // Signing in fills the name in, but does not pin it. A streamer may want to
   // appear under something other than their channel name, so this only writes
@@ -112,40 +128,57 @@ export default function BattleEntry({
         />
       </div>
 
-      <div className="battle-field">
-        <label className="battle-label" htmlFor="battle-code">
-          Room code
-        </label>
-        <input
-          id="battle-code"
-          className="battle-input battle-input--code"
-          value={code}
-          maxLength={5}
-          placeholder="ABCDE"
-          autoCapitalize="characters"
-          autoComplete="off"
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-        />
-      </div>
+      {mode === 'join' && (
+        <div className="battle-field">
+          <label className="battle-label" htmlFor="battle-code">
+            Room code
+          </label>
+          <input
+            id="battle-code"
+            ref={codeRef}
+            className="battle-input battle-input--code"
+            value={code}
+            maxLength={5}
+            placeholder="ABCDE"
+            autoCapitalize="characters"
+            autoComplete="off"
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+          />
+        </div>
+      )}
 
-      <button
-        className="battle-btn"
-        disabled={!nameOk || code.trim().length !== 5 || busy !== null}
-        onClick={() => void run('join')}
-      >
-        {busy === 'join' ? 'Joining…' : 'Join battle'}
-      </button>
+      {mode === 'host' ? (
+        <button
+          className="battle-btn"
+          disabled={!nameOk || busy !== null}
+          onClick={() => void run('create')}
+        >
+          {busy === 'create' ? 'Creating…' : 'Host a battle'}
+        </button>
+      ) : (
+        <button
+          className="battle-btn"
+          disabled={!nameOk || code.trim().length !== 5 || busy !== null}
+          onClick={() => void run('join')}
+        >
+          {busy === 'join' ? 'Joining…' : 'Join battle'}
+        </button>
+      )}
 
-      <div className="battle-divider">or</div>
-
-      <button
-        className="battle-btn battle-btn--secondary"
-        style={{ marginTop: 0 }}
-        disabled={!nameOk || busy !== null}
-        onClick={() => void run('create')}
-      >
-        {busy === 'create' ? 'Creating…' : 'Host a battle'}
-      </button>
+      {/* A viewer who followed a share link is being let into one room, so
+          offering to host would only lead them away from it. */}
+      {!invited && (
+        <button
+          className="battle-switch"
+          disabled={busy !== null}
+          onClick={() => {
+            setError(null);
+            setMode((m) => (m === 'host' ? 'join' : 'host'));
+          }}
+        >
+          {mode === 'host' ? 'Have a code? Join a room' : 'Host a battle instead'}
+        </button>
+      )}
 
       {/* Only offered to hosts. A viewer following a share link has no use for
           it, and asking them to authorise an app to join a game would cost

@@ -307,24 +307,30 @@
   border-radius: 12px;
 }
 
-.battle-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 22px 0;
+/* Deliberately quiet. Hosting is the main road and this is the turning off
+   it, so it reads as a link rather than competing with the button above. */
+.battle-switch {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 0.9rem;
   color: var(--ink-soft);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color var(--dur-control) var(--ease-standard);
 }
 
-.battle-divider::before,
-.battle-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--hairline);
+.battle-switch:hover:not(:disabled) {
+  color: var(--aura-orange);
+}
+
+.battle-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Lobby */
