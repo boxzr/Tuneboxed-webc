@@ -33,7 +33,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I put the battle on my stream?',
-    a: 'Yes. Every room gives you a browser source URL you can paste straight into OBS. It renders on a transparent background so it composites over your scene, and it updates live.',
+    a: 'Yes. If you do not have OBS, share the battle tab as your stream. Chat still votes and viewers still join from the code. If you do have OBS, Streamlabs, or anything with a Browser Source, every room also gives you a transparent overlay URL to drop over your scene.',
   },
   {
     q: 'How long does a battle take?',

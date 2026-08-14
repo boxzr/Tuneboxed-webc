@@ -35,11 +35,15 @@ export default function Streamers() {
           <li>
             <span className="page-step-num">3</span>
             <div className="page-step-body">
-              <h3>Add the browser source</h3>
+              <h3>Put it on stream</h3>
               <p>
-                Every room shows a copyable overlay URL. In OBS add a Browser
-                source, paste it, and set it to 1920 by 1080. The background is
-                transparent so it composites over your scene.
+                No OBS? Share this browser tab as your stream. Chat still votes,
+                and viewers still join from the code.
+              </p>
+              <p>
+                Have OBS, Streamlabs, or anything with a Browser Source? Every
+                room shows a copyable overlay URL. Paste it, set it to 1920 by
+                1080, and the transparent overlay sits over your scene.
               </p>
             </div>
           </li>
@@ -100,9 +104,10 @@ export default function Streamers() {
         <h2>TikTok and other platforms</h2>
         <p>
           The battle itself works anywhere you can share a link and screen
-          share, and the overlay works in any software that supports a browser
-          source. Chat voting is Twitch only for now, because it relies on
-          reading Twitch chat. Elsewhere the players in the room vote instead.
+          share the tab. The overlay works in any software that supports a
+          browser source, not only OBS. Chat voting is Twitch only for now,
+          because it relies on reading Twitch chat. Elsewhere the players in
+          the room vote instead.
         </p>
       </section>
 

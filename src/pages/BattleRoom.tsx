@@ -515,8 +515,12 @@ function OverlayCard({ code }: { code: string }) {
     <div className="battle-overlay-cta">
       <span className="battle-label">Put this on your stream</span>
       <p className="battle-sub" style={{ margin: '4px 0 10px' }}>
-        In OBS add a Browser Source, paste this URL, and set it to 1920 by 1080. The background
-        is transparent, so it sits over whatever you are already showing.
+        No OBS? Share this browser tab as your stream. Chat still votes, and viewers still join
+        from the code.
+      </p>
+      <p className="battle-sub" style={{ margin: '0 0 10px' }}>
+        Have OBS, Streamlabs, or anything with a Browser Source? Paste this URL, set it to 1920
+        by 1080, and the transparent overlay sits over your scene.
       </p>
       <code className="battle-overlay-url">{url}</code>
       <button
