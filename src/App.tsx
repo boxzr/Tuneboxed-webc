@@ -267,7 +267,7 @@ function MainWebsite() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15, duration: 0.5 }}
                 >
-                  Song battles, live on your stream
+                  The Kahoot of song battles
                 </motion.h1>
 
                 <motion.p
@@ -276,8 +276,9 @@ function MainWebsite() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25, duration: 0.5 }}
                 >
-                  Your chat picks the tracks, everyone hears them at the same moment, and the
-                  room votes for a winner. Viewers join from the browser. No app, no account.
+                  Drop a code, your viewers pick songs, and the whole room hears each one at
+                  the same moment. Two tracks go head to head, Twitch chat types 1 or 2, and
+                  the bracket runs until one song is left. No app, no account.
                 </motion.p>
 
                 <motion.div

@@ -4,6 +4,7 @@ import * as battle from '../lib/battleClient';
 import { useBattleRoom } from '../battle/useBattleRoom';
 import { useBattleRound } from '../battle/useBattleRound';
 import { useSyncedPlayback } from '../battle/useSyncedPlayback';
+import { useChatVotes } from '../battle/useChatVotes';
 import { secondsUntil, syncClock } from '../battle/clock';
 import SongPicker from '../battle/SongPicker';
 import type { BattlePlayer, BattleSubmission } from '../types/battle';
@@ -50,6 +51,17 @@ export default function BattleRoom() {
   const phase = round?.phase ?? null;
   const playing = phase === 'playing';
   const playback = useSyncedPlayback(round, submissions, playing);
+
+  // Only the host reads chat. Every viewer opening an IRC connection would
+  // multiply the load for no gain, and the tally is host-only to write anyway.
+  const chatChannel = isHost ? room?.host_twitch_login ?? null : null;
+  const chat = useChatVotes({
+    enabled: isHost,
+    channel: chatChannel,
+    round,
+    submissions,
+    token,
+  });
 
   useEffect(() => {
     if (!loading && roomId && !stored) navigate(`/join/${code.toUpperCase()}`, { replace: true });
@@ -100,6 +112,16 @@ export default function BattleRoom() {
 
   const myVote = votes.find((v) => v.voter_player_id === me?.id) ?? null;
   const mySubmission = submissions.find((s) => s.player_id === me?.id) ?? null;
+
+  // A room tied to a Twitch channel hands the decision to chat, so the in-room
+  // crown buttons become a read-only scoreboard for everyone. The host shows
+  // its own live counts because those update between reports; everyone else
+  // reads what the host last published.
+  const chatTally = room.host_twitch_login
+    ? isHost
+      ? chat.counts
+      : round?.chat_tally ?? {}
+    : null;
 
   return (
     <Shell>
@@ -249,20 +271,27 @@ export default function BattleRoom() {
           <PhaseHeading title="Crown a winner" deadline={round?.phase_deadline_at ?? null} />
 
           <p className="battle-sub">
-            {room.voting_mode === 'judge' && `${nameOf(round?.judge_player_id ?? null)} is judging.`}
-            {room.voting_mode === 'host' && `${nameOf(room.host_player_id)} is deciding.`}
-            {room.voting_mode === 'everyone' && 'Everyone votes, but not for their own song.'}
+            {chatTally ? (
+              <>Twitch chat decides. Viewers type <strong>1</strong> or <strong>2</strong>.</>
+            ) : (
+              <>
+                {room.voting_mode === 'judge' &&
+                  `${nameOf(round?.judge_player_id ?? null)} is judging.`}
+                {room.voting_mode === 'host' && `${nameOf(room.host_player_id)} is deciding.`}
+                {room.voting_mode === 'everyone' && 'Everyone votes, but not for their own song.'}
+              </>
+            )}
           </p>
 
           <ul className="battle-results">
-            {submissions.map((s) => {
+            {submissions.map((s, i) => {
               const mine = s.player_id === me?.id;
               const chosen = myVote?.submission_id === s.id;
               return (
                 <li key={s.id}>
                   <button
                     className={`battle-result${chosen ? ' battle-result--chosen' : ''}`}
-                    disabled={busy || mine || Boolean(myVote)}
+                    disabled={busy || mine || Boolean(myVote) || Boolean(chatTally)}
                     onClick={() => void guard(() => battle.castVote(token!, round!.id, s.id))}
                   >
                     {s.artwork_url ? (
@@ -271,13 +300,24 @@ export default function BattleRoom() {
                       <div className="battle-art battle-art--empty" />
                     )}
                     <span className="battle-result__text">
-                      <strong>{s.song_title}</strong>
+                      <strong>
+                        {/* Chat votes by position, so the number has to be
+                            visible next to the song it selects. */}
+                        {chatTally ? `${i + 1}. ` : ''}
+                        {s.song_title}
+                      </strong>
                       <span>
                         {s.song_artist} · {nameOf(s.player_id)}
                       </span>
                     </span>
                     <span className="battle-result__cta">
-                      {chosen ? 'Crowned' : mine ? 'Yours' : 'Crown'}
+                      {chatTally
+                        ? `${chatTally[s.id] ?? 0}`
+                        : chosen
+                          ? 'Crowned'
+                          : mine
+                            ? 'Yours'
+                            : 'Crown'}
                     </span>
                   </button>
                 </li>
@@ -285,17 +325,31 @@ export default function BattleRoom() {
             })}
           </ul>
 
-          <p className="battle-sub" style={{ marginTop: 16, marginBottom: 0 }}>
-            {votes.length} {votes.length === 1 ? 'vote' : 'votes'} in.
-          </p>
+          {chatChannel ? (
+            <p className="battle-sub" style={{ marginTop: 16, marginBottom: 0 }}>
+              {chat.connected
+                ? `Chat is voting in #${chatChannel}. ${chat.total} ${
+                    chat.total === 1 ? 'vote' : 'votes'
+                  } so far.`
+                : `Connecting to #${chatChannel}…`}
+            </p>
+          ) : (
+            <p className="battle-sub" style={{ marginTop: 16, marginBottom: 0 }}>
+              {votes.length} {votes.length === 1 ? 'vote' : 'votes'} in.
+            </p>
+          )}
 
-          {isHost && votes.length > 0 && (
+          {isHost && (chatChannel ? chat.leader !== null : votes.length > 0) && (
             <button
               className="battle-btn"
               disabled={busy}
               onClick={() =>
                 void guard(async () => {
-                  const winner = await battle.tallyVotes(round!.id);
+                  // Chat decides outright when the room is tied to a channel,
+                  // so the in-room tally is not consulted at all.
+                  const winner = chatChannel
+                    ? chat.leader
+                    : await battle.tallyVotes(round!.id);
                   if (winner) await battle.setRoundWinner(token!, round!.id, winner);
                 })
               }

@@ -105,6 +105,9 @@ export default function BattleOverlay() {
 
   const lockedIn = new Set(submissions.map((s) => s.player_id));
   const inLobby = room.status === 'lobby' || !round;
+  // This is the surface chat is actually looking at while it votes, so during
+  // judging it shows the ballot rather than the roster.
+  const chatVoting = !inLobby && round!.phase === 'judging' && Boolean(room.host_twitch_login);
 
   return (
     <div className={shellClass(solid)}>
@@ -128,6 +131,8 @@ export default function BattleOverlay() {
 
         {inLobby ? (
           <Lobby code={room.code} players={players} />
+        ) : chatVoting ? (
+          <ChatVote submissions={submissions} tally={round!.chat_tally ?? {}} />
         ) : (
           <Roster
             players={players}
@@ -168,8 +173,19 @@ const DEMO: {
     { id: '3', display_name: 'Priya' },
     { id: '4', display_name: 'Dev' },
   ],
-  round: { phase: 'picking', genre: '2000s Hip-Hop', phase_deadline_at: null },
-  submissions: [{ player_id: '1' }, { player_id: '3' }],
+  // Judging with chat votes on the board, because that is the busiest the
+  // overlay ever gets and so the state worth sizing against in OBS.
+  round: {
+    id: 'r1',
+    phase: 'judging',
+    genre: '2000s Hip-Hop',
+    phase_deadline_at: null,
+    chat_tally: { s1: 128, s2: 74 },
+  },
+  submissions: [
+    { id: 's1', player_id: '1', song_title: 'Ms. Jackson', song_artist: 'Outkast' },
+    { id: 's2', player_id: '3', song_title: 'Hey Ya!', song_artist: 'Outkast' },
+  ],
   votes: [],
   // Only the fields this view reads are present, so the assertion is what
   // lets the sample stay small instead of tracking every column.
@@ -195,6 +211,52 @@ function Lobby({ code, players }: { code: string; players: BattlePlayer[] }) {
           </span>
         ))}
       </div>
+    </>
+  );
+}
+
+/**
+ * The ballot chat votes against.
+ *
+ * Titles are shown here even though the roster hides them until the reveal,
+ * because by judging everyone has already heard both songs and chat cannot
+ * pick between two numbers with nothing attached to them.
+ */
+function ChatVote({
+  submissions,
+  tally,
+}: {
+  submissions: BattleSubmission[];
+  tally: Record<string, number>;
+}) {
+  const total = Object.values(tally).reduce((a, b) => a + b, 0);
+
+  return (
+    <>
+      <div className="ov-ballot">
+        {submissions.map((s, i) => {
+          const count = tally[s.id] ?? 0;
+          // Share of the vote, drawn as a bar behind each row. Falls back to
+          // an even split before the first vote lands so the two rows do not
+          // start out looking lopsided.
+          const share = total > 0 ? (count / total) * 100 : 0;
+          return (
+            <div key={s.id} className="ov-option">
+              <div className="ov-option-bar" style={{ width: `${share}%` }} />
+              <span className="ov-option-num">{i + 1}</span>
+              <span className="ov-option-text">
+                {s.song_title}
+                <span className="ov-artist"> · {s.song_artist}</span>
+              </span>
+              <span className="ov-option-count">{count}</span>
+            </div>
+          );
+        })}
+      </div>
+      <footer className="ov-foot">
+        Type <strong>1</strong> or <strong>2</strong> in chat · {total}{' '}
+        {total === 1 ? 'vote' : 'votes'}
+      </footer>
     </>
   );
 }

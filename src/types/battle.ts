@@ -52,6 +52,8 @@ export interface BattleRound {
   phase_deadline_at: string | null;
   judge_player_id: string | null;
   winner_submission_id: string | null;
+  /** Twitch chat votes for this round, keyed by submission id. */
+  chat_tally: Record<string, number>;
   playback_started_at: string | null;
   playback_order: string[] | null;
   seconds_per_song: number;

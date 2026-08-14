@@ -52,6 +52,10 @@ export default function BattleEntry({
         kind === 'create'
           ? await battle.createRoom({
               displayName: name.trim(),
+              // Web rooms are always brackets. Head to head means chat only
+              // ever picks between two songs, which is what makes voting by
+              // typing a number work.
+              format: 'bracket',
               twitchLogin: identity?.login ?? null,
               twitchAvatarUrl: identity?.avatarUrl ?? null,
             })
@@ -83,11 +87,13 @@ export default function BattleEntry({
     <div className="battle-card">
       {showIntro && (
         <>
-          <h1 className="battle-h1">{invited ? 'Join the battle' : 'Song battles, live'}</h1>
+          <h1 className="battle-h1">
+            {invited ? 'Join the battle' : 'The Kahoot of song battles'}
+          </h1>
           <p className="battle-sub">
             {invited
               ? 'Pick a name your chat will recognise and jump in. No app, no account.'
-              : 'Host a battle for your stream, or drop in with a room code.'}
+              : 'Host a bracket for your stream, or drop in with a room code.'}
           </p>
         </>
       )}

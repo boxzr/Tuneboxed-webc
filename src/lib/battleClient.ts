@@ -125,6 +125,23 @@ export async function createRoom(opts: {
   return session;
 }
 
+/**
+ * Push the current Twitch chat tally for a round. Host only, and the whole
+ * tally goes up each time rather than a delta, so a dropped call self-corrects
+ * on the next one instead of leaving the count short.
+ */
+export async function reportChatTally(
+  token: string,
+  roundId: string,
+  tally: Record<string, number>
+): Promise<void> {
+  await rpc<void>('battle_report_chat_tally', {
+    p_token: token,
+    p_round_id: roundId,
+    p_tally: tally,
+  });
+}
+
 export async function joinRoom(code: string, displayName: string): Promise<BattleSession> {
   const existing = loadSession(code);
   const session = await rpc<BattleSession>('battle_join_room', {
