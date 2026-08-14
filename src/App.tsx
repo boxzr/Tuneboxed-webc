@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import './App.css';
 import tuneboxedLogo from './assets/tuneboxed-battle-logo.png';
@@ -195,9 +195,29 @@ function MainWebsite() {
   );
 }
 
+/**
+ * Jump to the top on every route change.
+ *
+ * The homepage nav is `position: fixed`, so a leftover scroll is invisible
+ * there. Content pages pin their nav in the document flow, so arriving at
+ * /rules still scrolled to where the footer was leaves the bar off-screen
+ * and no way back. `behavior: 'auto'` also overrides the site-wide smooth
+ * scroll, which would otherwise animate the jump and leave the nav missing
+ * for a beat.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname]);
+  return null;
+}
+
 function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route path="/reset-password" element={<PasswordReset />} />
       {/* /join/:code is the shareable form a streamer reads out on air. */}
       <Route path="/join/:code" element={<BattleHome />} />
@@ -214,6 +234,7 @@ function App() {
       <Route path="/winners" element={<Winners />} />
       <Route path="/*" element={<MainWebsite />} />
     </Routes>
+    </>
   );
 }
 
