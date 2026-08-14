@@ -123,12 +123,14 @@ DNS changes can take:
 - If you have existing SPF, merge them: `v=spf1 include:spf.resend.com include:other.com ~all`
 
 ### **Email Not Sending:**
-1. Check browser console for errors
-2. Verify RESEND_CONFIG.apiKey is correct
-3. Test API key with curl:
+1. Check the Railway logs for the send failure
+2. Verify the `RESEND_API_KEY` variable is set on the Railway service
+3. Test the key with curl, reading it from your environment rather than
+   pasting it in. Never commit a key to this repo: it is public, and GitHub
+   secret scanning will report it to Resend, who revoke it automatically.
 ```bash
 curl -X POST 'https://api.resend.com/emails' \
--H 'Authorization: Bearer re_6WgWyJqG_JCBVgYfiStYJZr2bju7oer5v' \
+-H "Authorization: Bearer $RESEND_API_KEY" \
 -H 'Content-Type: application/json' \
 -d '{
   "from": "noreply@tuneboxed.com",
