@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './App.css';
 import tuneboxedLogo from './tuneboxed-logo.png';
 import { trackPageView } from './firebase';
 import AdminDashboard from './components/AdminDashboard';
+import PasswordReset from './pages/PasswordReset';
 
-function App() {
+
+
+function MainWebsite() {
   const [email, setEmail] = useState('');
   const [currentSection, setCurrentSection] = useState('home');
   const [isBoxClicked, setIsBoxClicked] = useState(false);
@@ -34,6 +38,46 @@ function App() {
     trackView();
   }, [currentSection]);
 
+  // Admin access with Alt+Shift+A+T
+  useEffect(() => {
+    let keysPressed: string[] = [];
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.shiftKey) {
+        const key = e.key.toUpperCase();
+        keysPressed.push(key);
+        
+        if (keysPressed.includes('A') && keysPressed.includes('T')) {
+          const aIndex = keysPressed.lastIndexOf('A');
+          const tIndex = keysPressed.lastIndexOf('T');
+          
+          if (tIndex > aIndex) {
+            keysPressed = [];
+            setIsAdminVisible(prevState => !prevState);
+          }
+        }
+        
+        if (keysPressed.length > 10) {
+          keysPressed = keysPressed.slice(-10);
+        }
+      }
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!e.altKey || !e.shiftKey) {
+        keysPressed = [];
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   // Handle email sign-up
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,87 +92,27 @@ function App() {
       const randomName = `User_${Math.floor(Math.random() * 10000)}`;
       console.log('Generated random name:', randomName);
       
-      // Save the user with email
       const result = await signUpWithEmail(email, 'password123', randomName);
       console.log('Signup result:', result);
       
-      // Track the event
-      await trackPageView('sign_up_for_updates');
-      console.log(`Signed up for updates: ${email}`);
-      setSignUpSuccess(true);
-    } catch (error) {
-      console.error('Sign up error:', error);
-      setSignUpError('Failed to sign up. Please try again.');
+      if (result.user) {
+        setSignUpSuccess(true);
+        setSignUpError(null);
+        setEmail('');
+        console.log('Signup successful, user saved to database');
+      } else {
+        setSignUpError('Failed to sign up. Please try again.');
+        setSignUpSuccess(false);
+        console.error('Signup failed: No user returned');
+      }
+    } catch (error: any) {
+      console.error('Error during sign-up:', error);
+      setSignUpError(error.message || 'An unexpected error occurred');
+      setSignUpSuccess(false);
     } finally {
       setLoading(false);
     }
   };
-
-  // Admin access with Alt+Shift+A+T
-  useEffect(() => {
-    // Track keys pressed in sequence
-    let keysPressed: string[] = [];
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only track if Alt and Shift are held
-      if (e.altKey && e.shiftKey) {
-        // Convert key to uppercase for consistent checking
-        const key = e.key.toUpperCase();
-        
-        // Add to keys pressed array
-        keysPressed.push(key);
-        console.log("Key pressed:", key, "Current sequence:", keysPressed);
-        
-        // Check if we have the correct sequence A followed by T
-        if (keysPressed.includes('A') && keysPressed.includes('T')) {
-          // Look for the sequence A->T
-          const aIndex = keysPressed.lastIndexOf('A');
-          const tIndex = keysPressed.lastIndexOf('T');
-          
-          // If T comes after A, that's our sequence
-          if (tIndex > aIndex) {
-            // Reset keys and toggle admin
-            keysPressed = [];
-            console.log("Admin sequence detected! Toggling dashboard.");
-            
-            setIsAdminVisible(prevState => {
-              const newState = !prevState;
-              // If admin is being shown, check for new signups right away
-              if (newState) {
-                // Force a refresh of the admin data including new signups
-                console.log('Admin dashboard activated');
-              }
-              const trackAdminView = async () => {
-                await trackPageView(newState ? 'admin' : 'home');
-              };
-              trackAdminView();
-              return newState;
-            });
-          }
-        }
-        
-        // Limit array size to prevent memory issues
-        if (keysPressed.length > 10) {
-          keysPressed = keysPressed.slice(-10);
-        }
-      }
-    };
-    
-    const handleKeyUp = (e: KeyboardEvent) => {
-      // If either Alt or Shift is released, clear the sequence
-      if (!e.altKey || !e.shiftKey) {
-        keysPressed = [];
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
 
   // Add background animation
   const [backgroundElements, setBackgroundElements] = useState<JSX.Element[]>([]);
@@ -178,9 +162,12 @@ function App() {
   const handleNavClick = (section: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     setCurrentSection(section);
+    setSignUpSuccess(false);
+    setSignUpError(null);
   };
 
-  // Render the sign-up form
+
+
   const renderSignUpForm = () => {
     if (signUpSuccess) {
       return (
@@ -247,14 +234,15 @@ function App() {
               <a href="#about" className="nav-link" onClick={handleNavClick('about')}>
                 About
               </a>
-              <a href="#signup" className="nav-link" onClick={handleNavClick('signup')}>
-                Sign Up
-              </a>
-              {user && (
-                <a href="#admin" className="nav-link" onClick={() => setIsAdminVisible(true)}>
-                  Admin
+              <span style={{ position: 'relative', display: 'inline-block' }}>
+                <a href="https://apps.apple.com/us/app/tuneboxed/id6747647968" className="nav-link" target="_blank" rel="noopener noreferrer" style={{ border: '2px solid currentColor', borderRadius: '8px', padding: '6px 14px' }}>
+                  Download Now
                 </a>
-              )}
+                <span style={{ position: 'absolute', top: '-18px', right: '-10px', background: '#4A90D9', color: '#fff', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap' }}>
+                  Now on the App Store!
+                </span>
+              </span>
+              {/* Hidden admin link - Alt+Shift+A+T to access */}
             </div>
           </nav>
 
@@ -330,8 +318,8 @@ function App() {
                       style={{ width: 'auto', height: 'auto', padding: 0 }}
                     >
                       <img 
-                        src="/story1.png" 
-                        alt="Story 1" 
+                        src="/story5.png" 
+                        alt="Feed" 
                         style={{ 
                           display: 'block',
                           maxWidth: '220px',
@@ -348,8 +336,8 @@ function App() {
                       style={{ width: 'auto', height: 'auto', padding: 0 }}
                     >
                       <img 
-                        src="/story2.png" 
-                        alt="Story 2" 
+                        src="/story1.png" 
+                        alt="Music Matching" 
                         style={{ 
                           display: 'block',
                           maxWidth: '220px',
@@ -366,8 +354,8 @@ function App() {
                       style={{ width: 'auto', height: 'auto', padding: 0 }}
                     >
                       <img 
-                        src="/story3.png" 
-                        alt="Story 3" 
+                        src="/story2.png" 
+                        alt="Communities" 
                         style={{ 
                           display: 'block',
                           maxWidth: '220px',
@@ -471,6 +459,35 @@ function App() {
                   <div className="feature-item">
                     <button 
                       className="feature-trigger"
+                      onClick={() => setActiveFeature(activeFeature === 'crowns' ? null : 'crowns')}
+                    >
+                      <span className="feature-title">TuneCrown & Competition</span>
+                      <span className="feature-arrow">{activeFeature === 'crowns' ? '▲' : '▼'}</span>
+                    </button>
+                    
+                    {activeFeature === 'crowns' && (
+                      <motion.div 
+                        className="feature-content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <p>Compete with others for Song of the Day and earn crowns to show off your music taste.</p>
+                        <div className="feature-details">
+                          <ul>
+                            <li>Win Song of the Day to earn crowns</li>
+                            <li>Compete with others for the top spot</li>
+                            <li>Show off your crowned songs on your profile</li>
+                          </ul>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <div className="feature-item">
+                    <button 
+                      className="feature-trigger"
                       onClick={() => setActiveFeature(activeFeature === 'vision' ? null : 'vision')}
                     >
                       <span className="feature-title">Vision & Innovation</span>
@@ -555,7 +572,7 @@ function App() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="about-mission">
                   <p className="gradient-text">Join us in redefining the future of music sharing</p>
                 </div>
@@ -563,19 +580,27 @@ function App() {
             </section>
           )}
 
-          {currentSection === 'signup' && (
-            <section id="signup" className="section">
-              <motion.div 
+          {currentSection === 'download' && (
+            <section id="download" className="section">
+              <motion.div
                 className="signup-container"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <h2 className="signup-title">Join Tuneboxed</h2>
+                <h2 className="signup-title">Get TuneBoxed</h2>
                 <p className="signup-subtitle">Start showcasing your music taste today</p>
                 
                 <div className="signup-options">
-                  {renderSignUpForm()}
+                  <a
+                    href="https://apps.apple.com/us/app/tuneboxed/id6747647968"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="signup-button"
+                    style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
+                  >
+                    Download on the App Store
+                  </a>
                 </div>
               </motion.div>
             </section>
@@ -593,15 +618,25 @@ function App() {
               </a>
             </div>
           </nav>
-          
           <AdminDashboard />
         </>
       )}
 
       <footer className="footer">
-        <p>Made by Jonah Boxer © {new Date().getFullYear()}</p>
+        <p>Aura Brand LLC © {new Date().getFullYear()}</p>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  const location = useLocation();
+  
+  return (
+    <Routes>
+      <Route path="/reset-password" element={<PasswordReset />} />
+      <Route path="/*" element={<MainWebsite />} />
+    </Routes>
   );
 }
 

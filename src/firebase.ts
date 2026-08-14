@@ -1,5 +1,11 @@
-// IndexedDB-based data management system
-// This enhances the previous localStorage approach with more persistent storage
+// Firebase integration with proper imports
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import 'firebase/compat/analytics';
+
+// Simple localStorage-based data management system
+// We'll add actual Firebase integration once we have deployment working
 
 // User data type
 interface User {
@@ -17,40 +23,25 @@ interface PageView {
   userAgent: string;
 }
 
-// Initialize IndexedDB
-const initDB = (): Promise<IDBDatabase> => {
-  console.log('Initializing IndexedDB...');
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('TuneboxedDB', 1);
-    
-    request.onerror = (event) => {
-      console.error('IndexedDB error:', event);
-      reject('Error opening IndexedDB');
-    };
-    
-    request.onsuccess = (event) => {
-      console.log('IndexedDB opened successfully');
-      const db = (event.target as IDBOpenDBRequest).result;
-      resolve(db);
-    };
-    
-    request.onupgradeneeded = (event) => {
-      console.log('IndexedDB upgrade needed, creating object stores...');
-      const db = (event.target as IDBOpenDBRequest).result;
-      
-      // Create stores if they don't exist
-      if (!db.objectStoreNames.contains('users')) {
-        console.log('Creating users object store');
-        db.createObjectStore('users', { keyPath: 'id' });
-      }
-      
-      if (!db.objectStoreNames.contains('pageViews')) {
-        console.log('Creating pageViews object store');
-        db.createObjectStore('pageViews', { keyPath: 'timestamp' });
-      }
-    };
-  });
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAtNUu5-ylv8EyVtA14TgD84TVUpVgkVCg",
+  authDomain: "tuneboxed.firebaseapp.com",
+  projectId: "tuneboxed",
+  storageBucket: "tuneboxed.firebasestorage.app",
+  messagingSenderId: "80836837100",
+  appId: "1:80836837100:web:9b61c5723eae9c6945efc9",
+  measurementId: "G-FXG1R8PZT2"
 };
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+const analytics = firebase.analytics();
 
 // Simple analytics tracking
 export const trackPageView = async (pagePath: string) => {
@@ -62,20 +53,23 @@ export const trackPageView = async (pagePath: string) => {
       userAgent: navigator.userAgent
     };
     
-    // Store in IndexedDB
-    const db = await initDB();
-    const transaction = db.transaction(['pageViews'], 'readwrite');
-    const store = transaction.objectStore('pageViews');
-    store.add(pageView);
+    // Store in Firestore
+    await db.collection('pageViews').add(pageView);
+    console.log('Page view tracked in Firestore:', pagePath);
     
-    // Also store in localStorage for backward compatibility
-    const pageViews = JSON.parse(localStorage.getItem('tuneboxed_pageviews') || '[]');
-    pageViews.push(pageView);
-    localStorage.setItem('tuneboxed_pageviews', JSON.stringify(pageViews));
+    // Also track in analytics
+    analytics.logEvent('page_view', pageView);
     
-    console.log('Page view tracked:', pagePath);
+    // For backward compatibility, also store in localStorage
+    try {
+      const pageViews = JSON.parse(localStorage.getItem('tuneboxed_pageviews') || '[]');
+      pageViews.push(pageView);
+      localStorage.setItem('tuneboxed_pageviews', JSON.stringify(pageViews));
+    } catch (error) {
+      console.error('LocalStorage error:', error);
+    }
   } catch (error) {
-    console.error('Error tracking page view:', error);
+    console.error('Error tracking page view in Firestore:', error);
     
     // Fallback to localStorage only
     try {
@@ -97,93 +91,81 @@ export const trackPageView = async (pagePath: string) => {
 export const signUpWithEmail = async (email: string, password: string, name: string) => {
   console.log(`SignUpWithEmail called for ${email} with name ${name}`);
   
-  // Create a unique ID
-  const userId = 'user_' + Date.now().toString(36) + Math.random().toString(36).substring(2);
-  
-  // Create user object
-  const user: User = {
-    id: userId,
-    email,
-    name,
-    createdAt: new Date().toISOString()
-  };
-  console.log('Created user object:', user);
-  
   try {
-    // First, save to localStorage for guaranteed storage
-    const localUsers = JSON.parse(localStorage.getItem('tuneboxed_users') || '[]');
+    // Create user in Firebase Auth
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const userId = userCredential.user?.uid;
     
-    // Check if email already exists
-    if (localUsers.some((u: User) => u.email === email)) {
-      console.log('Email already exists in localStorage, throwing error');
+    if (!userId) {
+      throw new Error('Failed to create user, no user ID returned');
+    }
+    
+    // Create user object
+    const user: User = {
+      id: userId,
+      email,
+      name,
+      createdAt: new Date().toISOString()
+    };
+    
+    // Store user data in Firestore
+    await db.collection('users').doc(userId).set(user);
+    console.log('User added to Firestore:', user);
+    
+    // For backward compatibility, also store in localStorage
+    try {
+      const localUsers = JSON.parse(localStorage.getItem('tuneboxed_users') || '[]');
+      localUsers.push(user);
+      localStorage.setItem('tuneboxed_users', JSON.stringify(localUsers));
+      localStorage.setItem('tuneboxed_current_user', JSON.stringify(user));
+    } catch (error) {
+      console.error('LocalStorage error:', error);
+    }
+    
+    return { user };
+  } catch (error: any) {
+    console.error('Error during sign up:', error);
+    if (error.code === 'auth/email-already-in-use') {
       throw new Error('Email already in use');
     }
-    
-    // Add to localStorage
-    localUsers.push(user);
-    localStorage.setItem('tuneboxed_users', JSON.stringify(localUsers));
-    localStorage.setItem('tuneboxed_current_user', JSON.stringify(user));
-    console.log('User added to localStorage');
-    
-    // Then try to store in IndexedDB
-    try {
-      console.log('Opening IndexedDB to store user...');
-      const db = await initDB();
-      
-      return new Promise<{user: User}>((resolve, reject) => {
-        const transaction = db.transaction(['users'], 'readwrite');
-        const store = transaction.objectStore('users');
-        
-        console.log('Adding user to IndexedDB...');
-        const request = store.add(user);
-        
-        request.onsuccess = () => {
-          console.log('User added to IndexedDB successfully');
-          resolve({ user });
-        };
-        
-        request.onerror = (event) => {
-          console.error('Error adding user to IndexedDB:', event);
-          // Still resolve because we saved to localStorage
-          resolve({ user });
-        };
-        
-        transaction.oncomplete = () => {
-          console.log('Transaction completed successfully');
-        };
-        
-        transaction.onerror = (event) => {
-          console.error('Transaction error:', event);
-          // Still resolve because we saved to localStorage
-          resolve({ user });
-        };
-      });
-    } catch (error) {
-      console.error('IndexedDB error:', error);
-      // Still return success because we saved to localStorage
-      return { user };
-    }
-  } catch (error) {
-    console.error('Error during sign up:', error);
     throw error;
   }
 };
 
-// Sign in with email (simplified - no real auth)
+// Sign in with email and password
 export const signInWithEmail = async (email: string, password: string) => {
   try {
-    // Get users from IndexedDB
-    const users = await getAllUsers();
+    // Sign in using Firebase Auth
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const userId = userCredential.user?.uid;
     
-    // Find user by email
-    const user = users.find((u: User) => u.email === email);
-    
-    if (!user) {
-      throw new Error('User not found');
+    if (!userId) {
+      throw new Error('Failed to sign in, no user ID returned');
     }
     
-    // In a real app, we would check the password here
-    // For demo purposes, we'll just log the user in
+    // Get user data from Firestore
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      // Create a basic user record if it doesn't exist in Firestore
+      const user: User = {
+        id: userId,
+        email,
+        name: email.split('@')[0], // Basic name from email
+        createdAt: new Date().toISOString()
+      };
+      
+      await db.collection('users').doc(userId).set(user);
+      
+      // Also update localStorage for backward compatibility
+      localStorage.setItem('tuneboxed_current_user', JSON.stringify(user));
+      
+      return { user };
+    }
+    
+    const user = userDoc.data() as User;
+    
+    // Update localStorage for backward compatibility
     localStorage.setItem('tuneboxed_current_user', JSON.stringify(user));
     
     console.log('User signed in:', user);
@@ -194,8 +176,28 @@ export const signInWithEmail = async (email: string, password: string) => {
   }
 };
 
-// Get current user
+// Get current user - uses Auth state with Firestore data
 export const getCurrentUser = () => {
+  // First check Firebase auth state
+  const firebaseUser = auth.currentUser;
+  
+  if (firebaseUser) {
+    // Return user from localStorage while we fetch from Firestore
+    const localUser = localStorage.getItem('tuneboxed_current_user');
+    if (localUser) {
+      return JSON.parse(localUser);
+    }
+    
+    // Return basic user info from auth
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email,
+      name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+      createdAt: new Date().toISOString()
+    };
+  }
+  
+  // Fallback to localStorage for backward compatibility
   try {
     const userString = localStorage.getItem('tuneboxed_current_user');
     if (!userString) return null;
@@ -207,63 +209,34 @@ export const getCurrentUser = () => {
 };
 
 // Sign out
-export const signOut = () => {
-  localStorage.removeItem('tuneboxed_current_user');
-  console.log('User signed out');
+export const signOut = async () => {
+  try {
+    await auth.signOut();
+    localStorage.removeItem('tuneboxed_current_user');
+    console.log('User signed out');
+  } catch (error) {
+    console.error('Error signing out:', error);
+    // Still remove from localStorage
+    localStorage.removeItem('tuneboxed_current_user');
+  }
 };
 
 // Get all users (admin function)
 export const getAllUsers = async (): Promise<User[]> => {
   console.log('getAllUsers called');
   try {
-    console.log('Opening IndexedDB to get users...');
-    const db = await initDB();
+    // Get users from Firestore
+    const querySnapshot = await db.collection('users').get();
+    const users = querySnapshot.docs.map(doc => doc.data() as User);
+    console.log('Users from Firestore:', users);
     
-    // First try to get users from localStorage for backward compatibility
-    const localStorageUsers = JSON.parse(localStorage.getItem('tuneboxed_users') || '[]');
-    console.log('Users from localStorage:', localStorageUsers);
+    // Update localStorage for backward compatibility
+    localStorage.setItem('tuneboxed_users', JSON.stringify(users));
     
-    console.log('Getting users from IndexedDB...');
-    const transaction = db.transaction(['users'], 'readonly');
-    const store = transaction.objectStore('users');
-    
-    return new Promise((resolve, reject) => {
-      const request = store.getAll();
-      
-      request.onsuccess = () => {
-        console.log('IndexedDB users retrieved successfully:', request.result);
-        // Merge IndexedDB and localStorage users to ensure we have all data
-        const indexedDBUsers = request.result || [];
-        
-        // Merge users by email to avoid duplicates
-        const emailMap = new Map();
-        [...indexedDBUsers, ...localStorageUsers].forEach(user => {
-          if (user.email) {
-            emailMap.set(user.email, user);
-          } else {
-            // For users without email, use their ID
-            emailMap.set(user.id, user);
-          }
-        });
-        
-        const mergedUsers = Array.from(emailMap.values());
-        console.log('Merged users:', mergedUsers);
-        
-        // Store merged users back to both storage mechanisms
-        localStorage.setItem('tuneboxed_users', JSON.stringify(mergedUsers));
-        
-        resolve(mergedUsers);
-      };
-      
-      request.onerror = (event) => {
-        console.error('Error getting users from IndexedDB:', event);
-        // Fallback to localStorage
-        console.log('Falling back to localStorage users only');
-        resolve(localStorageUsers);
-      };
-    });
+    return users;
   } catch (error) {
-    console.error('Error getting users:', error);
+    console.error('Error getting users from Firestore:', error);
+    
     // Fallback to localStorage
     const users = JSON.parse(localStorage.getItem('tuneboxed_users') || '[]');
     console.log('Fallback to localStorage only, users:', users);
@@ -274,69 +247,52 @@ export const getAllUsers = async (): Promise<User[]> => {
 // Get page view analytics (admin function)
 export const getPageViews = async (): Promise<PageView[]> => {
   try {
-    const db = await initDB();
-    const transaction = db.transaction(['pageViews'], 'readonly');
-    const store = transaction.objectStore('pageViews');
+    // Get page views from Firestore
+    const querySnapshot = await db.collection('pageViews').get();
+    const pageViews = querySnapshot.docs.map(doc => doc.data() as PageView);
     
-    return new Promise((resolve, reject) => {
-      const request = store.getAll();
-      
-      request.onsuccess = () => {
-        resolve(request.result || []);
-      };
-      
-      request.onerror = (event) => {
-        console.error('Error getting page views from IndexedDB:', event);
-        // Fallback to localStorage
-        try {
-          const views = JSON.parse(localStorage.getItem('tuneboxed_pageviews') || '[]');
-          resolve(views);
-        } catch (error) {
-          console.error('LocalStorage fallback error:', error);
-          resolve([]);
-        }
-      };
-    });
+    return pageViews;
   } catch (error) {
-    console.error('Error getting page views:', error);
+    console.error('Error getting page views from Firestore:', error);
+    
     // Fallback to localStorage
     return JSON.parse(localStorage.getItem('tuneboxed_pageviews') || '[]');
   }
 };
 
-// Export simplified auth object for compatibility
-export const auth = {
-  onAuthStateChanged: (callback: (user: User | null) => void) => {
-    // Check local storage for current user
-    const user = getCurrentUser();
-    callback(user);
-    return () => {}; // Return dummy unsubscribe function
-  },
-  currentUser: getCurrentUser()
-};
-
-// Export simple object for compatibility
-export const db = {
-  collection: (collectionName: string) => ({
-    // No-op function for compatibility
-    addDoc: async (data: any) => {
-      console.log(`Would add to ${collectionName}:`, data);
-      return { id: 'local-id' };
-    },
-    // Get documents from local storage
-    getDocs: async () => {
-      if (collectionName === 'users') {
-        const users = await getAllUsers();
-        return { docs: users.map((u: User) => ({ id: u.id, data: () => u })) };
+// Add listener for auth state changes
+export const onAuthStateChange = (callback: (user: User | null) => void) => {
+  return auth.onAuthStateChanged(async (firebaseUser) => {
+    if (firebaseUser) {
+      try {
+        // Get user data from Firestore
+        const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+        if (userDoc.exists) {
+          callback(userDoc.data() as User);
+        } else {
+          // Basic user info if not in Firestore
+          callback({
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+            createdAt: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error('Error getting user data:', error);
+        // Fallback to basic user info
+        callback({
+          id: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          createdAt: new Date().toISOString()
+        });
       }
-      return { docs: [] };
+    } else {
+      callback(null);
     }
-  })
+  });
 };
 
-// Analytics mock
-export const analytics = {
-  logEvent: (eventName: string, params: any) => {
-    console.log('Analytics event:', eventName, params);
-  }
-}; 
+// Export Firebase objects for direct access if needed
+export { firebase, auth, db, analytics }; 

@@ -54,6 +54,15 @@ function About() {
               <h3>Share Your Style</h3>
               <p>Create shareable music boxes to show off your unique taste</p>
             </motion.div>
+
+            <motion.div 
+              className="feature"
+              whileHover={{ scale: 1.03 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h3>Earn Crowns</h3>
+              <p>Win Song of the Day and earn crowns by competing with other music lovers</p>
+            </motion.div>
           </div>
 
           <motion.div 

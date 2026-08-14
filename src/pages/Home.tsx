@@ -38,15 +38,15 @@ function Home() {
       
       <div style={imageContainerStyle}>
         <div style={boxStyle}>
-          <img src="/story1.png" alt="Story 1" style={imgStyle} />
+          <img src="/story5.png" alt="Feed" style={imgStyle} />
         </div>
         
         <div style={boxStyle}>
-          <img src="/story2.png" alt="Story 2" style={imgStyle} />
+          <img src="/story1.png" alt="Music Matching" style={imgStyle} />
         </div>
         
         <div style={boxStyle}>
-          <img src="/story3.png" alt="Story 3" style={imgStyle} />
+          <img src="/story2.png" alt="Communities" style={imgStyle} />
         </div>
       </div>
     </div>
