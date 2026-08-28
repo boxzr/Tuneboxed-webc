@@ -11,13 +11,13 @@ interface State {
   error: string | null;
 }
 
-const HEARTBEAT_MS = 15_000;
+const SESH_MS = 15_000;
 // Realtime carries the room normally; this only covers a dropped socket.
 const POLL_MS = 8_000;
 
 /**
  * Keeps a room in sync over realtime, with polling as a safety net and a
- * heartbeat so presence and host handover stay accurate.
+ * regular check-in so presence and host handover stay accurate.
  */
 export function useBattleRoom(roomId: string | null, token: string | null) {
   const [state, setState] = useState<State>({
@@ -89,16 +89,16 @@ export function useBattleRoom(roomId: string | null, token: string | null) {
   // Presence
   useEffect(() => {
     if (!token) return;
-    void battle.heartbeat(token).catch(() => {});
-    const t = setInterval(() => void battle.heartbeat(token).catch(() => {}), HEARTBEAT_MS);
+    void battle.sesh(token).catch(() => {});
+    const t = setInterval(() => void battle.sesh(token).catch(() => {}), SESH_MS);
 
     // A closing tab gets one last best-effort "I'm gone" so the roster does
-    // not show ghosts until the heartbeat times out.
+    // not show ghosts until the seat goes stale on its own.
     const onHide = () => {
       if (document.visibilityState === 'hidden') {
-        void battle.heartbeat(token, false).catch(() => {});
+        void battle.sesh(token, false).catch(() => {});
       } else {
-        void battle.heartbeat(token, true).catch(() => {});
+        void battle.sesh(token, true).catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', onHide);

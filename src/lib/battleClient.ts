@@ -195,14 +195,14 @@ export async function joinRoom(code: string, displayName: string): Promise<Battl
  *
  * Asked before the join form is shown, so somebody reopening the invite link
  * lands back in the game rather than being asked to introduce themselves to a
- * room they are already sitting in. A heartbeat is the probe because it fails
+ * room they are already sitting in. A check-in is the probe because it fails
  * on a dead token and, when it works, marks them present again.
  */
 export async function resumeRoom(code: string): Promise<boolean> {
   const existing = loadSession(code);
   if (!existing) return false;
   try {
-    await heartbeat(existing.token);
+    await sesh(existing.token);
     return true;
   } catch (e) {
     // Only a seat that is genuinely gone is worth forgetting. A flaky
@@ -337,7 +337,7 @@ export const publishChampion = (token: string, includeWinnerName: boolean) =>
   });
 
 /** Tells the room this player is still here, and proves the token still works. */
-export const heartbeat = (token: string, isConnected = true) =>
+export const sesh = (token: string, isConnected = true) =>
   rpc<void>('battle_sesh', { p_token: token, p_is_connected: isConnected });
 
 export const leaveRoom = (token: string) => rpc<void>('battle_leave_room', { p_token: token });
