@@ -12,6 +12,7 @@ import SongPicker from '../battle/SongPicker';
 import EmbedPlayer from '../battle/EmbedPlayer';
 import RoomShell, { RoomHeader } from '../battle/RoomShell';
 import StreamCard from '../battle/StreamCard';
+import { GameSettingsButton, GameSettingsPanel, resolvedVoting, rulesSummary } from '../battle/GameSettings';
 import BracketTree from '../battle/ui/BracketTree';
 import MatchupCard from '../battle/ui/MatchupCard';
 import NowPlaying from '../battle/ui/NowPlaying';
@@ -45,6 +46,7 @@ export default function BattleRoom() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     void syncClock();
@@ -74,7 +76,8 @@ export default function BattleRoom() {
   const token = stored?.token ?? null;
 
   const phase = round?.phase ?? null;
-  const playback = useSyncedPlayback(round, submissions, phase === 'playing');
+  const hearAudio = !room?.host_speaker_enabled || isHost;
+  const playback = useSyncedPlayback(round, submissions, phase === 'playing' && hearAudio);
   const [embedBlocked, setEmbedBlocked] = useState(false);
   useSecondTicker(phase === 'picking' || phase === 'judging');
 
@@ -152,7 +155,8 @@ export default function BattleRoom() {
   /** Opens the next party round: everyone picks, a rotating judge crowns. */
   const startPartyRound = useCallback(
     async (roomRoundNumber: number) => {
-      const judgeId = await battle.pickNextJudge(token!);
+      const wantsJudge = room && room.format !== 'bracket' && resolvedVoting(room) === 'judge';
+      const judgeId = wantsJudge ? await battle.pickNextJudge(token!) : null;
       await battle.startRound(token!, {
         roundNumber: roomRoundNumber + 1,
         genre: nextGenre(usedGenres.current),
@@ -161,7 +165,7 @@ export default function BattleRoom() {
       });
       await refresh();
     },
-    [token, refresh]
+    [token, refresh, room]
   );
 
   useEffect(() => {
@@ -230,7 +234,12 @@ export default function BattleRoom() {
 
   const judgeId = round?.judge_player_id ?? null;
   const isJudge = Boolean(me && judgeId === me.id);
-  const canPick = isBracket ? isCompetitor(me) : Boolean(me && me.id !== judgeId);
+  const votingMode = resolvedVoting(room);
+  const canPick = isBracket
+    ? isCompetitor(me)
+    : votingMode === 'judge'
+      ? Boolean(me && me.id !== judgeId)
+      : Boolean(me);
 
   const myVote = votes.find((v) => v.voter_player_id === me?.id) ?? null;
   const mySubmission = submissions.find((s) => s.player_id === me?.id) ?? null;
@@ -250,6 +259,16 @@ export default function BattleRoom() {
   // judge exists for that case rather than leaving the round wedged.
   const needsAiJudge =
     isBracket && !chatTally && connected.length > 0 && connected.every((p) => isCompetitor(p));
+
+  const canVote =
+    Boolean(me) &&
+    !needsAiJudge &&
+    !chatTally &&
+    (votingMode === 'everyone'
+      ? true
+      : votingMode === 'host'
+        ? isHost
+        : isJudge);
 
   const submissionOf = (playerId: string | null) =>
     playerId ? submissions.find((s) => s.player_id === playerId) ?? null : null;
@@ -306,6 +325,12 @@ export default function BattleRoom() {
       ? `Round ${round.round_number} of ${PARTY_ROUNDS}`
       : `${connected.length} in the room`;
 
+  const saveSettings = (patch: Parameters<typeof battle.updateRoomSettings>[1]) =>
+    void guard(async () => {
+      await battle.updateRoomSettings(token!, patch);
+      await refresh();
+    });
+
   return (
     <RoomShell>
       <RoomHeader
@@ -351,7 +376,11 @@ export default function BattleRoom() {
             <p className="bt-lobby__pitch">
               {isBracket
                 ? 'Everyone picks a song. Two go head to head. The room votes and the bracket advances until one is left.'
-                : 'Everyone picks a song. They play together. A rotating judge crowns the winner. Best of three, most crowns takes it.'}
+                : votingMode === 'host'
+                  ? 'Everyone picks a song. They play together. You crown the winner. Best of three, most crowns takes it.'
+                  : votingMode === 'everyone'
+                    ? 'Everyone picks a song. They play together. The room votes. Best of three, most crowns takes it.'
+                    : 'Everyone picks a song. They play together. A rotating judge crowns the winner. Best of three, most crowns takes it.'}
             </p>
           </Card>
 
@@ -407,6 +436,24 @@ export default function BattleRoom() {
           </Card>
 
           {isHost && isBracket && <StreamCard code={room.code} />}
+
+          {isHost && (
+            <>
+              {settingsOpen && (
+                <GameSettingsPanel
+                  room={room}
+                  playerCount={players.length}
+                  aiJudge={needsAiJudge}
+                  onChange={saveSettings}
+                />
+              )}
+              <GameSettingsButton
+                summary={rulesSummary(room, needsAiJudge)}
+                open={settingsOpen}
+                onClick={() => setSettingsOpen((o) => !o)}
+              />
+            </>
+          )}
         </>
       )}
 
@@ -431,7 +478,7 @@ export default function BattleRoom() {
           <div className="bt-tiles">
             <StatTile
               icon={<UsersIcon size={17} />}
-              value={`${submissions.length}/${expectedPickers(currentMatch, connected, judgeId)}`}
+              value={`${submissions.length}/${expectedPickers(currentMatch, connected, votingMode === 'judge' ? judgeId : null)}`}
               label="Locked in"
             />
             <CountdownRing
@@ -478,7 +525,7 @@ export default function BattleRoom() {
             )
           ) : (
             <p className="bt-sub bt-sub--center" style={{ margin: 0 }}>
-              {isJudge
+              {isJudge && votingMode === 'judge'
                 ? "You're the judge this round. Sit back while everyone picks, then you crown the winner."
                 : matchupSides
                   ? `${matchupSides.left.name} and ${matchupSides.right.name} are picking. Get ready to vote.`
@@ -491,7 +538,7 @@ export default function BattleRoom() {
               // Once everyone is in, this is the only thing left to do, so it
               // stops being a shortcut and becomes the call to action.
               variant={
-                submissions.length >= expectedPickers(currentMatch, connected, judgeId)
+                submissions.length >= expectedPickers(currentMatch, connected, votingMode === 'judge' ? judgeId : null)
                   ? 'filled'
                   : 'outline'
               }
@@ -524,7 +571,7 @@ export default function BattleRoom() {
             </SectionLabel>
           </div>
 
-          {(playback.blocked || embedBlocked) && (
+          {(playback.blocked || embedBlocked) && hearAudio && (
             <VividButton
               tone="blue"
               icon={<PlayIcon size={18} />}
@@ -535,6 +582,10 @@ export default function BattleRoom() {
             >
               Tap to hear the battle
             </VividButton>
+          )}
+
+          {!hearAudio && (
+            <p className="bt-sub bt-sub--center">Songs are playing from the host&rsquo;s speaker.</p>
           )}
 
           {playback.current ? (
@@ -550,7 +601,7 @@ export default function BattleRoom() {
               {/* SoundCloud and YouTube picks play in the provider's own
                   player, which has to stay on screen. iTunes previews are
                   plain audio and need nothing here. */}
-              {embedSourceOf(playback.current) && (
+              {hearAudio && embedSourceOf(playback.current) && (
                 <EmbedPlayer
                   source={embedSourceOf(playback.current)!}
                   externalId={playback.current.external_id ?? ''}
@@ -593,14 +644,18 @@ export default function BattleRoom() {
                 ) : (
                   'Chat is tied. Revealing lets the AI judge call it.'
                 )
-              ) : !isBracket ? (
+              ) : needsAiJudge ? (
+                'Nobody in the room can vote on their own song, so the AI judge calls it.'
+              ) : votingMode === 'host' ? (
+                isHost ? 'You pick the winner.' : `Waiting for ${nameOf(room.host_player_id)} to crown a winner.`
+              ) : votingMode === 'judge' ? (
                 isJudge
                   ? 'You are the judge. Pick the song you liked more.'
                   : `Waiting for ${nameOf(judgeId)} to crown a winner.`
-              ) : needsAiJudge ? (
-                'Nobody in the room can vote on their own song, so the AI judge calls it.'
               ) : voteLeader ? (
-                'Everyone votes, except the two in the matchup.'
+                isBracket
+                  ? 'Everyone votes, except the two in the matchup.'
+                  : 'Everyone in the room votes. You cannot pick your own song.'
               ) : ballotTotal === 0 ? (
                 'No votes yet. Revealing lets the AI judge call it.'
               ) : (
@@ -621,14 +676,7 @@ export default function BattleRoom() {
                 <li key={s.id}>
                   <button
                     className={`bt-choice${chosen ? ' bt-choice--chosen' : ''}`}
-                    disabled={
-                      busy ||
-                      mine ||
-                      Boolean(myVote) ||
-                      Boolean(chatTally) ||
-                      needsAiJudge ||
-                      (!isBracket && !isJudge)
-                    }
+                    disabled={busy || mine || Boolean(myVote) || !canVote}
                     onClick={() => void guard(() => battle.castVote(token!, round.id, s.id))}
                   >
                     <span className="bt-choice__num">{i + 1}</span>
@@ -775,6 +823,24 @@ export default function BattleRoom() {
 
       {round && isHost && isBracket && <StreamCard code={room.code} />}
 
+      {round && isHost && (
+        <>
+          {settingsOpen && (
+            <GameSettingsPanel
+              room={room}
+              playerCount={players.length}
+              aiJudge={needsAiJudge}
+              onChange={saveSettings}
+            />
+          )}
+          <GameSettingsButton
+            summary={rulesSummary(room, needsAiJudge)}
+            open={settingsOpen}
+            onClick={() => setSettingsOpen((o) => !o)}
+          />
+        </>
+      )}
+
       <Card>
         {/* The lobby already gives the roster a card of its own, with empty
             seats and a count. Repeating it here would just be the same list
@@ -797,7 +863,7 @@ export default function BattleRoom() {
                             : submissions.some((s) => s.player_id === p.id)
                               ? 'locked'
                               : 'picking'
-                          : p.id === judgeId
+                          : p.id === judgeId && votingMode === 'judge'
                             ? null
                             : submissions.some((s) => s.player_id === p.id)
                               ? 'locked'

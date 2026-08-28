@@ -385,6 +385,126 @@
   font-size: 0.84rem;
 }
 
+/* ---------- Game settings ---------- */
+
+.bt-settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 0 16px;
+  height: 52px;
+  border: 1px solid var(--tb-border);
+  border-radius: 18px;
+  background: rgba(27, 45, 78, 0.03);
+  font-family: inherit;
+  color: var(--tb-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.bt-settings-btn svg {
+  color: var(--tb-orange);
+  flex-shrink: 0;
+}
+
+.bt-settings-btn__label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bt-settings-btn__summary {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--tb-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bt-settings-btn--open {
+  border-color: var(--tb-orange);
+}
+
+.bt-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.bt-settings-block .bt-eyebrow {
+  margin-bottom: 0;
+}
+
+.bt-seg {
+  display: flex;
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(27, 45, 78, 0.06);
+  gap: 3px;
+}
+
+.bt-seg--off {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.bt-seg__opt {
+  flex: 1;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--tb-ink-muted);
+  cursor: pointer;
+}
+
+.bt-seg__opt--on {
+  background: #fff;
+  color: var(--tb-ink);
+  box-shadow: 0 1px 3px rgba(27, 45, 78, 0.12);
+}
+
+.bt-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bt-stepper__value {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.bt-stepper__btns {
+  display: flex;
+  gap: 8px;
+}
+
+.bt-stepper__btns button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--tb-border);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--tb-ink);
+  cursor: pointer;
+}
+
+.bt-stepper__btns button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 @media (max-width: 480px) {
   .bt-idcard__code {
     font-size: 2.6rem;
