@@ -204,8 +204,14 @@ export async function resumeRoom(code: string): Promise<boolean> {
   try {
     await heartbeat(existing.token);
     return true;
-  } catch {
-    clearSession(code);
+  } catch (e) {
+    // Only a seat that is genuinely gone is worth forgetting. A flaky
+    // connection is not, and throwing the token away over one would lock
+    // somebody out of a room they are still sitting in.
+    const reason = e instanceof BattleError ? e.code : '';
+    if (reason === 'BATTLE_INVALID_SESSION' || reason === 'BATTLE_AUTH_REQUIRED') {
+      clearSession(code);
+    }
     return false;
   }
 }
@@ -330,8 +336,9 @@ export const publishChampion = (token: string, includeWinnerName: boolean) =>
     p_include_winner_name: includeWinnerName,
   });
 
+/** Tells the room this player is still here, and proves the token still works. */
 export const heartbeat = (token: string, isConnected = true) =>
-  rpc<void>('battle_heartbeat', { p_token: token, p_is_connected: isConnected });
+  rpc<void>('battle_sesh', { p_token: token, p_is_connected: isConnected });
 
 export const leaveRoom = (token: string) => rpc<void>('battle_leave_room', { p_token: token });
 
