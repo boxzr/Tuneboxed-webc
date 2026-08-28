@@ -1,0 +1,100 @@
+/* ---------- Design tokens ----------
+   One source of truth for the whole product. The values are lifted from the
+   iOS app so a room opened in a browser and the same room on a phone read as
+   the same thing: GlassDesignSystem.swift for the brand colours, and
+   BattleUIComponents.swift for the surface and control recipes.
+
+   Imported first from index.css, which is the entry stylesheet, so every route
+   has these regardless of which other sheets it pulls in. */
+
+:root {
+  /* Brand. Orange leads, blue is the supporting voice for playback and
+     spectator states. The deep variants are gradient endpoints only. */
+  --tb-orange: #fd9c07;
+  --tb-orange-deep: #fe5202;
+  --tb-peach: #ffbd52;
+  --tb-blue: #009ffd;
+  --tb-blue-deep: #0069dc;
+  --tb-sky: #5cc2ff;
+
+  /* Status. Green marks a locked-in pick, purple marks whoever is judging,
+     red is reserved for genuine failure. */
+  --tb-green: #3dd699;
+  --tb-green-ink: #26ad6b;
+  --tb-judge: #8c59f2;
+  --tb-red: #e0504a;
+
+  /* Ink. Three weights is enough: body, supporting, and the barely-there
+     tier used for chevrons and placeholder glyphs. */
+  --tb-ink: #1f2933;
+  --tb-ink-muted: #6b7785;
+  --tb-ink-faint: #9ea8b5;
+
+  /* Surfaces. A near-white canvas with white cards floating on it, which is
+     what makes the hairline border read rather than the shadow doing all the
+     work. */
+  --tb-canvas: #f6f6f7;
+  --tb-canvas-tv: #f7f7f8;
+  --tb-surface: #ffffff;
+  --tb-surface-sunken: #f2f2f7;
+  --tb-border: #ececec;
+  --tb-hairline: rgba(31, 41, 51, 0.08);
+
+  /* Radii. The card radius is deliberately large; it is the single strongest
+     signal that this is the same design language as the app. */
+  --tb-r-card: 28px;
+  --tb-r-cta: 22px;
+  --tb-r-control: 18px;
+  --tb-r-row: 16px;
+  --tb-r-chip: 12px;
+
+  /* Elevation. Shadows are soft and low-contrast, and the coloured ones are
+     tinted with their own button so the glow belongs to the control. */
+  --tb-shadow-card: 0 6px 16px rgba(0, 0, 0, 0.06);
+  --tb-shadow-orange: 0 4px 8px rgba(253, 156, 7, 0.35);
+  --tb-shadow-blue: 0 4px 8px rgba(0, 159, 253, 0.3);
+  --tb-shadow-lift: 0 8px 14px rgba(0, 0, 0, 0.14);
+
+  /* Type. The app is SF Pro, so the web stack leads with the system font and
+     gets the same shapes on Apple hardware. Room codes are the one exception:
+     they get tabular figures because they are read aloud and typed back. */
+  --tb-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --tb-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+
+  /* ---------- Motion ----------
+     The short durations are the point: hovers land in around a tenth of a
+     second and entrances in three, which is what makes motion feel responsive
+     rather than decorative. Travel is 8px for the same reason, since a longer
+     slide reads as the page assembling itself rather than simply arriving. */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-swift: cubic-bezier(0.175, 0.885, 0.32, 1.1); /* slight overshoot */
+  --dur-hover: 0.1s;
+  --dur-control: 0.15s;
+  --dur-enter: 0.3s;
+  --rise: 8px;
+}
+
+/* ---------- Surface recipes ----------
+   Utility classes rather than repeated declarations, because the card and the
+   primary button appear on nearly every screen and drifting copies of them is
+   exactly how the old stylesheets ended up disagreeing with the app. */
+
+.tb-card {
+  background: var(--tb-surface);
+  border: 1px solid var(--tb-border);
+  border-radius: var(--tb-r-card);
+  box-shadow: var(--tb-shadow-card);
+}
+
+/* Uppercase section label, tracked out. Used above every card section in the
+   app, and it is most of what makes the layout read as organised. */
+.tb-eyebrow {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tb-ink-muted);
+}

@@ -1,0 +1,400 @@
+/* ---------- Room layout ----------
+   The single column every battle screen sits in, plus the pieces that belong
+   to one phase and nowhere else. The reusable parts live in ui.css. */
+
+.bt-room {
+  display: flex;
+  justify-content: center;
+}
+
+.bt-room__col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 560px;
+}
+
+/* ---------- Header ---------- */
+
+/* Lobby: the code is the whole screen's job, because someone is reading it
+   out and someone else is typing it in. */
+.bt-idcard {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.bt-idcard__logo {
+  display: block;
+  height: 46px;
+  width: auto;
+  margin: 0 auto 18px;
+}
+
+.bt-idcard__code {
+  margin: 6px 0 14px;
+  font-size: 3.4rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  /* The indent cancels the trailing letter-space, which would otherwise push
+     the code visibly left of centre. */
+  text-indent: 0.18em;
+}
+
+.bt-idcard__stage {
+  margin: 14px 0 0;
+  font-size: 0.9rem;
+  color: var(--tb-ink-muted);
+}
+
+.bt-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border: 1px solid var(--tb-border);
+  border-radius: 999px;
+  background: var(--tb-surface);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--tb-ink-muted);
+  cursor: pointer;
+  transition:
+    color var(--dur-control) var(--ease-standard),
+    border-color var(--dur-control) var(--ease-standard);
+}
+
+.bt-copy:hover {
+  color: var(--tb-orange);
+  border-color: var(--tb-orange);
+}
+
+/* Mid-match: shrinks to a strip so the screen belongs to the game. */
+.bt-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.bt-topbar__logo {
+  height: 28px;
+  width: auto;
+}
+
+.bt-topbar__code {
+  padding: 3px 10px;
+  border-radius: var(--tb-r-chip);
+  background: var(--tb-surface);
+  border: 1px solid var(--tb-border);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.bt-topbar__stage {
+  margin-left: auto;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--tb-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Shared text ---------- */
+
+.bt-h1 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.bt-sub {
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--tb-ink-muted);
+}
+
+.bt-sub--center {
+  text-align: center;
+}
+
+.bt-error {
+  padding: 12px 16px;
+  border-radius: var(--tb-r-row);
+  background: rgba(224, 80, 74, 0.1);
+  color: #a5322d;
+  font-size: 0.9rem;
+}
+
+.bt-joinurl {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--tb-ink-muted);
+  word-break: break-all;
+}
+
+.bt-joinurl strong {
+  color: var(--tb-ink);
+  font-weight: 600;
+}
+
+/* ---------- Lobby ---------- */
+
+.bt-lobby {
+  text-align: center;
+}
+
+.bt-lobby__pitch {
+  margin: 14px auto 0;
+  max-width: 34ch;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--tb-ink-muted);
+}
+
+/* ---------- Picking ---------- */
+
+.bt-genre {
+  text-align: center;
+}
+
+.bt-genre__title {
+  margin: 8px 0 0;
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.15;
+  /* The prompt is the question the whole round answers, so it gets the brand
+     gradient rather than sitting in body ink. */
+  background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bt-locked {
+  text-align: center;
+}
+
+.bt-locked__icon {
+  display: inline-flex;
+  color: var(--tb-green-ink);
+  margin-bottom: 6px;
+}
+
+.bt-locked__title {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.bt-phase-head {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.bt-countdown {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--tb-blue-deep);
+}
+
+/* ---------- Ballot ---------- */
+
+.bt-ballot {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bt-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px 10px 10px;
+  border: 1.5px solid var(--tb-border);
+  border-radius: var(--tb-r-control);
+  background: var(--tb-surface);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-control) var(--ease-standard),
+    background-color var(--dur-control) var(--ease-standard),
+    transform var(--dur-hover) var(--ease-standard);
+}
+
+.bt-choice:hover:not(:disabled) {
+  border-color: var(--tb-orange);
+}
+
+.bt-choice:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.bt-choice:disabled {
+  cursor: default;
+}
+
+.bt-choice--chosen {
+  border-color: var(--tb-orange);
+  background: rgba(253, 156, 7, 0.08);
+}
+
+/* Chat votes by position, so the number has to be as readable as the song. */
+.bt-choice__num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--tb-ink);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.bt-choice__art {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--tb-r-chip);
+  object-fit: cover;
+}
+
+.bt-choice__art--empty {
+  background: var(--tb-surface-sunken);
+}
+
+.bt-choice__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bt-choice__text strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bt-choice__text span {
+  font-size: 0.8rem;
+  color: var(--tb-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bt-choice__count {
+  margin-left: auto;
+  flex: none;
+  min-width: 34px;
+  text-align: right;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--tb-orange);
+}
+
+/* ---------- Reveal and champion ---------- */
+
+.bt-reveal,
+.bt-champion {
+  text-align: center;
+}
+
+.bt-reveal__crown,
+.bt-champion__trophy {
+  display: inline-flex;
+  color: var(--tb-orange);
+  margin-bottom: 8px;
+  animation: bt-drop var(--dur-enter) var(--ease-swift);
+}
+
+.bt-reveal__name,
+.bt-champion__name {
+  margin: 6px 0 0;
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.bt-reveal__song {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  color: var(--tb-ink-muted);
+}
+
+@keyframes bt-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Stream card ---------- */
+
+.bt-stream__url {
+  display: block;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: var(--tb-r-chip);
+  background: var(--tb-surface-sunken);
+  font-family: var(--tb-font-mono);
+  font-size: 0.8rem;
+  color: var(--tb-ink-muted);
+  word-break: break-all;
+}
+
+.bt-stream__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* The buttons are grid siblings, so the stacking margin would drop the second
+   one out of line with the first. */
+.bt-stream__row .bt-btn,
+.bt-stream__row .bt-btn + .bt-btn {
+  margin-top: 0;
+  min-height: 50px;
+  font-size: 0.92rem;
+}
+
+.bt-stream__obs {
+  font-size: 0.84rem;
+}
+
+@media (max-width: 480px) {
+  .bt-idcard__code {
+    font-size: 2.6rem;
+  }
+
+  .bt-genre__title {
+    font-size: 1.55rem;
+  }
+
+  .bt-stream__row {
+    grid-template-columns: 1fr;
+  }
+}

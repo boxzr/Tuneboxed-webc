@@ -12,7 +12,7 @@ import PageLayout from './PageLayout';
 const STEPS = [
   {
     title: 'Start a room',
-    body: 'You get a five-letter code. Read it out on stream and your viewers join in their browser. No app, no account, no sign-up.',
+    body: 'You get a five-letter code. Share it however suits you: read it out on stream, paste it in a group chat, or put it up on the TV. Everyone joins in their browser. No app, no account, no sign-up.',
   },
   {
     title: 'Everyone picks a song',
@@ -23,8 +23,8 @@ const STEPS = [
     body: 'Each matchup plays both tracks for 30 seconds, in sync for everyone in the room at the same moment.',
   },
   {
-    title: 'Chat votes',
-    body: 'Viewers type 1 or 2 in your Twitch chat for the song they want. One vote each, and changing your mind moves your vote rather than adding another.',
+    title: 'The room votes',
+    body: 'Everyone in the room picks the track they liked more. If the host is on Twitch, chat can vote too by typing 1 or 2. One vote each either way, and changing your mind moves your vote rather than adding another.',
   },
   {
     title: 'The winner advances',
@@ -36,9 +36,9 @@ export default function Rules() {
   return (
     <PageLayout
       title="Game rules | TuneBoxed"
-      description="How a TuneBoxed song battle works: a bracket of up to 16 players, songs played in sync, and Twitch chat voting for the winner."
+      description="How a TuneBoxed song battle works: a bracket of up to 16 players, songs played in sync, and the room voting for the winner."
       heading="Game rules"
-      intro="A song battle is a bracket. Two tracks play back to back, chat picks the better one, and the winner moves on."
+      intro="A song battle is a bracket. Two tracks play back to back, the room picks the better one, and the winner moves on."
     >
       <section className="page-section">
         <ol className="page-steps">
@@ -55,7 +55,7 @@ export default function Rules() {
       </section>
 
       <section className="page-section">
-        <h2>What counts as a vote</h2>
+        <h2>What counts as a vote in Twitch chat</h2>
         <p>
           Only a message that is exactly the number counts. Typing{' '}
           <strong>1</strong> votes for the first song; typing "1 is better" does

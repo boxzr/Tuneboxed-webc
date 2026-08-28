@@ -108,8 +108,8 @@ export default function BattleEntry({
           </h1>
           <p className="battle-sub">
             {invited
-              ? 'Pick a name your chat will recognise and jump in. No app, no account.'
-              : 'Host a bracket for your stream, or drop in with a room code.'}
+              ? 'Pick a name the room will recognise and jump in. No app, no account.'
+              : 'Start a bracket for your room, or drop in with a code.'}
           </p>
         </>
       )}
@@ -195,12 +195,19 @@ export default function BattleEntry({
             </button>
           </div>
         ) : (
-          <button
-            className="battle-twitch-btn"
-            onClick={() => void signInWithTwitch().catch((e) => setError(e.message))}
-          >
-            Sign in with Twitch
-          </button>
+          <>
+            <button
+              className="battle-twitch-btn"
+              onClick={() => void signInWithTwitch().catch((e) => setError(e.message))}
+            >
+              Sign in with Twitch
+            </button>
+            {/* Without this the button reads as a requirement, and most people
+                hosting a battle are not streaming it. */}
+            <p className="battle-twitch-hint">
+              Optional. Lets your chat vote by typing in Twitch.
+            </p>
+          </>
         ))}
 
       {error && <div className="battle-error">{error}</div>}

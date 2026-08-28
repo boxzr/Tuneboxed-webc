@@ -6,22 +6,24 @@ export default function About() {
   return (
     <PageLayout
       title="About | TuneBoxed"
-      description="TuneBoxed is a music game. On the web it is song battles for streamers; on iOS it is a daily music feed where you post the song that fits the genre."
+      description="TuneBoxed is a music game: bracket song battles in the browser, and a daily music feed on iOS where you post the song that fits the genre."
       heading="About TuneBoxed"
       intro="A music game about the one thing every group argues over: whose taste is better."
     >
       <section className="page-section">
         <h2>Song battles, on the web</h2>
         <p>
-          A streamer starts a room, viewers join from a browser with a code, and
-          everyone picks a song. Two tracks play head to head, chat votes for
-          the better one, and the bracket runs until a single song is left.
+          Someone starts a room, everyone else joins from a browser with a code,
+          and each player picks a song. Two tracks play head to head, the room
+          votes for the better one, and the bracket runs until a single song is
+          left standing.
         </p>
         <p>
-          It is built to be watched. Songs play in sync so the whole room hears
-          the same thing at the same moment, the scoreboard drops into OBS as a
-          browser source, and voting happens in the chat that is already there
-          rather than on a second screen.
+          It is built to be watched together. Songs play in sync so everyone
+          hears the same thing at the same moment, and every room has a board
+          you can put on a TV, a projector or a stream. If you are on Twitch,
+          voting can happen in the chat that is already there rather than on a
+          second screen.
         </p>
       </section>
 

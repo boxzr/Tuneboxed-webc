@@ -1,49 +1,29 @@
-/* Palette lifted from GlassDesignSystem.swift so the web rooms and the iOS
-   app read as the same product. */
-.battle {
-  --aura-orange: #fd9c07;
-  --aura-orange-deep: #fe5202;
-  --aura-peach: #ffbd52;
-  --aura-blue: #009ffd;
-  --aura-blue-deep: #0069dc;
-  --aura-sky: #5cc2ff;
-  --aura-green: #58a700;
-  --aura-red: #e0504a;
+/* Battle rooms. Colours come from styles/tokens.css, which carries the same
+   values the iOS app uses; the aliases below keep the rules in this file
+   readable and are the only place the two naming schemes meet.
 
-  --ink: #16181d;
-  --ink-soft: #6b7280;
-  --card: #ffffff;
-  --canvas-top: #fff8ef;
-  --canvas-bottom: #f2f6ff;
-  --hairline: rgba(22, 24, 29, 0.1);
+   The canvas is a flat near-white rather than the peach-to-blue wash it used
+   to be, matching the app. A gradient behind floating white cards muddies the
+   hairline borders that are doing the actual separating. */
+.battle {
+  --aura-orange: var(--tb-orange);
+  --aura-orange-deep: var(--tb-orange-deep);
+  --aura-peach: var(--tb-peach);
+  --aura-blue: var(--tb-blue);
+  --aura-blue-deep: var(--tb-blue-deep);
+  --aura-sky: var(--tb-sky);
+  --aura-green: var(--tb-green);
+  --aura-red: var(--tb-red);
+
+  --ink: var(--tb-ink);
+  --ink-soft: var(--tb-ink-muted);
+  --card: var(--tb-surface);
+  --hairline: var(--tb-border);
 
   min-height: 100vh;
   padding: 24px 20px 64px;
   color: var(--ink);
-  background: linear-gradient(180deg, var(--canvas-top), var(--canvas-bottom));
-}
-
-/* App.css applies `* { font-family: 'Space Mono' }`, which hits every element
-   directly and so beats anything inherited from this container. Matching
-   descendants explicitly is what actually overrides it. */
-.battle,
-.battle * {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  letter-spacing: normal;
-}
-
-/* Standalone battle pages follow the system theme. The home page hero is
-   excluded because the marketing site around it is light only, and a dark
-   card dropped into a white page reads as a rendering fault. */
-@media (prefers-color-scheme: dark) {
-  .battle:not(.battle--embedded) {
-    --ink: #f5f6f8;
-    --ink-soft: #9aa3b2;
-    --card: #1b1e25;
-    --canvas-top: #14161b;
-    --canvas-bottom: #0f1116;
-    --hairline: rgba(255, 255, 255, 0.12);
-  }
+  background: var(--tb-canvas);
 }
 
 .battle-shell {
@@ -68,17 +48,7 @@
   background: none;
 }
 
-/* Battle hero on the marketing home page.
-   Same note as above about App.css: `* { font-family }` hits these elements
-   directly, so the descendant selector is what actually wins. */
-.battle-hero,
-.battle-hero *,
-.home-hero,
-.home-hero * {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  letter-spacing: normal;
-}
-
+/* Battle hero on the marketing home page. */
 .battle-hero,
 .home-hero {
   max-width: 560px;
@@ -113,26 +83,6 @@
   text-align: left;
 }
 
-/* OBS Browser Source prompt in the lobby, host only. */
-.battle-overlay-cta {
-  margin-top: 18px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px dashed var(--hairline);
-  background: rgba(145, 70, 255, 0.06);
-}
-
-.battle-overlay-url {
-  display: block;
-  padding: 9px 11px;
-  border-radius: 9px;
-  background: rgba(22, 24, 29, 0.06);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem;
-  /* URLs have no spaces, so without this the card would set the room width. */
-  overflow-wrap: anywhere;
-}
-
 /* Twitch sign-in, offered to hosts only. */
 .battle-twitch-btn {
   display: block;
@@ -150,6 +100,13 @@
 
 .battle-twitch-btn:hover {
   background: #7d2ff5;
+}
+
+.battle-twitch-hint {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-tertiary);
 }
 
 .battle-twitch {

@@ -1,0 +1,62 @@
+import { useState } from 'react';
+import { Card, SectionLabel, VividButton } from './ui/primitives';
+import { CopyIcon, ScreenIcon } from './ui/icons';
+
+/**
+ * How to get the battle in front of an audience. Host only, since nobody else
+ * can act on it.
+ *
+ * Sharing the board is the headline rather than the fallback. It needs no
+ * software, works on every platform rather than only the ones with a browser
+ * source, and the board is designed to be looked at. The OBS route is offered
+ * second, for people who already have a scene they want this inside.
+ */
+export default function StreamCard({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/tv/${code}`;
+
+  return (
+    <Card className="bt-stream">
+      <SectionLabel tone="blue">Show it to your audience</SectionLabel>
+
+      <p className="bt-sub">
+        Open the board in a second tab and share that tab. It shows the matchup, the songs
+        and the votes at a size that reads on a stream, and it never shows anyone&rsquo;s
+        controls.
+      </p>
+
+      <code className="bt-stream__url">{url}</code>
+
+      <div className="bt-stream__row">
+        <VividButton
+          tone="blue"
+          icon={<ScreenIcon size={17} />}
+          onClick={() => window.open(url, '_blank', 'noopener')}
+        >
+          Open the board
+        </VividButton>
+
+        <VividButton
+          tone="blue"
+          variant="outline"
+          icon={<CopyIcon size={16} />}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(url);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1800);
+            } catch {
+              /* clipboard can be blocked; the URL is on screen to copy by hand */
+            }
+          }}
+        >
+          {copied ? 'Copied' : 'Copy link'}
+        </VividButton>
+      </div>
+
+      <p className="bt-sub bt-stream__obs">
+        Using OBS or Streamlabs? Add the same URL as a Browser Source at 1920 by 1080.
+      </p>
+    </Card>
+  );
+}

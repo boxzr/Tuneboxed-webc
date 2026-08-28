@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import BattleEntry from '../battle/BattleEntry';
 import logo from '../assets/tuneboxed-battle-logo.png';
@@ -10,6 +11,10 @@ import '../battle/battle.css';
  */
 export default function BattleHome() {
   const { code } = useParams<{ code: string }>();
+
+  useEffect(() => {
+    document.title = code ? 'Join a battle | TuneBoxed' : 'Play | TuneBoxed';
+  }, [code]);
 
   return (
     <div className="battle">

@@ -3,6 +3,7 @@ import type {
   BattleChampion,
   BattleFormat,
   BattleMatch,
+  BattleMatchStatus,
   BattlePlayer,
   BattleRoom,
   BattleRound,
@@ -26,6 +27,10 @@ const MESSAGES: Record<string, string> = {
   BATTLE_ROOM_FULL: 'This room is full.',
   BATTLE_NAME_TAKEN: 'Someone in this room is already using that name.',
   BATTLE_NAME_REQUIRED: 'Pick a name first.',
+  BATTLE_NAME_TOO_LONG: 'Keep your name to 24 characters or fewer.',
+  BATTLE_NAME_BLOCKED: "That name isn't allowed. Pick another one.",
+  BATTLE_SONG_BLOCKED: "That track isn't allowed in a battle. Pick another song.",
+  BATTLE_SONG_TOO_LONG: 'That title is too long to put on the board.',
   BATTLE_PICKING_CLOSED: 'Song picking has closed for this round.',
   BATTLE_VOTING_CLOSED: 'Voting is not open right now.',
   BATTLE_NOT_JUDGE: 'Only the judge votes this round.',
@@ -396,8 +401,34 @@ export const reportMatchWinner = (token: string, matchId: string, winnerPlayerId
 export const setCurrentMatch = (token: string, matchId: string | null) =>
   rpc<void>('battle_set_current_match', { p_token: token, p_match_id: matchId });
 
+/** Ties a matchup to the round being played for it, and marks it live. */
+export const setMatchRound = (
+  token: string,
+  matchId: string,
+  roundId: string,
+  status: BattleMatchStatus = 'active'
+) =>
+  rpc<void>('battle_set_match_round', {
+    p_token: token,
+    p_match_id: matchId,
+    p_round_id: roundId,
+    p_status: status,
+  });
+
 export const resetForRematch = (token: string) =>
   rpc<void>('battle_reset_for_rematch', { p_token: token });
+
+/**
+ * Decides a round with nobody left to decide it, and hands back the winning
+ * submission. A two player bracket is the case that needs this: both players
+ * are in the matchup, neither may vote on their own song, and without chat
+ * there is no third party in the room at all.
+ */
+export const pickAiRoundWinner = (token: string, roundId: string) =>
+  rpc<string | null>('battle_pick_ai_round_winner', {
+    p_token: token,
+    p_round_id: roundId,
+  });
 
 export const tallyVotes = (roundId: string) =>
   rpc<string | null>('tally_battle_round_votes', { p_round_id: roundId });

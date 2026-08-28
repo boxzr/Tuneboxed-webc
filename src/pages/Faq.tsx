@@ -33,7 +33,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I put the battle on my stream?',
-    a: 'Yes. If you do not have OBS, share the battle tab as your stream. Chat still votes and viewers still join from the code. If you do have OBS, Streamlabs, or anything with a Browser Source, every room also gives you a transparent overlay URL to drop over your scene.',
+    a: 'Yes. Every room has a board at its own address, showing the matchup, the songs and the live vote counts with none of your controls. Open it in a second tab and share that as your stream, or paste the same URL into OBS, Streamlabs or anything else with a Browser Source. No broadcasting software is required.',
   },
   {
     q: 'How long does a battle take?',
@@ -78,9 +78,9 @@ export default function Faq() {
   return (
     <PageLayout
       title="FAQ | TuneBoxed"
-      description="Common questions about running a TuneBoxed song battle: Twitch chat voting, joining from a browser, the OBS overlay, and how long a bracket takes."
+      description="Answers about TuneBoxed song battles: joining from a browser, chat voting, putting the board on stream, and how long a bracket takes."
       heading="FAQ"
-      intro="Questions that come up when running a battle on stream."
+      intro="Questions that come up when running a battle."
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
@@ -98,7 +98,8 @@ export default function Faq() {
       <p>
         Still stuck? The <Link to="/rules">game rules</Link> walk through a
         battle step by step, and the{' '}
-        <Link to="/streamers">streamer setup guide</Link> covers OBS.
+        <Link to="/streamers">streamer setup guide</Link> covers putting it on
+        stream.
       </p>
     </PageLayout>
   );

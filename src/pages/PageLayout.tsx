@@ -59,6 +59,13 @@ export default function PageLayout({
           <img src={logo} alt="TuneBoxed" />
         </Link>
         <div className="page-nav-links">
+          <nav className="page-nav-sitelinks" aria-label="TuneBoxed">
+            {CONTENT_PAGES.filter((p) => p.path !== '/battle').map((p) => (
+              <Link key={p.path} to={p.path}>
+                {p.label}
+              </Link>
+            ))}
+          </nav>
           <Link to="/battle" className="page-nav-cta">
             Start a battle
           </Link>

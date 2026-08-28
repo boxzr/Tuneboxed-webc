@@ -1,43 +1,26 @@
-/* ---------- Motion ----------
-   One vocabulary for the whole site, so nothing has to invent its own timing.
-   These live here rather than in App.css because index.css is imported from the
-   entry point and so is guaranteed to load for every route, including the OBS
-   overlay. The battle and page stylesheets both reference these tokens.
+/* Entry stylesheet. Tokens come first so every sheet imported after this one,
+   and every route, can rely on them. */
+@import './styles/tokens.css';
 
-   The short durations are the point: hovers land in around a tenth of a second
-   and entrances in three, which is what makes motion feel responsive rather
-   than decorative. Anything slower starts to feel like waiting for the
-   interface. Travel is 8px for the same reason, since a longer slide reads as
-   the page assembling itself rather than simply arriving. */
-:root {
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
-  --ease-swift: cubic-bezier(0.175, 0.885, 0.32, 1.1); /* slight overshoot */
-  --dur-hover: 0.1s;
-  --dur-control: 0.15s;
-  --dur-enter: 0.3s;
-  --rise: 8px;
-}
-
+/* The single type declaration for the product. Everything inherits from here
+   now that the `*` rule in App.css no longer overrides it. */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--tb-font);
+  color: var(--tb-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: var(--tb-font-mono);
 }
 
 /* ---------- App Store button ----------
    Shared by the home page and the About page, so it lives here rather than in
-   either stylesheet. Borrows the raised bottom edge from .battle-btn, which is
-   the button language the rest of the product already uses, so the press reads
-   as the same physical thing. */
+   either stylesheet. Same recipe as the app's primary call to action: solid
+   orange, generous radius, and a shadow tinted with the button's own colour so
+   the glow belongs to the control rather than sitting under it. */
 .app-store-btn {
   display: inline-flex;
   align-items: center;
@@ -45,40 +28,36 @@ code {
   height: 52px;
   padding: 0 28px;
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #fff;
-  background: #ff7a00;
+  background: var(--tb-orange);
   border: none;
-  border-bottom: 4px solid #c25700;
-  border-radius: 14px;
+  border-radius: var(--tb-r-cta);
+  box-shadow: var(--tb-shadow-orange);
   text-decoration: none;
   cursor: pointer;
   transition:
     filter var(--dur-control) var(--ease-standard),
-    transform 0.08s var(--ease-standard);
+    transform var(--dur-hover) var(--ease-standard);
 }
 
 .app-store-btn:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.04);
   color: #fff;
 }
 
+/* The press is a scale rather than a drop, which is what the app does and
+   what keeps it from reading as a physical key. */
 .app-store-btn:active {
-  transform: translateY(2px);
-  border-bottom-width: 2px;
+  transform: scale(0.98);
 }
 
 /* Compact enough to sit in a nav bar without setting the bar's height. */
 .app-store-btn--nav {
   height: 40px;
   padding: 0 18px;
-  font-size: 0.9rem;
-  border-radius: 11px;
-  border-bottom-width: 3px;
-}
-
-.app-store-btn--nav:active {
-  border-bottom-width: 1px;
+  font-size: 0.88rem;
+  border-radius: var(--tb-r-control);
 }
 
 @media (max-width: 480px) {

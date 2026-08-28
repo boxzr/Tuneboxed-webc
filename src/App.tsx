@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import './App.css';
 import tuneboxedLogo from './assets/tuneboxed-battle-logo.png';
@@ -8,7 +8,7 @@ import AdminDashboard from './components/AdminDashboard';
 import PasswordReset from './pages/PasswordReset';
 import BattleHome from './pages/BattleHome';
 import BattleRoom from './pages/BattleRoom';
-import BattleOverlay from './pages/BattleOverlay';
+import BattleTV from './pages/BattleTV';
 import BattleEntry from './battle/BattleEntry';
 import Rules from './pages/Rules';
 import Faq from './pages/Faq';
@@ -36,6 +36,7 @@ function MainWebsite() {
 
   useEffect(() => {
     void trackPageView('home');
+    document.title = 'TuneBoxed | The Kahoot of song battles';
   }, []);
 
   // Admin access with Alt+Shift+A+T
@@ -103,6 +104,13 @@ function MainWebsite() {
           <img src={tuneboxedLogo} alt="TuneBoxed" className="nav-logo-image" />
         </a>
         <div className="nav-links">
+          <nav className="nav-sitelinks" aria-label="TuneBoxed">
+            {CONTENT_PAGES.map((p) => (
+              <Link key={p.path} to={p.path} className="nav-link">
+                {p.label}
+              </Link>
+            ))}
+          </nav>
           <a
             href={APP_STORE_URL}
             className="app-store-btn app-store-btn--nav"
@@ -137,9 +145,9 @@ function MainWebsite() {
           </motion.h1>
 
           <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
-            Host a bracket for your stream. Your viewers join with a room code, everyone
-            hears each track at the same moment, and Twitch chat types 1 or 2 to pick the
-            winner. No app, no account.
+            Everyone picks a track, the whole room hears it at the same moment, and the
+            crowd votes the winner through a bracket. Play it around a table, in a call,
+            or live on stream. No app, no account.
           </motion.p>
 
           <motion.div
@@ -150,20 +158,20 @@ function MainWebsite() {
             <BattleEntry showIntro={false} />
           </motion.div>
 
-          {/* Three lines rather than a section each: the page exists to get a
-              streamer into a room, so anything longer competes with the form. */}
+          {/* Three lines rather than a section each: the page exists to get
+              somebody into a room, so anything longer competes with the form. */}
           <motion.ul className="home-steps" variants={heroItem} transition={heroTransition}>
             <li>
               <span className="home-step-num">1</span>
-              Start a room and read the code out on stream
+              Start a room and share the code
             </li>
             <li>
               <span className="home-step-num">2</span>
-              Viewers pick a song each, in the browser
+              Everyone picks a song, in the browser
             </li>
             <li>
               <span className="home-step-num">3</span>
-              Two tracks play head to head, chat votes, the bracket advances
+              Two tracks go head to head, the room votes, the bracket advances
             </li>
           </motion.ul>
 
@@ -213,6 +221,11 @@ function ScrollToTop() {
   return null;
 }
 
+function OverlayRedirect() {
+  const { code = '' } = useParams<{ code: string }>();
+  return <Navigate to={`/tv/${code}`} replace />;
+}
+
 function App() {
   return (
     <>
@@ -223,7 +236,12 @@ function App() {
       <Route path="/join/:code" element={<BattleHome />} />
       <Route path="/battle" element={<BattleHome />} />
       <Route path="/battle/:code" element={<BattleRoom />} />
-      <Route path="/overlay/:code" element={<BattleOverlay />} />
+      {/* The board an audience watches: shared as a tab, or added as a browser
+          source. Takes no session, so it can never occupy a player slot. */}
+      <Route path="/tv/:code" element={<BattleTV />} />
+      {/* The transparent overlay this replaced. Anyone who already pasted an
+          /overlay URL into OBS keeps working rather than getting the site. */}
+      <Route path="/overlay/:code" element={<OverlayRedirect />} />
       {/* Content routes. scripts/prerender.mjs emits a real HTML file for each
           of these, so they return 200 and can be indexed rather than being
           served by GitHub's 404 handler. Keep the two lists in step. */}

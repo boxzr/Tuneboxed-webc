@@ -1,18 +1,9 @@
-/* Content pages: rules, FAQ, streamers, winners, about.
-   App.css sets `* { font-family: 'Space Mono' }`, which hits these elements
-   directly rather than by inheritance, so the descendant selector below is
-   what actually wins. Same reason as battle.css. */
-
-.page,
-.page * {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  letter-spacing: normal;
-}
+/* Content pages: rules, FAQ, streamers, winners, about. */
 
 .page {
   min-height: 100vh;
-  background: #fff;
-  color: #1b2d4e;
+  background: var(--tb-surface);
+  color: var(--tb-ink);
 }
 
 /* ---------- Nav ---------- */
@@ -43,6 +34,44 @@
 
 .page-nav-logo:hover img {
   opacity: 0.7;
+}
+
+.page-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.page-nav-sitelinks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-nav-sitelinks a {
+  color: var(--tb-ink);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  opacity: 0.78;
+  transition:
+    color var(--dur-hover) var(--ease-standard),
+    background-color var(--dur-hover) var(--ease-standard),
+    opacity var(--dur-hover) var(--ease-standard);
+}
+
+.page-nav-sitelinks a:hover {
+  background: rgba(27, 45, 78, 0.04);
+  color: var(--tb-orange);
+  opacity: 1;
+}
+
+@media (max-width: 860px) {
+  .page-nav-sitelinks {
+    display: none;
+  }
 }
 
 .page-nav-cta {

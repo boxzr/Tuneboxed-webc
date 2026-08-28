@@ -15,6 +15,8 @@ interface Playback {
    * players changing track together despite their uneven load times.
    */
   secondsUntilNext: number | null;
+  /** Clip length the room agreed on, so the UI can draw progress through it. */
+  perSong: number;
   finished: boolean;
   /** True when the browser refused to autoplay and needs a tap. */
   blocked: boolean;
@@ -141,6 +143,7 @@ export function useSyncedPlayback(
     total: order.length,
     offset,
     secondsUntilNext,
+    perSong,
     finished,
     blocked,
     unblock,

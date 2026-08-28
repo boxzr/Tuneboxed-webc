@@ -5,7 +5,7 @@ export default function Streamers() {
   return (
     <PageLayout
       title="For streamers | TuneBoxed"
-      description="Run a song battle on your Twitch or TikTok stream: sign in with Twitch, add the OBS browser source, and let chat vote by typing 1 or 2."
+      description="Put a TuneBoxed song battle on Twitch or TikTok. Share the board as a tab or a browser source, and let chat vote by typing 1 or 2."
       heading="For streamers"
       intro="Everything you need to put a song battle on stream, and what it does and does not need access to."
     >
@@ -18,7 +18,7 @@ export default function Streamers() {
               <h3>Sign in with Twitch</h3>
               <p>
                 This is what tells us which channel to read votes from, and it
-                puts your channel name and avatar on the overlay.
+                puts your channel name and avatar on the board.
               </p>
             </div>
           </li>
@@ -35,15 +35,23 @@ export default function Streamers() {
           <li>
             <span className="page-step-num">3</span>
             <div className="page-step-body">
-              <h3>Put it on stream</h3>
+              <h3>Put the board on stream</h3>
               <p>
-                No OBS? Share this browser tab as your stream. Chat still votes,
-                and viewers still join from the code.
+                Every room has a board at its own address, built to be the thing
+                your audience looks at: matchup, timer, songs and live vote
+                counts, and nothing they should not see. Your own tab keeps the
+                controls, so the board never shows what you are about to pick.
               </p>
               <p>
-                Have OBS, Streamlabs, or anything with a Browser Source? Every
-                room shows a copyable overlay URL. Paste it, set it to 1920 by
-                1080, and the transparent overlay sits over your scene.
+                No OBS? Open the board in a second tab or window and share that
+                as your stream. This works on every platform and needs nothing
+                installed.
+              </p>
+              <p>
+                Have OBS, Streamlabs, or anything with a Browser Source? Paste
+                the same URL in and set it to 1920 by 1080. It is a full scene
+                rather than a transparent strip, so it does not need anything
+                behind it.
               </p>
             </div>
           </li>
@@ -52,7 +60,7 @@ export default function Streamers() {
             <div className="page-step-body">
               <h3>Tell chat to type 1 or 2</h3>
               <p>
-                The overlay shows both songs numbered, with a live count. Chat
+                The board shows both songs numbered, with a live count. Chat
                 votes by typing the number on its own.
               </p>
             </div>
@@ -61,12 +69,12 @@ export default function Streamers() {
       </section>
 
       <section className="page-section">
-        <h2>Positioning the overlay before you go live</h2>
+        <h2>Checking the board before you go live</h2>
         <p>
-          Add <code>?demo=1</code> to the end of the overlay URL and it renders
-          with sample songs and vote counts, so you can size and place it in OBS
-          without needing a battle in progress. Add <code>&amp;bg=dark</code> if
-          you would rather see it on a solid background while you work.
+          <a href="/tv/DEMO1?demo=1">tuneboxed.com/tv/DEMO1?demo=1</a> renders
+          the board with sample songs and vote counts, so you can size and place
+          it without needing a battle in progress. Any room code works with{' '}
+          <code>?demo=1</code> on the end.
         </p>
       </section>
 
@@ -86,11 +94,12 @@ export default function Streamers() {
       </section>
 
       <section className="page-section">
-        <h2>Viewer names are not moderated</h2>
+        <h2>Names and song titles</h2>
         <p>
-          Players type their own display name when they join, and it appears on
-          the overlay. If your chat is large or unfamiliar, that is worth
-          knowing before you put the overlay on screen.
+          Display names, and titles from SoundCloud or YouTube, are blocked if
+          they use slurs. Ordinary swearing is allowed. Catalogue tracks from
+          Apple Music are not re-filtered, because those titles are already on
+          a store.
         </p>
         <p>
           Winners are only published to the{' '}
@@ -103,11 +112,11 @@ export default function Streamers() {
       <section className="page-section">
         <h2>TikTok and other platforms</h2>
         <p>
-          The battle itself works anywhere you can share a link and screen
-          share the tab. The overlay works in any software that supports a
-          browser source, not only OBS. Chat voting is Twitch only for now,
-          because it relies on reading Twitch chat. Elsewhere the players in
-          the room vote instead.
+          The battle itself works anywhere you can share a link and screen share
+          a tab, so TikTok, Kick, YouTube and Discord are all fine. Chat voting
+          is Twitch only for now, because it relies on reading Twitch chat.
+          Everywhere else the players in the room vote instead, which is also
+          how it works when nobody is streaming at all.
         </p>
       </section>
 
