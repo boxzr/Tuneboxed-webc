@@ -21,6 +21,8 @@ interface Playback {
   /** True when the browser refused to autoplay and needs a tap. */
   blocked: boolean;
   unblock: () => void;
+  /** True when the current pick is a music video and needs the screen. */
+  needsScreen: boolean;
 }
 
 /**
@@ -30,13 +32,19 @@ interface Playback {
  * from `playback_started_at` and `seconds_per_song`, so a viewer joining
  * thirty seconds late drops straight into the middle of the right song
  * rather than starting the set over.
+ *
+ * Music video picks are the same clip with a picture attached, so they run on
+ * the same clock through a `<video>` the page hands in. Everything else plays
+ * through an audio element the hook owns.
  */
 export function useSyncedPlayback(
   round: BattleRound | null,
   submissions: BattleSubmission[],
-  enabled: boolean
+  enabled: boolean,
+  videoEl?: HTMLVideoElement | null
 ): Playback {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const activeRef = useRef<HTMLMediaElement | null>(null);
   const [tick, setTick] = useState(0);
   const [blocked, setBlocked] = useState(false);
 
@@ -75,29 +83,44 @@ export function useSyncedPlayback(
       ? null
       : Math.max(0, perSong - offset);
 
-  // Drive the audio element toward wherever the clock says we should be.
+  const needsScreen = current?.source === 'itunes-video';
+
+  // Drive the playing element toward wherever the clock says we should be.
   // A submission with no preview URL is an embed, which plays in the provider's
-  // own iframe instead; falling through here leaves the audio element paused.
+  // own iframe instead; falling through here leaves everything paused.
   useEffect(() => {
     if (!enabled || !current?.preview_url || finished) {
       audioRef.current?.pause();
+      videoEl?.pause();
+      activeRef.current = null;
       return;
     }
 
-    let audio = audioRef.current;
-    if (!audio) {
-      audio = new Audio();
-      audio.preload = 'auto';
-      audioRef.current = audio;
+    let media: HTMLMediaElement | null;
+    if (needsScreen) {
+      audioRef.current?.pause();
+      // The page mounts the video only once it knows a video is up, so the
+      // first pass through here can land before it exists.
+      media = videoEl ?? null;
+    } else {
+      videoEl?.pause();
+      if (!audioRef.current) {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audioRef.current = audio;
+      }
+      media = audioRef.current;
     }
 
-    const src = current.preview_url;
-    const needsSwap = audio.src !== src;
+    if (!media) return;
+    activeRef.current = media;
 
-    if (needsSwap) {
-      audio.src = src;
-      audio.currentTime = Math.max(0, offset);
-      audio.play().then(
+    const src = current.preview_url;
+
+    if (media.src !== src) {
+      media.src = src;
+      media.currentTime = Math.max(0, offset);
+      media.play().then(
         () => setBlocked(false),
         // Browsers block autoplay until the user has interacted with the
         // page. Surfacing it lets the UI ask for one tap instead of playing
@@ -109,17 +132,17 @@ export function useSyncedPlayback(
 
     // Nudge back into sync if we have drifted more than a second, which
     // happens after a tab is backgrounded.
-    if (Math.abs(audio.currentTime - offset) > 1) {
-      audio.currentTime = Math.max(0, offset);
+    if (Math.abs(media.currentTime - offset) > 1) {
+      media.currentTime = Math.max(0, offset);
     }
-    if (audio.paused) {
-      audio.play().then(
+    if (media.paused) {
+      media.play().then(
         () => setBlocked(false),
         () => setBlocked(true)
       );
     }
     // `tick` is what re-runs this; the drift check needs a fresh `offset`.
-  }, [enabled, current, offset, finished, tick]);
+  }, [enabled, current, offset, finished, tick, needsScreen, videoEl]);
 
   useEffect(() => {
     return () => {
@@ -129,9 +152,9 @@ export function useSyncedPlayback(
   }, []);
 
   const unblock = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.play().then(
+    const media = activeRef.current;
+    if (!media) return;
+    media.play().then(
       () => setBlocked(false),
       () => setBlocked(true)
     );
@@ -147,5 +170,6 @@ export function useSyncedPlayback(
     finished,
     blocked,
     unblock,
+    needsScreen: Boolean(needsScreen),
   };
 }

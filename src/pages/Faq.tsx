@@ -37,7 +37,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'How long does a battle take?',
-    a: 'Players get 90 seconds to pick, and each song plays for 30 seconds. A full 16 player bracket is four stages, so budget somewhere around 20 to 30 minutes depending on how long you leave voting open.',
+    a: 'Players get 45 seconds to pick, and each song plays for 30 seconds. A full 16 player bracket is four stages, so budget somewhere around 20 to 30 minutes depending on how long you leave voting open.',
   },
   {
     q: 'Where do the songs come from?',

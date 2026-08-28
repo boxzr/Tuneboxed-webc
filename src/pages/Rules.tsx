@@ -12,7 +12,7 @@ const PARTY_STEPS = [
   },
   {
     title: 'Everyone picks a song',
-    body: 'Three or more players. Each round, everyone except the judge locks in a track, with 90 seconds on the clock.',
+    body: 'Three or more players. Each round, everyone except the judge locks in a track, with 45 seconds on the clock. Miss it and you are out of the round.',
   },
   {
     title: 'The songs play together',
@@ -104,8 +104,25 @@ export default function Rules() {
       <section className="page-section">
         <h2>Odd numbers of players</h2>
         <p>
-          A bracket needs pairs. When the count is odd, one player gets a bye
-          and moves to the next stage without playing a matchup.
+          A bracket needs pairs. When the count is odd, byes are spread across
+          the first stage rather than piled at the end, so at most one player
+          per matchup sits it out. A bye moves you to the next stage without
+          playing, and you pick again there like everyone else.
+        </p>
+        <p>
+          If you ever reach a matchup with nobody opposite you, you take it
+          without a round rather than waiting for an opponent who is never
+          coming.
+        </p>
+      </section>
+
+      <section className="page-section">
+        <h2>Missing the clock</h2>
+        <p>
+          When the pick timer hits zero the round closes on whatever is in. If
+          only one person got a song in, they take the round: turning up beats
+          not turning up. If nobody did, the host can put more time on the
+          clock.
         </p>
       </section>
 
@@ -116,6 +133,11 @@ export default function Rules() {
           a 30 second preview. Nobody needs a Spotify or Apple Music
           subscription, because everyone in the room plays the same preview
           rather than a stream only some of them can reach.
+        </p>
+        <p>
+          Switch search to music videos to battle with the video instead of the
+          track. It runs on the same clock and the same 30 seconds, so the room
+          watches it together rather than only hearing it.
         </p>
         <p>
           You can also paste a SoundCloud or YouTube link instead of searching,

@@ -25,7 +25,8 @@ const MESSAGES: Record<string, string> = {
   BATTLE_HOST_ONLY: 'Only the host can do that.',
   BATTLE_ROOM_NOT_FOUND: "That room code doesn't exist. Double-check and try again.",
   BATTLE_ROOM_FULL: 'This room is full.',
-  BATTLE_NAME_TAKEN: 'Someone in this room is already using that name.',
+  BATTLE_NAME_TAKEN:
+    'Someone is in the room under that name right now. If it is you on another device, close it and try again in a moment.',
   BATTLE_NAME_REQUIRED: 'Pick a name first.',
   BATTLE_NAME_TOO_LONG: 'Keep your name to 24 characters or fewer.',
   BATTLE_NAME_BLOCKED: "That name isn't allowed. Pick another one.",
@@ -44,6 +45,7 @@ const MESSAGES: Record<string, string> = {
   BATTLE_FORMAT_LOCKED: 'The format can only change while you are still in the lobby.',
   BATTLE_HOST_STILL_ACTIVE: 'The host is still here.',
   BATTLE_CODE_EXHAUSTED: 'Could not create a room code. Try again.',
+  BATTLE_BRACKET_TOO_SMALL: 'A bracket needs at least two players in the room.',
 };
 
 export class BattleError extends Error {
@@ -106,6 +108,31 @@ export function clearSession(code: string): void {
   }
 }
 
+/**
+ * The last name this browser played under.
+ *
+ * Kept apart from the per-room session because it is what gets someone back
+ * into a room whose token they no longer have: typing the same name reclaims
+ * the seat, and most people would rather not type it at all.
+ */
+const NAME_KEY = 'tuneboxed.battle.name';
+
+export function rememberName(name: string): void {
+  try {
+    localStorage.setItem(NAME_KEY, name);
+  } catch {
+    /* see saveSession */
+  }
+}
+
+export function lastName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 // ---------------------------------------------------------------
 // Joining
 // ---------------------------------------------------------------
@@ -129,6 +156,7 @@ export async function createRoom(opts: {
     p_host_avatar_url: opts.twitchAvatarUrl ?? null,
   });
   saveSession(session);
+  rememberName(session.player.display_name);
   return session;
 }
 
@@ -158,18 +186,27 @@ export async function joinRoom(code: string, displayName: string): Promise<Battl
     p_token: existing?.token ?? null,
   });
   saveSession(session);
+  rememberName(session.player.display_name);
   return session;
 }
 
-/** Rejoin using only a stored token, for a refresh mid-game. */
-export async function resumeRoom(code: string, displayName: string): Promise<BattleSession | null> {
+/**
+ * Whether the session this browser has stored still gets into the room.
+ *
+ * Asked before the join form is shown, so somebody reopening the invite link
+ * lands back in the game rather than being asked to introduce themselves to a
+ * room they are already sitting in. A heartbeat is the probe because it fails
+ * on a dead token and, when it works, marks them present again.
+ */
+export async function resumeRoom(code: string): Promise<boolean> {
   const existing = loadSession(code);
-  if (!existing) return null;
+  if (!existing) return false;
   try {
-    return await joinRoom(code, displayName);
+    await heartbeat(existing.token);
+    return true;
   } catch {
     clearSession(code);
-    return null;
+    return false;
   }
 }
 
@@ -395,6 +432,20 @@ export const startRound = (
     p_judge_player_id: opts.judgePlayerId ?? null,
     p_pick_seconds: opts.pickSeconds ?? 60,
     p_match_id: opts.matchId ?? null,
+  });
+
+/**
+ * What the room does when the pick clock hits zero.
+ *
+ * `walkover` means one person got their song in and takes the round,
+ * `playing` means the songs have started, `empty` means nobody picked and it
+ * is up to the caller, and `closed` means somebody beat us to it.
+ */
+export const closePicking = (token: string, roundId: string, secondsPerSong: number) =>
+  rpc<'walkover' | 'playing' | 'empty' | 'closed'>('battle_close_picking', {
+    p_token: token,
+    p_round_id: roundId,
+    p_seconds_per_song: secondsPerSong,
   });
 
 export const setRoundWinner = (token: string, roundId: string, submissionId: string) =>

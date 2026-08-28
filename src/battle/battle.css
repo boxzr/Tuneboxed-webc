@@ -475,6 +475,41 @@
   box-shadow: 0 1px 3px rgba(22, 24, 29, 0.12);
 }
 
+/* Songs against music videos. A quieter control than the tabs above it,
+   because it narrows a search rather than changing where you are. */
+.battle-kinds {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.battle-kind {
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: transparent;
+  border: 1.5px solid var(--hairline);
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.62;
+  transition:
+    border-color var(--dur-control) var(--ease-standard),
+    background-color var(--dur-control) var(--ease-standard),
+    opacity var(--dur-control) var(--ease-standard);
+}
+
+.battle-kind:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.battle-kind--on {
+  border-color: var(--aura-orange);
+  background: rgba(255, 122, 0, 0.08);
+  opacity: 1;
+}
+
 /* ---------- Embedded players ---------- */
 
 /* SoundCloud and YouTube have to render their own player, and both require it

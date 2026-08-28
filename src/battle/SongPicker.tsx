@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { searchSongs, type Song } from './musicSearch';
+import { searchSongs, type SearchKind, type Song } from './musicSearch';
 import { parseLink, resolveLink } from './linkSources';
 
 interface Props {
@@ -11,6 +11,7 @@ type Tab = 'search' | 'link';
 
 export default function SongPicker({ onPick, disabled }: Props) {
   const [tab, setTab] = useState<Tab>('search');
+  const [kind, setKind] = useState<SearchKind>('song');
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<Song[]>([]);
   const [searching, setSearching] = useState(false);
@@ -41,7 +42,7 @@ export default function SongPicker({ onPick, disabled }: Props) {
 
       setSearching(true);
       setError(null);
-      searchSongs(query, controller.signal)
+      searchSongs(query, kind, controller.signal)
         .then((songs) => setResults(songs))
         .catch((e) => {
           if ((e as Error).name !== 'AbortError') setError((e as Error).message);
@@ -50,7 +51,7 @@ export default function SongPicker({ onPick, disabled }: Props) {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [term, tab]);
+  }, [term, tab, kind]);
 
   // Resolve a pasted link as soon as it looks like one, so the player sees the
   // track they are about to pick rather than submitting a URL blind.
@@ -125,8 +126,36 @@ export default function SongPicker({ onPick, disabled }: Props) {
 
       {tab === 'search' ? (
         <>
+          {/* A music video is a different pick from the same song: the room
+              watches it instead of only hearing it, which is the whole point
+              of choosing one. */}
+          <div className="battle-kinds" role="radiogroup" aria-label="What to search for">
+            {(
+              [
+                ['song', 'Songs'],
+                ['video', 'Music videos'],
+              ] as [SearchKind, string][]
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={kind === id}
+                disabled={disabled}
+                className={`battle-kind${kind === id ? ' battle-kind--on' : ''}`}
+                onClick={() => {
+                  setKind(id);
+                  setResults([]);
+                  setError(null);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <label className="battle-label" htmlFor="song-search">
-            Search for a song
+            {kind === 'video' ? 'Search for a music video' : 'Search for a song'}
           </label>
           <input
             id="song-search"

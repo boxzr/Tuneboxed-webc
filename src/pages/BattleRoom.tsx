@@ -5,7 +5,7 @@ import { useBattleRoom } from '../battle/useBattleRoom';
 import { useBattleRound } from '../battle/useBattleRound';
 import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useChatVotes } from '../battle/useChatVotes';
-import { secondsUntil, syncClock } from '../battle/clock';
+import { secondsSince, secondsUntil, syncClock } from '../battle/clock';
 import { nextGenre } from '../battle/genres';
 import { uniqueLeader } from '../battle/voteLeader';
 import SongPicker from '../battle/SongPicker';
@@ -33,7 +33,7 @@ import '../battle/battle.css';
 import '../battle/ui/ui.css';
 import '../battle/ui/room.css';
 
-const PICK_SECONDS = 90;
+const PICK_SECONDS = 45;
 const CLIP_SECONDS = 30;
 const PARTY_ROUNDS = 3;
 
@@ -77,9 +77,12 @@ export default function BattleRoom() {
 
   const phase = round?.phase ?? null;
   const hearAudio = !room?.host_speaker_enabled || isHost;
-  const playback = useSyncedPlayback(round, submissions, phase === 'playing' && hearAudio);
+  // A music video plays through a real element on the page, so the hook can
+  // only drive it once React has put it there.
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
+  const playback = useSyncedPlayback(round, submissions, phase === 'playing' && hearAudio, videoEl);
   const [embedBlocked, setEmbedBlocked] = useState(false);
-  useSecondTicker(phase === 'picking' || phase === 'judging');
+  const tick = useSecondTicker(phase === 'picking' || phase === 'judging');
 
   // Only the host reads chat. Every viewer opening an IRC connection would
   // multiply the load for no gain, and the tally is host-only to write anyway.
@@ -124,6 +127,54 @@ export default function BattleRoom() {
       advancedRef.current = null;
     });
   }, [isHost, token, phase, playback.finished, round?.id]);
+
+  /*
+   * Close the picking phase the moment the clock runs out.
+   *
+   * Whoever got their song in wins a round nobody else entered, which is the
+   * point of a deadline: turning up beats not turning up. Two or more picks
+   * and the songs simply start. Nobody at all leaves the round open, and the
+   * host is offered more time rather than a dead end.
+   *
+   * The host acts first and everyone else backs them up a few seconds later,
+   * so a host on a sleeping tab cannot strand the room. The server ignores
+   * whichever call arrives second.
+   */
+  const closedRef = useRef<string | null>(null);
+  const [emptyKey, setEmptyKey] = useState<string | null>(null);
+  const deadlineKey = round ? `${round.id}|${round.phase_deadline_at}` : null;
+  useEffect(() => {
+    if (!token || phase !== 'picking' || !round?.phase_deadline_at || !deadlineKey) return;
+    if (secondsSince(round.phase_deadline_at) < (isHost ? 0 : 3)) return;
+    // Keyed on the deadline as well as the round, so extending the clock
+    // arms this again instead of leaving it spent.
+    if (closedRef.current === deadlineKey) return;
+
+    closedRef.current = deadlineKey;
+    const roundId = round.id;
+    const locked = submissions;
+
+    void battle
+      .closePicking(token, roundId, CLIP_SECONDS)
+      .then((outcome) => {
+        if (outcome === 'empty') setEmptyKey(deadlineKey);
+      })
+      .catch(() => {
+        // Reach the same end with the calls that have always been there,
+        // rather than leaving the room on a spent clock. Deliberately not
+        // rearmed: if this fails too, the host still has the buttons.
+        if (!isHost) return;
+        if (locked.length === 1) {
+          void battle.setRoundWinner(token, roundId, locked[0].id).catch(() => {});
+        } else if (locked.length >= 2) {
+          void battle
+            .startPlayback(token, roundId, locked.map((s) => s.id), CLIP_SECONDS)
+            .catch(() => {});
+        } else {
+          setEmptyKey(deadlineKey);
+        }
+      });
+  }, [token, isHost, phase, round?.id, round?.phase_deadline_at, deadlineKey, submissions, tick]);
 
   const guard = useCallback(async (fn: () => Promise<unknown>) => {
     setActionError(null);
@@ -559,6 +610,30 @@ export default function BattleRoom() {
               Play them now
             </VividButton>
           )}
+
+          {/* The clock ran out with an empty round. There is nothing to play
+              and nobody to crown, so the only way forward is more time. */}
+          {emptyKey === deadlineKey && submissions.length === 0 && (
+            <>
+              <p className="bt-sub bt-sub--center" style={{ marginBottom: isHost ? 12 : 0 }}>
+                Time&rsquo;s up and nobody picked a song.
+              </p>
+              {isHost && (
+                <VividButton
+                  tone="blue"
+                  disabled={busy}
+                  onClick={() =>
+                    void guard(async () => {
+                      await battle.advancePhase(token!, round.id, 'picking', PICK_SECONDS);
+                      setEmptyKey(null);
+                    })
+                  }
+                >
+                  Give them another {PICK_SECONDS} seconds
+                </VividButton>
+              )}
+            </>
+          )}
         </Card>
       )}
 
@@ -597,6 +672,19 @@ export default function BattleRoom() {
                 artworkUrl={playback.current.artwork_url}
                 progress={playback.offset / playback.perSong}
               />
+
+              {/* A music video pick is the same clip on the same clock, just
+                  with something to look at. The hook drives this element
+                  directly, so it has to be on the page before it can play. */}
+              {hearAudio && playback.needsScreen && (
+                <video
+                  ref={setVideoEl}
+                  className="bt-video"
+                  playsInline
+                  controls={false}
+                  poster={playback.current.artwork_url ?? undefined}
+                />
+              )}
 
               {/* SoundCloud and YouTube picks play in the provider's own
                   player, which has to stay on screen. iTunes previews are
@@ -948,13 +1036,14 @@ function ringProgress(deadline: string | null, total: number): number {
  * times a second, but picking and judging derive their clock purely from a
  * timestamp and would otherwise sit frozen until the next realtime event.
  */
-function useSecondTicker(active: boolean): void {
-  const [, force] = useState(0);
+function useSecondTicker(active: boolean): number {
+  const [count, setCount] = useState(0);
   useEffect(() => {
     if (!active) return;
-    const t = setInterval(() => force((n) => n + 1), 1000);
+    const t = setInterval(() => setCount((n) => n + 1), 1000);
     return () => clearInterval(t);
   }, [active]);
+  return count;
 }
 
 /**

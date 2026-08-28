@@ -31,7 +31,9 @@ export default function BattleEntry({
 }: Props) {
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
+  // Prefilled with whatever this browser last played under, because typing
+  // the same name is what reclaims a seat in a room already underway.
+  const [name, setName] = useState(() => battle.lastName());
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [busy, setBusy] = useState<'join' | 'create' | null>(null);
   const [error, setError] = useState<string | null>(null);

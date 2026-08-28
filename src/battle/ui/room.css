@@ -207,6 +207,18 @@
   color: var(--tb-blue-deep);
 }
 
+/* Music video picks. Letterboxed on black so a portrait clip and a
+   widescreen one leave the card the same shape. */
+.bt-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-top: 14px;
+  object-fit: contain;
+  background: #000;
+  border-radius: 14px;
+}
+
 /* ---------- Ballot ---------- */
 
 .bt-ballot {

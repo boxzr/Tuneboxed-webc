@@ -31,3 +31,13 @@ export function secondsUntil(iso: string | null): number {
   if (!iso) return 0;
   return Math.max(0, Math.ceil((new Date(iso).getTime() - serverTime()) / 1000));
 }
+
+/**
+ * How far past a deadline we are, in seconds, negative while it is still
+ * ahead. Unlike `secondsUntil` this keeps counting, which is what lets a
+ * second client step in a beat after the one that should have acted.
+ */
+export function secondsSince(iso: string | null): number {
+  if (!iso) return 0;
+  return (serverTime() - new Date(iso).getTime()) / 1000;
+}
