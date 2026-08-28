@@ -5,6 +5,7 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#FF8A3D" />
+    <meta name="robots" content="index, follow" />
     <meta
       name="description"
       content="Songs that won a TuneBoxed bracket. Published by the hosts who ran the battles."
@@ -15,12 +16,13 @@
     <link rel="manifest" href="/manifest.json" />
 
     <!--
-      scripts/prerender.mjs rewrites the canonical, title, description and og
-      tags below for each route it emits, so the shapes here have to stay
-      predictable. Check that script before reformatting them.
+      scripts/prerender.mjs rewrites the canonical, title, description, og,
+      twitter and JSON-LD below for each route it emits, so the shapes here
+      have to stay predictable. Check that script before reformatting them.
     -->
     <link rel="canonical" href="https://tuneboxed.com/winners" />
     <meta property="og:site_name" content="TuneBoxed" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="Winners | TuneBoxed" />
     <meta
       property="og:description"
@@ -29,33 +31,116 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tuneboxed.com/winners" />
     <meta property="og:image" content="https://tuneboxed.com/logo512.png" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image:alt" content="TuneBoxed" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Winners | TuneBoxed" />
+    <meta
+      name="twitter:description"
+      content="Songs that won a TuneBoxed bracket. Published by the hosts who ran the battles."
+    />
+    <meta name="twitter:image" content="https://tuneboxed.com/logo512.png" />
+    <meta name="twitter:image:alt" content="TuneBoxed" />
 
     <title>Winners | TuneBoxed</title>
 
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "@id": "https://tuneboxed.com/#organization",
-            "name": "TuneBoxed",
-            "url": "https://tuneboxed.com/",
-            "logo": "https://tuneboxed.com/logo512.png"
-          },
-          {
-            "@type": "WebSite",
-            "@id": "https://tuneboxed.com/#website",
-            "name": "TuneBoxed",
-            "url": "https://tuneboxed.com/",
-            "publisher": { "@id": "https://tuneboxed.com/#organization" }
-          }
-        ]
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://tuneboxed.com/#organization",
+      "name": "TuneBoxed",
+      "url": "https://tuneboxed.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://tuneboxed.com/logo512.png",
+        "width": 512,
+        "height": 512
       }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://tuneboxed.com/#website",
+      "name": "TuneBoxed",
+      "alternateName": [
+        "Tune Boxed",
+        "TuneBoxed Battle"
+      ],
+      "url": "https://tuneboxed.com/",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "hasPart": [
+        {
+          "@type": "WebPage",
+          "name": "Play",
+          "url": "https://tuneboxed.com/battle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Game rules",
+          "url": "https://tuneboxed.com/rules"
+        },
+        {
+          "@type": "WebPage",
+          "name": "FAQ",
+          "url": "https://tuneboxed.com/faq"
+        },
+        {
+          "@type": "WebPage",
+          "name": "For streamers",
+          "url": "https://tuneboxed.com/streamers"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Winners",
+          "url": "https://tuneboxed.com/winners"
+        },
+        {
+          "@type": "WebPage",
+          "name": "About",
+          "url": "https://tuneboxed.com/about"
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://tuneboxed.com/winners#webpage",
+      "url": "https://tuneboxed.com/winners",
+      "name": "Winners | TuneBoxed",
+      "description": "Songs that won a TuneBoxed bracket. Published by the hosts who ran the battles.",
+      "isPartOf": {
+        "@id": "https://tuneboxed.com/#website"
+      },
+      "about": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "inLanguage": "en-US"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "TuneBoxed",
+          "item": "https://tuneboxed.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Winners",
+          "item": "https://tuneboxed.com/winners"
+        }
+      ]
+    }
+  ]
+}
     </script>
-    <script type="module" crossorigin src="/assets/index-D6vkj5mG.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CFywHdCD.css">
+    <script type="module" crossorigin src="/assets/index-DwYOYi8n.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CzwnD4FO.css">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

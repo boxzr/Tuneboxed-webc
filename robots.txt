@@ -1,11 +1,9 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
-
-# Room and overlay URLs are per-battle and short lived, so there is nothing
-# worth indexing behind them.
 Disallow: /battle/
+Disallow: /tv/
 Disallow: /overlay/
 Disallow: /join/
+Disallow: /reset-password
 
 Sitemap: https://tuneboxed.com/sitemap.xml

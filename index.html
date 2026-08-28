@@ -5,9 +5,10 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#FF8A3D" />
+    <meta name="robots" content="index, follow" />
     <meta
       name="description"
-      content="Host a song battle bracket for your Twitch stream. Viewers join from the browser with a room code, songs play in sync, and chat votes for the winner."
+      content="Everyone picks a track, the room hears it together, and a bracket picks the winner. Play in the browser around a table, on a call, or on stream."
     />
     <!-- Flattened onto white, because iOS composites a transparent icon onto
          black and the mark's dark outlines vanish into it. -->
@@ -15,47 +16,169 @@
     <link rel="manifest" href="/manifest.json" />
 
     <!--
-      scripts/prerender.mjs rewrites the canonical, title, description and og
-      tags below for each route it emits, so the shapes here have to stay
-      predictable. Check that script before reformatting them.
+      scripts/prerender.mjs rewrites the canonical, title, description, og,
+      twitter and JSON-LD below for each route it emits, so the shapes here
+      have to stay predictable. Check that script before reformatting them.
     -->
     <link rel="canonical" href="https://tuneboxed.com/" />
     <meta property="og:site_name" content="TuneBoxed" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="TuneBoxed | The Kahoot of song battles" />
     <meta
       property="og:description"
-      content="Host a song battle bracket for your Twitch stream. Viewers join from the browser with a room code, songs play in sync, and chat votes for the winner."
+      content="Everyone picks a track, the room hears it together, and a bracket picks the winner. Play in the browser around a table, on a call, or on stream."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tuneboxed.com/" />
     <meta property="og:image" content="https://tuneboxed.com/logo512.png" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image:alt" content="TuneBoxed" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="TuneBoxed | The Kahoot of song battles" />
+    <meta
+      name="twitter:description"
+      content="Everyone picks a track, the room hears it together, and a bracket picks the winner. Play in the browser around a table, on a call, or on stream."
+    />
+    <meta name="twitter:image" content="https://tuneboxed.com/logo512.png" />
+    <meta name="twitter:image:alt" content="TuneBoxed" />
 
     <title>TuneBoxed | The Kahoot of song battles</title>
 
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "@id": "https://tuneboxed.com/#organization",
-            "name": "TuneBoxed",
-            "url": "https://tuneboxed.com/",
-            "logo": "https://tuneboxed.com/logo512.png"
-          },
-          {
-            "@type": "WebSite",
-            "@id": "https://tuneboxed.com/#website",
-            "name": "TuneBoxed",
-            "url": "https://tuneboxed.com/",
-            "publisher": { "@id": "https://tuneboxed.com/#organization" }
-          }
-        ]
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://tuneboxed.com/#organization",
+      "name": "TuneBoxed",
+      "url": "https://tuneboxed.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://tuneboxed.com/logo512.png",
+        "width": 512,
+        "height": 512
       }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://tuneboxed.com/#website",
+      "name": "TuneBoxed",
+      "alternateName": [
+        "Tune Boxed",
+        "TuneBoxed Battle"
+      ],
+      "url": "https://tuneboxed.com/",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "hasPart": [
+        {
+          "@type": "WebPage",
+          "name": "Play",
+          "url": "https://tuneboxed.com/battle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Game rules",
+          "url": "https://tuneboxed.com/rules"
+        },
+        {
+          "@type": "WebPage",
+          "name": "FAQ",
+          "url": "https://tuneboxed.com/faq"
+        },
+        {
+          "@type": "WebPage",
+          "name": "For streamers",
+          "url": "https://tuneboxed.com/streamers"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Winners",
+          "url": "https://tuneboxed.com/winners"
+        },
+        {
+          "@type": "WebPage",
+          "name": "About",
+          "url": "https://tuneboxed.com/about"
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://tuneboxed.com/#webpage",
+      "url": "https://tuneboxed.com/",
+      "name": "TuneBoxed | The Kahoot of song battles",
+      "description": "Everyone picks a track, the room hears it together, and a bracket picks the winner. Play in the browser around a table, on a call, or on stream.",
+      "isPartOf": {
+        "@id": "https://tuneboxed.com/#website"
+      },
+      "about": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "inLanguage": "en-US"
+    },
+    {
+      "@type": "ItemList",
+      "@id": "https://tuneboxed.com/#sitelinks",
+      "name": "TuneBoxed",
+      "itemListElement": [
+        {
+          "@type": "SiteNavigationElement",
+          "position": 1,
+          "name": "Play",
+          "url": "https://tuneboxed.com/battle"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 2,
+          "name": "Game rules",
+          "url": "https://tuneboxed.com/rules"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 3,
+          "name": "FAQ",
+          "url": "https://tuneboxed.com/faq"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 4,
+          "name": "For streamers",
+          "url": "https://tuneboxed.com/streamers"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 5,
+          "name": "Winners",
+          "url": "https://tuneboxed.com/winners"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 6,
+          "name": "About",
+          "url": "https://tuneboxed.com/about"
+        }
+      ]
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "TuneBoxed",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web, iOS",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "url": "https://tuneboxed.com/"
+    }
+  ]
+}
     </script>
-    <script type="module" crossorigin src="/assets/index-D6vkj5mG.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CFywHdCD.css">
+    <script type="module" crossorigin src="/assets/index-DwYOYi8n.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CzwnD4FO.css">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

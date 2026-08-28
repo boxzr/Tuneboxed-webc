@@ -1,6 +1,6 @@
 {
-  "short_name": "TuneBoxed",
-  "name": "TuneBoxed - The Kahoot of song battles",
+    "name": "TuneBoxed",
+    "short_name": "TuneBoxed",
   "icons": [
     {
       "src": "favicon.ico",

@@ -5,9 +5,10 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#FF8A3D" />
+    <meta name="robots" content="index, follow" />
     <meta
       name="description"
-      content="Common questions about running a TuneBoxed song battle: Twitch chat voting, joining from a browser, the OBS overlay, and how long a bracket takes."
+      content="Answers about TuneBoxed song battles: joining from a browser, chat voting, putting the board on stream, and how long a bracket takes."
     />
     <!-- Flattened onto white, because iOS composites a transparent icon onto
          black and the mark's dark outlines vanish into it. -->
@@ -15,47 +16,131 @@
     <link rel="manifest" href="/manifest.json" />
 
     <!--
-      scripts/prerender.mjs rewrites the canonical, title, description and og
-      tags below for each route it emits, so the shapes here have to stay
-      predictable. Check that script before reformatting them.
+      scripts/prerender.mjs rewrites the canonical, title, description, og,
+      twitter and JSON-LD below for each route it emits, so the shapes here
+      have to stay predictable. Check that script before reformatting them.
     -->
     <link rel="canonical" href="https://tuneboxed.com/faq" />
     <meta property="og:site_name" content="TuneBoxed" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="FAQ | TuneBoxed" />
     <meta
       property="og:description"
-      content="Common questions about running a TuneBoxed song battle: Twitch chat voting, joining from a browser, the OBS overlay, and how long a bracket takes."
+      content="Answers about TuneBoxed song battles: joining from a browser, chat voting, putting the board on stream, and how long a bracket takes."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tuneboxed.com/faq" />
     <meta property="og:image" content="https://tuneboxed.com/logo512.png" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image:alt" content="TuneBoxed" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="FAQ | TuneBoxed" />
+    <meta
+      name="twitter:description"
+      content="Answers about TuneBoxed song battles: joining from a browser, chat voting, putting the board on stream, and how long a bracket takes."
+    />
+    <meta name="twitter:image" content="https://tuneboxed.com/logo512.png" />
+    <meta name="twitter:image:alt" content="TuneBoxed" />
 
     <title>FAQ | TuneBoxed</title>
 
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "@id": "https://tuneboxed.com/#organization",
-            "name": "TuneBoxed",
-            "url": "https://tuneboxed.com/",
-            "logo": "https://tuneboxed.com/logo512.png"
-          },
-          {
-            "@type": "WebSite",
-            "@id": "https://tuneboxed.com/#website",
-            "name": "TuneBoxed",
-            "url": "https://tuneboxed.com/",
-            "publisher": { "@id": "https://tuneboxed.com/#organization" }
-          }
-        ]
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://tuneboxed.com/#organization",
+      "name": "TuneBoxed",
+      "url": "https://tuneboxed.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://tuneboxed.com/logo512.png",
+        "width": 512,
+        "height": 512
       }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://tuneboxed.com/#website",
+      "name": "TuneBoxed",
+      "alternateName": [
+        "Tune Boxed",
+        "TuneBoxed Battle"
+      ],
+      "url": "https://tuneboxed.com/",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "hasPart": [
+        {
+          "@type": "WebPage",
+          "name": "Play",
+          "url": "https://tuneboxed.com/battle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Game rules",
+          "url": "https://tuneboxed.com/rules"
+        },
+        {
+          "@type": "WebPage",
+          "name": "FAQ",
+          "url": "https://tuneboxed.com/faq"
+        },
+        {
+          "@type": "WebPage",
+          "name": "For streamers",
+          "url": "https://tuneboxed.com/streamers"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Winners",
+          "url": "https://tuneboxed.com/winners"
+        },
+        {
+          "@type": "WebPage",
+          "name": "About",
+          "url": "https://tuneboxed.com/about"
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://tuneboxed.com/faq#webpage",
+      "url": "https://tuneboxed.com/faq",
+      "name": "FAQ | TuneBoxed",
+      "description": "Answers about TuneBoxed song battles: joining from a browser, chat voting, putting the board on stream, and how long a bracket takes.",
+      "isPartOf": {
+        "@id": "https://tuneboxed.com/#website"
+      },
+      "about": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "inLanguage": "en-US"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "TuneBoxed",
+          "item": "https://tuneboxed.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "FAQ",
+          "item": "https://tuneboxed.com/faq"
+        }
+      ]
+    }
+  ]
+}
     </script>
-    <script type="module" crossorigin src="/assets/index-D6vkj5mG.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CFywHdCD.css">
+    <script type="module" crossorigin src="/assets/index-DwYOYi8n.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CzwnD4FO.css">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
