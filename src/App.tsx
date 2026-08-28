@@ -171,7 +171,7 @@ function MainWebsite() {
             </li>
             <li>
               <span className="home-step-num">3</span>
-              Two tracks go head to head, the room votes, the bracket advances
+              Party plays to three rounds. Bracket goes head to head until one is left.
             </li>
           </motion.ul>
 

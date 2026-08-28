@@ -34,6 +34,7 @@ import '../battle/ui/room.css';
 
 const PICK_SECONDS = 90;
 const CLIP_SECONDS = 30;
+const PARTY_ROUNDS = 3;
 
 export default function BattleRoom() {
   const { code = '' } = useParams<{ code: string }>();
@@ -66,6 +67,7 @@ export default function BattleRoom() {
 
   const { room, players, matches, loading, refresh } = useBattleRoom(roomId, stored?.token ?? null);
   const { round, submissions, votes } = useBattleRound(room);
+  const [crowns, setCrowns] = useState<Record<string, number>>({});
 
   const me = players.find((p) => p.id === stored?.playerId) ?? null;
   const isHost = Boolean(room && me && room.host_player_id === me.id);
@@ -78,7 +80,7 @@ export default function BattleRoom() {
 
   // Only the host reads chat. Every viewer opening an IRC connection would
   // multiply the load for no gain, and the tally is host-only to write anyway.
-  const chatChannel = isHost ? room?.host_twitch_login ?? null : null;
+  const chatChannel = isHost && room?.format === 'bracket' ? room.host_twitch_login ?? null : null;
   const chat = useChatVotes({
     enabled: isHost,
     channel: chatChannel,
@@ -147,6 +149,41 @@ export default function BattleRoom() {
     [token, refresh]
   );
 
+  /** Opens the next party round: everyone picks, a rotating judge crowns. */
+  const startPartyRound = useCallback(
+    async (roomRoundNumber: number) => {
+      const judgeId = await battle.pickNextJudge(token!);
+      await battle.startRound(token!, {
+        roundNumber: roomRoundNumber + 1,
+        genre: nextGenre(usedGenres.current),
+        pickSeconds: PICK_SECONDS,
+        judgePlayerId: judgeId,
+      });
+      await refresh();
+    },
+    [token, refresh]
+  );
+
+  useEffect(() => {
+    if (!roomId || room?.format === 'bracket') return;
+    let live = true;
+    void Promise.all([battle.getRounds(roomId), battle.getRoomSubmissions(roomId)]).then(
+      ([rounds, subs]) => {
+        const byId = new Map(subs.map((s) => [s.id, s]));
+        const next: Record<string, number> = {};
+        for (const r of rounds) {
+          const sub = r.winner_submission_id ? byId.get(r.winner_submission_id) : undefined;
+          if (!sub) continue;
+          next[sub.player_id] = (next[sub.player_id] ?? 0) + 1;
+        }
+        if (live) setCrowns(next);
+      }
+    );
+    return () => {
+      live = false;
+    };
+  }, [roomId, room?.format, round?.phase, round?.winner_submission_id]);
+
   if (lookupError) {
     return (
       <RoomShell>
@@ -176,16 +213,24 @@ export default function BattleRoom() {
   const nameOf = (id: string | null) =>
     players.find((p) => p.id === id)?.display_name ?? 'Someone';
 
+  const isBracket = room.format === 'bracket';
   const currentMatch = matches.find((m) => m.id === room.current_match_id) ?? null;
 
   // The bracket is decided when the match that feeds nowhere has a winner.
-  const championId =
+  const bracketChampionId =
     matches.find((m) => m.next_match_id === null && m.winner_player_id)?.winner_player_id ?? null;
+  const partyChampionId =
+    !isBracket && room.status === 'complete' ? crownLeader(crowns, players) : null;
+  const championId = isBracket ? bracketChampionId : partyChampionId;
 
   // In a bracket only the two competitors pick a song; everybody else is an
   // audience with a vote.
   const isCompetitor = (p: BattlePlayer | null) =>
     Boolean(p && currentMatch && (p.id === currentMatch.player_a_id || p.id === currentMatch.player_b_id));
+
+  const judgeId = round?.judge_player_id ?? null;
+  const isJudge = Boolean(me && judgeId === me.id);
+  const canPick = isBracket ? isCompetitor(me) : Boolean(me && me.id !== judgeId);
 
   const myVote = votes.find((v) => v.voter_player_id === me?.id) ?? null;
   const mySubmission = submissions.find((s) => s.player_id === me?.id) ?? null;
@@ -204,7 +249,7 @@ export default function BattleRoom() {
   // matchup, which is exactly what a two player bracket looks like. The AI
   // judge exists for that case rather than leaving the round wedged.
   const needsAiJudge =
-    !chatTally && connected.length > 0 && connected.every((p) => isCompetitor(p));
+    isBracket && !chatTally && connected.length > 0 && connected.every((p) => isCompetitor(p));
 
   const submissionOf = (playerId: string | null) =>
     playerId ? submissions.find((s) => s.player_id === playerId) ?? null : null;
@@ -253,9 +298,13 @@ export default function BattleRoom() {
     return winnerId === currentMatch.player_a_id ? 'left' : 'right';
   };
 
-  const stageLabel = currentMatch
-    ? roundTitle(currentMatch.bracket_round, matches)
-    : `${connected.length} in the room`;
+  const stageLabel = isBracket
+    ? currentMatch
+      ? roundTitle(currentMatch.bracket_round, matches)
+      : `${connected.length} in the room`
+    : round
+      ? `Round ${round.round_number} of ${PARTY_ROUNDS}`
+      : `${connected.length} in the room`;
 
   return (
     <RoomShell>
@@ -273,7 +322,9 @@ export default function BattleRoom() {
           </span>
           <SectionLabel tone="orange">Champion</SectionLabel>
           <h2 className="bt-champion__name">{nameOf(championId)}</h2>
-          <p className="bt-sub">Winner of the whole bracket.</p>
+          <p className="bt-sub">
+            {isBracket ? 'Winner of the whole bracket.' : `Most crowns after ${PARTY_ROUNDS} rounds.`}
+          </p>
 
           {isHost && (
             <VividButton
@@ -298,8 +349,9 @@ export default function BattleRoom() {
           <Card className="bt-lobby">
             <Gloves size={132} />
             <p className="bt-lobby__pitch">
-              Everyone picks a song. Two go head to head. The room votes and the bracket
-              advances until one is left.
+              {isBracket
+                ? 'Everyone picks a song. Two go head to head. The room votes and the bracket advances until one is left.'
+                : 'Everyone picks a song. They play together. A rotating judge crowns the winner. Best of three, most crowns takes it.'}
             </p>
           </Card>
 
@@ -327,20 +379,24 @@ export default function BattleRoom() {
                   disabled={busy}
                   onClick={() =>
                     void guard(async () => {
-                      await battle.generateBracket(token!);
-                      const fresh = await battle.getRoom(room.id);
-                      const seeded = await battle.getMatches(room.id);
-                      const first =
-                        seeded.find((m) => m.id === fresh?.current_match_id) ??
-                        seeded.find(
-                          (m) => m.status === 'pending' && m.player_a_id && m.player_b_id
-                        );
-                      if (!first) throw new Error('Could not build a bracket from this room.');
-                      await startMatchRound(first, fresh?.round_number ?? 0);
+                      if (isBracket) {
+                        await battle.generateBracket(token!);
+                        const fresh = await battle.getRoom(room.id);
+                        const seeded = await battle.getMatches(room.id);
+                        const first =
+                          seeded.find((m) => m.id === fresh?.current_match_id) ??
+                          seeded.find(
+                            (m) => m.status === 'pending' && m.player_a_id && m.player_b_id
+                          );
+                        if (!first) throw new Error('Could not build a bracket from this room.');
+                        await startMatchRound(first, fresh?.round_number ?? 0);
+                      } else {
+                        await startPartyRound(room.round_number);
+                      }
                     })
                   }
                 >
-                  Start the bracket
+                  {isBracket ? 'Start the bracket' : 'Start the battle'}
                 </VividButton>
               )
             ) : (
@@ -350,12 +406,12 @@ export default function BattleRoom() {
             )}
           </Card>
 
-          {isHost && <StreamCard code={room.code} />}
+          {isHost && isBracket && <StreamCard code={room.code} />}
         </>
       )}
 
       {/* ---------- Matchup, shown through every phase of a match ---------- */}
-      {currentMatch && matchupSides && phase && (
+      {isBracket && currentMatch && matchupSides && phase && (
         <MatchupCard
           title={roundTitle(currentMatch.bracket_round, matches)}
           left={matchupSides.left}
@@ -375,7 +431,7 @@ export default function BattleRoom() {
           <div className="bt-tiles">
             <StatTile
               icon={<UsersIcon size={17} />}
-              value={`${submissions.length}/${expectedPickers(currentMatch, connected)}`}
+              value={`${submissions.length}/${expectedPickers(currentMatch, connected, judgeId)}`}
               label="Locked in"
             />
             <CountdownRing
@@ -384,12 +440,16 @@ export default function BattleRoom() {
             />
             <StatTile
               icon={<TrophyIcon size={17} />}
-              value={roundTitle(currentMatch?.bracket_round ?? 1, matches).split(' ')[0]}
-              label="Stage"
+              value={
+                isBracket
+                  ? roundTitle(currentMatch?.bracket_round ?? 1, matches).split(' ')[0]
+                  : `${round.round_number}/${PARTY_ROUNDS}`
+              }
+              label={isBracket ? 'Stage' : 'Round'}
             />
           </div>
 
-          {isCompetitor(me) ? (
+          {canPick ? (
             mySubmission ? (
               <Card tone="green" className="bt-locked">
                 <span className="bt-locked__icon">
@@ -418,9 +478,11 @@ export default function BattleRoom() {
             )
           ) : (
             <p className="bt-sub bt-sub--center" style={{ margin: 0 }}>
-              {matchupSides
-                ? `${matchupSides.left.name} and ${matchupSides.right.name} are picking. Get ready to vote.`
-                : 'Waiting for the next matchup.'}
+              {isJudge
+                ? "You're the judge this round. Sit back while everyone picks, then you crown the winner."
+                : matchupSides
+                  ? `${matchupSides.left.name} and ${matchupSides.right.name} are picking. Get ready to vote.`
+                  : 'Waiting for the next round.'}
             </p>
           )}
 
@@ -429,7 +491,7 @@ export default function BattleRoom() {
               // Once everyone is in, this is the only thing left to do, so it
               // stops being a shortcut and becomes the call to action.
               variant={
-                submissions.length >= expectedPickers(currentMatch, connected)
+                submissions.length >= expectedPickers(currentMatch, connected, judgeId)
                   ? 'filled'
                   : 'outline'
               }
@@ -531,6 +593,10 @@ export default function BattleRoom() {
                 ) : (
                   'Chat is tied. Revealing lets the AI judge call it.'
                 )
+              ) : !isBracket ? (
+                isJudge
+                  ? 'You are the judge. Pick the song you liked more.'
+                  : `Waiting for ${nameOf(judgeId)} to crown a winner.`
               ) : needsAiJudge ? (
                 'Nobody in the room can vote on their own song, so the AI judge calls it.'
               ) : voteLeader ? (
@@ -555,7 +621,14 @@ export default function BattleRoom() {
                 <li key={s.id}>
                   <button
                     className={`bt-choice${chosen ? ' bt-choice--chosen' : ''}`}
-                    disabled={busy || mine || Boolean(myVote) || Boolean(chatTally) || needsAiJudge}
+                    disabled={
+                      busy ||
+                      mine ||
+                      Boolean(myVote) ||
+                      Boolean(chatTally) ||
+                      needsAiJudge ||
+                      (!isBracket && !isJudge)
+                    }
                     onClick={() => void guard(() => battle.castVote(token!, round.id, s.id))}
                   >
                     <span className="bt-choice__num">{i + 1}</span>
@@ -645,14 +718,25 @@ export default function BattleRoom() {
             );
           })()}
 
-          {isHost && (
+          {isHost && room.status !== 'complete' && (
             <VividButton
               disabled={busy}
               onClick={() =>
                 void guard(async () => {
                   const winning = submissions.find((s) => s.id === round.winner_submission_id);
-                  if (!currentMatch || !winning) return;
+                  if (!winning) return;
 
+                  if (!isBracket) {
+                    if (room.round_number >= PARTY_ROUNDS) {
+                      await battle.setRoomStatus(token!, 'complete');
+                      await refresh();
+                    } else {
+                      await startPartyRound(room.round_number);
+                    }
+                    return;
+                  }
+
+                  if (!currentMatch) return;
                   const nextId = await battle.reportMatchWinner(
                     token!,
                     currentMatch.id,
@@ -669,13 +753,19 @@ export default function BattleRoom() {
                 })
               }
             >
-              {currentMatch?.next_match_id ? 'Next matchup' : 'Crown the champion'}
+              {isBracket
+                ? currentMatch?.next_match_id
+                  ? 'Next matchup'
+                  : 'Crown the champion'
+                : room.round_number >= PARTY_ROUNDS
+                  ? 'See who won'
+                  : 'Next round'}
             </VividButton>
           )}
         </Card>
       )}
 
-      {matches.length > 0 && (
+      {isBracket && matches.length > 0 && (
         <BracketTree
           matches={matches}
           players={players}
@@ -683,7 +773,7 @@ export default function BattleRoom() {
         />
       )}
 
-      {round && isHost && <StreamCard code={room.code} />}
+      {round && isHost && isBracket && <StreamCard code={room.code} />}
 
       <Card>
         {/* The lobby already gives the roster a card of its own, with empty
@@ -696,15 +786,22 @@ export default function BattleRoom() {
               <Roster
                 players={players}
                 hostId={room.host_player_id}
+                judgeId={judgeId}
                 meId={me?.id ?? null}
                 statusOf={
                   phase === 'picking'
                     ? (p) =>
-                        !isCompetitor(p)
-                          ? null
-                          : submissions.some((s) => s.player_id === p.id)
-                            ? 'locked'
-                            : 'picking'
+                        isBracket
+                          ? !isCompetitor(p)
+                            ? null
+                            : submissions.some((s) => s.player_id === p.id)
+                              ? 'locked'
+                              : 'picking'
+                          : p.id === judgeId
+                            ? null
+                            : submissions.some((s) => s.player_id === p.id)
+                              ? 'locked'
+                              : 'picking'
                     : undefined
                 }
               />
@@ -737,9 +834,26 @@ export default function BattleRoom() {
 // ---------------------------------------------------------------
 
 /** How many people are expected to submit this round. */
-function expectedPickers(match: BattleMatch | null, connected: BattlePlayer[]): number {
-  if (!match) return connected.length;
-  return [match.player_a_id, match.player_b_id].filter(Boolean).length;
+function expectedPickers(
+  match: BattleMatch | null,
+  connected: BattlePlayer[],
+  judgeId: string | null
+): number {
+  if (match) return [match.player_a_id, match.player_b_id].filter(Boolean).length;
+  return connected.filter((p) => p.id !== judgeId).length;
+}
+
+function crownLeader(crowns: Record<string, number>, players: BattlePlayer[]): string | null {
+  let best: string | null = null;
+  let n = 0;
+  for (const p of players) {
+    const c = crowns[p.id] ?? 0;
+    if (c > n) {
+      n = c;
+      best = p.id;
+    }
+  }
+  return n > 0 ? best : null;
 }
 
 /**

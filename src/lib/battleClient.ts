@@ -217,6 +217,25 @@ export async function getRound(roomId: string, roundNumber: number): Promise<Bat
   return data;
 }
 
+export async function getRounds(roomId: string): Promise<BattleRound[]> {
+  const { data, error } = await supabase
+    .from('battle_rounds')
+    .select('*')
+    .eq('room_id', roomId)
+    .order('round_number', { ascending: true });
+  if (error) throw toBattleError(error.message);
+  return data ?? [];
+}
+
+export async function getRoomSubmissions(roomId: string): Promise<BattleSubmission[]> {
+  const { data, error } = await supabase
+    .from('battle_submissions')
+    .select('*')
+    .eq('room_id', roomId);
+  if (error) throw toBattleError(error.message);
+  return data ?? [];
+}
+
 export async function getSubmissions(roundId: string): Promise<BattleSubmission[]> {
   const { data, error } = await supabase
     .from('battle_submissions')

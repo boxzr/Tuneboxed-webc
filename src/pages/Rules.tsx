@@ -2,33 +2,48 @@ import { Link } from 'react-router-dom';
 import PageLayout from './PageLayout';
 
 /**
- * How a web battle works.
- *
- * Deliberately describes the browser game only. The iOS app also has a
- * best-of-three rounds format and a rotating judge; neither is reachable from
- * the web, where every room is a bracket and chat decides, so documenting them
- * here would just be wrong for anyone reading this page.
+ * How a web battle works. Two formats share a room code and synced playback;
+ * they differ in how a winner is decided.
  */
-const STEPS = [
+const PARTY_STEPS = [
   {
-    title: 'Start a room',
-    body: 'You get a five-letter code. Share it however suits you: read it out on stream, paste it in a group chat, or put it up on the TV. Everyone joins in their browser. No app, no account, no sign-up.',
+    title: 'Start a Party room',
+    body: 'You get a five-letter code. Share it in a group chat or read it out. Everyone joins in their browser. No app, no account.',
   },
   {
     title: 'Everyone picks a song',
-    body: 'A bracket holds up to 16 players. Each one searches for a track and locks it in, with 90 seconds on the clock.',
+    body: 'Three or more players. Each round, everyone except the judge locks in a track, with 90 seconds on the clock.',
+  },
+  {
+    title: 'The songs play together',
+    body: 'Each pick plays for 30 seconds, in sync for everyone in the room at the same moment.',
+  },
+  {
+    title: 'A rotating judge crowns a winner',
+    body: 'One player sits out the pick and chooses the song they liked more. The judge role moves each round.',
+  },
+  {
+    title: 'Best of three',
+    body: 'Three rounds, then the player with the most crowns wins.',
+  },
+];
+
+const BRACKET_STEPS = [
+  {
+    title: 'Start a Bracket room',
+    body: 'Up to 16 players. Share the code however suits you, including on a stream.',
   },
   {
     title: 'Two songs go head to head',
-    body: 'Each matchup plays both tracks for 30 seconds, in sync for everyone in the room at the same moment.',
+    body: 'Each matchup plays both tracks for 30 seconds, in sync for everyone in the room.',
   },
   {
     title: 'The room votes',
-    body: 'Everyone in the room picks the track they liked more. If the host is on Twitch, chat can vote too by typing 1 or 2. One vote each either way, and changing your mind moves your vote rather than adding another.',
+    body: 'Everyone in the room picks the track they liked more, except the two in the matchup. If the host is on Twitch, chat can vote too by typing 1 or 2.',
   },
   {
     title: 'The winner advances',
-    body: 'The song with more votes moves up the bracket. Repeat until one track is left standing, and that one is the champion.',
+    body: 'The song with more votes moves up the bracket. A tie, or no votes at all, is a coin flip. Repeat until one track is left standing.',
   },
 ];
 
@@ -36,13 +51,31 @@ export default function Rules() {
   return (
     <PageLayout
       title="Game rules | TuneBoxed"
-      description="How a TuneBoxed song battle works: a bracket of up to 16 players, songs played in sync, and the room voting for the winner."
+      description="How a TuneBoxed song battle works: Party is best of three with a rotating judge, Bracket is a head-to-head tournament of up to 16."
       heading="Game rules"
-      intro="A song battle is a bracket. Two tracks play back to back, the room picks the better one, and the winner moves on."
+      intro="Two ways to play in the browser. Same songs, same room code, different path to a winner."
     >
       <section className="page-section">
+        <h2>Party</h2>
+        <p>The same Battle Mode as the iOS app. Built for a group around a table or on a call.</p>
         <ol className="page-steps">
-          {STEPS.map((s, i) => (
+          {PARTY_STEPS.map((s, i) => (
+            <li key={s.title}>
+              <span className="page-step-num">{i + 1}</span>
+              <div className="page-step-body">
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="page-section">
+        <h2>Bracket</h2>
+        <p>Head to head until one song is left. The format a stream can put on screen.</p>
+        <ol className="page-steps">
+          {BRACKET_STEPS.map((s, i) => (
             <li key={s.title}>
               <span className="page-step-num">{i + 1}</span>
               <div className="page-step-body">

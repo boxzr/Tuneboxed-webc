@@ -57,7 +57,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Is this the same as the iOS app?',
-    a: 'It shares the same servers, but the web game is bracket only and built for streaming. The iOS app also has a daily music feed, a best-of-three rounds format and a rotating judge.',
+    a: 'It shares the same servers. Party on the web is the same Battle Mode as the iOS app: best of three, rotating judge. Bracket is the streamer format. The iOS app also has a daily music feed the website does not.',
   },
 ];
 

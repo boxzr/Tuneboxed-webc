@@ -32,8 +32,8 @@ export default function About() {
         <p>
           TuneBoxed started on iPhone and still lives there. Every day brings a
           new genre, you post the song that fits it best, and the community
-          votes. There are battles too, with formats the web does not have, plus
-          ranks and matching with people who post the same things you do.
+          votes. There are battles too, including Bar for Bar, plus ranks and
+          matching with people who post the same things you do.
         </p>
         <p>
           <a

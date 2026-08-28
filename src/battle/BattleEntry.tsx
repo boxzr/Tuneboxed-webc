@@ -44,6 +44,7 @@ export default function BattleEntry({
    * front only ever blocked the person who does not have one yet.
    */
   const [mode, setMode] = useState<'host' | 'join'>(invited ? 'join' : 'host');
+  const [playKind, setPlayKind] = useState<'party' | 'bracket'>('party');
   const codeRef = useRef<HTMLInputElement>(null);
 
   // Choosing to join is a request to type a code, so the cursor goes there
@@ -68,12 +69,10 @@ export default function BattleEntry({
         kind === 'create'
           ? await battle.createRoom({
               displayName: name.trim(),
-              // Web rooms are always brackets. Head to head means chat only
-              // ever picks between two songs, which is what makes voting by
-              // typing a number work.
-              format: 'bracket',
-              twitchLogin: identity?.login ?? null,
-              twitchAvatarUrl: identity?.avatarUrl ?? null,
+              format: playKind === 'bracket' ? 'bracket' : 'rounds',
+              votingMode: playKind === 'bracket' ? 'everyone' : 'judge',
+              twitchLogin: playKind === 'bracket' ? identity?.login ?? null : null,
+              twitchAvatarUrl: playKind === 'bracket' ? identity?.avatarUrl ?? null : null,
             })
           : await battle.joinRoom(code.trim(), name.trim());
       navigate(`/battle/${session.room.code}`);
@@ -109,7 +108,7 @@ export default function BattleEntry({
           <p className="battle-sub">
             {invited
               ? 'Pick a name the room will recognise and jump in. No app, no account.'
-              : 'Start a bracket for your room, or drop in with a code.'}
+              : 'Start a room for your group, or drop in with a code.'}
           </p>
         </>
       )}
@@ -127,6 +126,31 @@ export default function BattleEntry({
           onChange={(e) => setName(e.target.value)}
         />
       </div>
+
+      {mode === 'host' && (
+        <div className="battle-modes" role="radiogroup" aria-label="Game mode">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={playKind === 'party'}
+            className={`battle-mode${playKind === 'party' ? ' battle-mode--on' : ''}`}
+            onClick={() => setPlayKind('party')}
+          >
+            <strong>Party</strong>
+            <span>3 or more players, a rotating judge, best of 3. Same as the iOS app.</span>
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={playKind === 'bracket'}
+            className={`battle-mode${playKind === 'bracket' ? ' battle-mode--on' : ''}`}
+            onClick={() => setPlayKind('bracket')}
+          >
+            <strong>Bracket</strong>
+            <span>Up to 16, head to head. Built for a stream, with optional Twitch chat voting.</span>
+          </button>
+        </div>
+      )}
 
       {mode === 'join' && (
         <div className="battle-field">
@@ -184,6 +208,8 @@ export default function BattleEntry({
           it, and asking them to authorise an app to join a game would cost
           more of them than it gains. */}
       {!invited &&
+        playKind === 'bracket' &&
+        mode === 'host' &&
         (identity ? (
           <div className="battle-twitch battle-twitch--on">
             {identity.avatarUrl && (

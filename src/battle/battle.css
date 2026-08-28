@@ -213,6 +213,50 @@
   margin-top: 16px;
 }
 
+.battle-modes {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 4px;
+}
+
+.battle-mode {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  font-family: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 2px solid var(--hairline);
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-control) var(--ease-standard),
+    background-color var(--dur-control) var(--ease-standard);
+}
+
+.battle-mode:hover {
+  border-color: rgba(255, 122, 0, 0.45);
+}
+
+.battle-mode--on {
+  border-color: var(--aura-orange);
+  background: rgba(255, 122, 0, 0.06);
+}
+
+.battle-mode strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.battle-mode span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  opacity: 0.68;
+}
+
 .battle-btn {
   width: 100%;
   margin-top: 20px;
