@@ -7,6 +7,7 @@ import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useChatVotes } from '../battle/useChatVotes';
 import { secondsUntil, syncClock } from '../battle/clock';
 import { nextGenre } from '../battle/genres';
+import { uniqueLeader } from '../battle/voteLeader';
 import SongPicker from '../battle/SongPicker';
 import EmbedPlayer from '../battle/EmbedPlayer';
 import RoomShell, { RoomHeader } from '../battle/RoomShell';
@@ -228,6 +229,15 @@ export default function BattleRoom() {
     if (chatTally) return chatTally[submission.id] ?? 0;
     return votes.filter((v) => v.submission_id === submission.id).length;
   }
+
+  const ballotCounts: Record<string, number> = {};
+  for (const s of submissions) {
+    ballotCounts[s.id] = chatTally
+      ? chatTally[s.id] ?? 0
+      : votes.filter((v) => v.submission_id === s.id).length;
+  }
+  const voteLeader = uniqueLeader(ballotCounts);
+  const ballotTotal = Object.values(ballotCounts).reduce((a, b) => a + b, 0);
 
   /**
    * Which fighter to crown.
@@ -512,13 +522,23 @@ export default function BattleRoom() {
             <SectionLabel tone="orange">Crown a winner</SectionLabel>
             <p className="bt-sub bt-sub--center">
               {chatTally ? (
-                <>
-                  Twitch chat decides. Viewers type <strong>1</strong> or <strong>2</strong>.
-                </>
+                voteLeader ? (
+                  <>
+                    Twitch chat decides. Viewers type <strong>1</strong> or <strong>2</strong>.
+                  </>
+                ) : ballotTotal === 0 ? (
+                  'No chat votes yet. Revealing lets the AI judge call it.'
+                ) : (
+                  'Chat is tied. Revealing lets the AI judge call it.'
+                )
               ) : needsAiJudge ? (
                 'Nobody in the room can vote on their own song, so the AI judge calls it.'
-              ) : (
+              ) : voteLeader ? (
                 'Everyone votes, except the two in the matchup.'
+              ) : ballotTotal === 0 ? (
+                'No votes yet. Revealing lets the AI judge call it.'
+              ) : (
+                "It's a tie. Revealing lets the AI judge call it."
               )}
             </p>
           </div>
@@ -573,23 +593,27 @@ export default function BattleRoom() {
           {isHost && (
             <VividButton
               icon={<CrownIcon size={18} />}
-              disabled={
-                busy || (!needsAiJudge && (chatChannel ? chat.leader === null : votes.length === 0))
-              }
+              disabled={busy || submissions.length === 0}
               onClick={() =>
                 void guard(async () => {
-                  // Chat decides outright when the room is tied to a channel,
-                  // so the in-room tally is not consulted at all.
-                  const winner = needsAiJudge
-                    ? await battle.pickAiRoundWinner(token!, round.id)
-                    : chatChannel
-                      ? chat.leader
-                      : await battle.tallyVotes(round.id);
-                  if (winner) await battle.setRoundWinner(token!, round.id, winner);
+                  // A unique lead from chat or the room stands. Anything else
+                  // (nobody voted, or a tie) is a coin flip, same as a two
+                  // player bracket where nobody is allowed to vote at all.
+                  if (voteLeader) {
+                    await battle.setRoundWinner(token!, round.id, voteLeader);
+                  } else {
+                    try {
+                      await battle.pickAiRoundWinner(token!, round.id);
+                    } catch {
+                      const pick =
+                        submissions[Math.floor(Math.random() * submissions.length)];
+                      if (pick) await battle.setRoundWinner(token!, round.id, pick.id);
+                    }
+                  }
                 })
               }
             >
-              Reveal the winner
+              {voteLeader || needsAiJudge ? 'Reveal the winner' : 'Let the AI judge call it'}
             </VividButton>
           )}
         </Card>

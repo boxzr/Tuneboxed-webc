@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as battle from '../lib/battleClient';
 import { connectToChat, parseVote } from './twitchChat';
+import { uniqueLeader } from './voteLeader';
 import type { BattleRound, BattleSubmission } from '../types/battle';
 
 /** How often the accumulated tally is pushed up. */
@@ -86,18 +87,8 @@ export function useChatVotes({
     };
   }, [active, channel, idsKey, roundId, token]);
 
-  /** Submission id with the most chat votes, or null if nobody voted. */
-  const leader = (() => {
-    let best: string | null = null;
-    let bestCount = 0;
-    for (const [id, n] of Object.entries(counts)) {
-      if (n > bestCount) {
-        best = id;
-        bestCount = n;
-      }
-    }
-    return bestCount > 0 ? best : null;
-  })();
+  /** Submission id with a strict lead, or null if chat has not decided. */
+  const leader = uniqueLeader(counts);
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
