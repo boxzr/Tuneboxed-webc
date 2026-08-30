@@ -38,18 +38,20 @@ export default function Streamers() {
               <h3>Put the board on stream</h3>
               <p>
                 Every room has a board at its own address, built to be the thing
-                your audience looks at: matchup, timer, songs and live vote
-                counts, and nothing they should not see. Your own tab keeps the
-                controls, so the board never shows what you are about to pick.
+                your audience looks at: matchup, timer, the vibe, songs and live
+                vote counts. Open it in another tab and run the battle from there
+                — reveal songs and advance rounds without clicking back to the
+                room.
               </p>
               <p>
-                No OBS? Open the board in a second tab or window and share that
-                as your stream. This works on every platform and needs nothing
-                installed.
+                No OBS? Share that board tab as your stream. Your buttons fade
+                when you stop moving, so they stay off camera. This works on
+                every platform and needs nothing installed.
               </p>
               <p>
                 Have OBS, Streamlabs, or anything with a Browser Source? Paste
-                the same URL in and set it to 1920 by 1080. It is a full scene
+                the same URL in and set it to 1920 by 1080. A Browser Source has
+                no login, so it cannot show your buttons. It is a full scene
                 rather than a transparent strip, so it does not need anything
                 behind it.
               </p>

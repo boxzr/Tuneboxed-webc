@@ -1,18 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
 import { useBattleRoom } from '../battle/useBattleRoom';
 import { useBattleRound } from '../battle/useBattleRound';
+import { useRoundAutopilot } from '../battle/useRoundAutopilot';
 import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useChatVotes } from '../battle/useChatVotes';
-import { secondsSince, secondsUntil, syncClock } from '../battle/clock';
-import { nextGenre } from '../battle/genres';
+import { useUsedGenres } from '../battle/useUsedGenres';
+import { secondsUntil, syncClock } from '../battle/clock';
+import { CLIP_SECONDS, PARTY_ROUNDS, PICK_SECONDS } from '../battle/rules';
+import { type HostContext, nextHostAction } from '../battle/hostActions';
 import { uniqueLeader } from '../battle/voteLeader';
 import SongPicker from '../battle/SongPicker';
 import EmbedPlayer from '../battle/EmbedPlayer';
 import RoomShell, { RoomHeader } from '../battle/RoomShell';
 import StreamCard from '../battle/StreamCard';
 import { GameSettingsButton, GameSettingsPanel, resolvedVoting, rulesSummary } from '../battle/GameSettings';
+import ThemePicker from '../battle/ThemePicker';
+import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
 import BracketTree from '../battle/ui/BracketTree';
 import MatchupCard from '../battle/ui/MatchupCard';
 import NowPlaying from '../battle/ui/NowPlaying';
@@ -32,10 +37,6 @@ import type { BattleMatch, BattlePlayer, BattleSubmission } from '../types/battl
 import '../battle/battle.css';
 import '../battle/ui/ui.css';
 import '../battle/ui/room.css';
-
-const PICK_SECONDS = 45;
-const CLIP_SECONDS = 30;
-const PARTY_ROUNDS = 3;
 
 export default function BattleRoom() {
   const { code = '' } = useParams<{ code: string }>();
@@ -82,7 +83,7 @@ export default function BattleRoom() {
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
   const playback = useSyncedPlayback(round, submissions, phase === 'playing' && hearAudio, videoEl);
   const [embedBlocked, setEmbedBlocked] = useState(false);
-  const tick = useSecondTicker(phase === 'picking' || phase === 'judging');
+  useSecondTicker(phase === 'picking' || phase === 'judging');
 
   // Only the host reads chat. Every viewer opening an IRC connection would
   // multiply the load for no gain, and the tally is host-only to write anyway.
@@ -95,86 +96,19 @@ export default function BattleRoom() {
     token,
   });
 
-  // Prompts already used this room, so a bracket does not ask the same
-  // question twice. Chat notices immediately when it does.
-  const usedGenres = useRef<string[]>([]);
-  useEffect(() => {
-    const genre = round?.genre;
-    if (genre && !usedGenres.current.includes(genre)) usedGenres.current.push(genre);
-  }, [round?.genre]);
+  const usedGenres = useUsedGenres(roomId, round?.id ?? null);
 
   useEffect(() => {
     if (!loading && roomId && !stored) navigate(`/join/${code.toUpperCase()}`, { replace: true });
   }, [loading, roomId, stored, code, navigate]);
 
-  /*
-   * Close the playing phase once the last clip has run out.
-   *
-   * Nothing else does this. The songs would finish, the room would sit on a
-   * silent now-playing card, and the only way out would be for the host to
-   * reload. The host drives it because it is the only client allowed to move
-   * the phase, and the ref makes sure a room that re-renders during the call
-   * does not fire it twice.
-   */
-  const advancedRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!isHost || !token || phase !== 'playing' || !playback.finished) return;
-    const roundId = round?.id;
-    if (!roundId || advancedRef.current === roundId) return;
-    advancedRef.current = roundId;
-    void battle.advancePhase(token, roundId, 'judging', 60).catch(() => {
-      // Let the next tick retry rather than stranding the room.
-      advancedRef.current = null;
-    });
-  }, [isHost, token, phase, playback.finished, round?.id]);
-
-  /*
-   * Close the picking phase the moment the clock runs out.
-   *
-   * Whoever got their song in wins a round nobody else entered, which is the
-   * point of a deadline: turning up beats not turning up. Two or more picks
-   * and the songs simply start. Nobody at all leaves the round open, and the
-   * host is offered more time rather than a dead end.
-   *
-   * The host acts first and everyone else backs them up a few seconds later,
-   * so a host on a sleeping tab cannot strand the room. The server ignores
-   * whichever call arrives second.
-   */
-  const closedRef = useRef<string | null>(null);
-  const [emptyKey, setEmptyKey] = useState<string | null>(null);
-  const deadlineKey = round ? `${round.id}|${round.phase_deadline_at}` : null;
-  useEffect(() => {
-    if (!token || phase !== 'picking' || !round?.phase_deadline_at || !deadlineKey) return;
-    if (secondsSince(round.phase_deadline_at) < (isHost ? 0 : 3)) return;
-    // Keyed on the deadline as well as the round, so extending the clock
-    // arms this again instead of leaving it spent.
-    if (closedRef.current === deadlineKey) return;
-
-    closedRef.current = deadlineKey;
-    const roundId = round.id;
-    const locked = submissions;
-
-    void battle
-      .closePicking(token, roundId, CLIP_SECONDS)
-      .then((outcome) => {
-        if (outcome === 'empty') setEmptyKey(deadlineKey);
-      })
-      .catch(() => {
-        // Reach the same end with the calls that have always been there,
-        // rather than leaving the room on a spent clock. Deliberately not
-        // rearmed: if this fails too, the host still has the buttons.
-        if (!isHost) return;
-        if (locked.length === 1) {
-          void battle.setRoundWinner(token, roundId, locked[0].id).catch(() => {});
-        } else if (locked.length >= 2) {
-          void battle
-            .startPlayback(token, roundId, locked.map((s) => s.id), CLIP_SECONDS)
-            .catch(() => {});
-        } else {
-          setEmptyKey(deadlineKey);
-        }
-      });
-  }, [token, isHost, phase, round?.id, round?.phase_deadline_at, deadlineKey, submissions, tick]);
+  const { empty: pickedNothing } = useRoundAutopilot({
+    token,
+    isHost,
+    round,
+    submissions,
+    playbackFinished: playback.finished,
+  });
 
   const guard = useCallback(async (fn: () => Promise<unknown>) => {
     setActionError(null);
@@ -187,37 +121,6 @@ export default function BattleRoom() {
       setBusy(false);
     }
   }, []);
-
-  /** Opens a fresh picking round scoped to one head-to-head matchup. */
-  const startMatchRound = useCallback(
-    async (match: BattleMatch, roomRoundNumber: number) => {
-      const created = await battle.startRound(token!, {
-        roundNumber: roomRoundNumber + 1,
-        genre: nextGenre(usedGenres.current),
-        pickSeconds: PICK_SECONDS,
-        matchId: match.id,
-      });
-      await battle.setMatchRound(token!, match.id, created.id, 'active');
-      await refresh();
-    },
-    [token, refresh]
-  );
-
-  /** Opens the next party round: everyone picks, a rotating judge crowns. */
-  const startPartyRound = useCallback(
-    async (roomRoundNumber: number) => {
-      const wantsJudge = room && room.format !== 'bracket' && resolvedVoting(room) === 'judge';
-      const judgeId = wantsJudge ? await battle.pickNextJudge(token!) : null;
-      await battle.startRound(token!, {
-        roundNumber: roomRoundNumber + 1,
-        genre: nextGenre(usedGenres.current),
-        pickSeconds: PICK_SECONDS,
-        judgePlayerId: judgeId,
-      });
-      await refresh();
-    },
-    [token, refresh, room]
-  );
 
   useEffect(() => {
     if (!roomId || room?.format === 'bracket') return;
@@ -269,6 +172,7 @@ export default function BattleRoom() {
     players.find((p) => p.id === id)?.display_name ?? 'Someone';
 
   const isBracket = room.format === 'bracket';
+  const classic = isClassic(room);
   const currentMatch = matches.find((m) => m.id === room.current_match_id) ?? null;
 
   // The bracket is decided when the match that feeds nowhere has a winner.
@@ -382,11 +286,35 @@ export default function BattleRoom() {
       await refresh();
     });
 
+  // The board at /tv runs these too, so a host on a stream can drive the game
+  // from whichever screen they are already looking at.
+  const hostCtx: HostContext | null = token
+    ? { token, room, matches, round, submissions, voteLeader, usedGenres, refresh }
+    : null;
+
+  const action =
+    isHost && hostCtx
+      ? nextHostAction(hostCtx, {
+          ready: classic ? classicReady(room, players) : connected.length >= room.min_players,
+          needsAiJudge,
+          empty: pickedNothing,
+          finished: championId !== null,
+        })
+      : null;
+
+  const runAction = () => action && void guard(action.run);
+
   return (
     <RoomShell>
       <RoomHeader
         code={room.code}
-        stage={round ? `${stageLabel} · ${round.genre}` : stageLabel}
+        stage={
+          round
+            ? `${stageLabel} · ${round.genre}`
+            : classic && room.theme
+              ? room.theme
+              : stageLabel
+        }
         compact={Boolean(round) || championId !== null}
       />
 
@@ -402,18 +330,9 @@ export default function BattleRoom() {
             {isBracket ? 'Winner of the whole bracket.' : `Most crowns after ${PARTY_ROUNDS} rounds.`}
           </p>
 
-          {isHost && (
-            <VividButton
-              disabled={busy}
-              onClick={() =>
-                void guard(async () => {
-                  await battle.resetForRematch(token!);
-                  usedGenres.current = [];
-                  await refresh();
-                })
-              }
-            >
-              Run it back
+          {action?.id === 'rematch' && (
+            <VividButton disabled={busy} onClick={runAction}>
+              {action.label}
             </VividButton>
           )}
         </Card>
@@ -425,59 +344,140 @@ export default function BattleRoom() {
           <Card className="bt-lobby">
             <Gloves size={132} />
             <p className="bt-lobby__pitch">
-              {isBracket
-                ? 'Everyone picks a song. Two go head to head. The room votes and the bracket advances until one is left.'
-                : votingMode === 'host'
-                  ? 'Everyone picks a song. They play together. You crown the winner. Best of three, most crowns takes it.'
-                  : votingMode === 'everyone'
-                    ? 'Everyone picks a song. They play together. The room votes. Best of three, most crowns takes it.'
-                    : 'Everyone picks a song. They play together. A rotating judge crowns the winner. Best of three, most crowns takes it.'}
+              {classic
+                ? 'One vibe. Lock a song in now — no clock.'
+                : isBracket
+                  ? 'Two songs go head to head. The room votes until one is left.'
+                  : votingMode === 'host'
+                    ? 'Everyone picks. You crown the winner. Best of three.'
+                    : votingMode === 'everyone'
+                      ? 'Everyone picks. The room votes. Best of three.'
+                      : 'Everyone picks. A judge crowns the winner. Best of three.'}
             </p>
+
+            {classic && (
+              <div className="bt-genre">
+                <PromptLabel>This game&rsquo;s vibe</PromptLabel>
+                {room.theme ? (
+                  <h2 className="bt-genre__title">{room.theme}</h2>
+                ) : (
+                  <p className="bt-sub bt-lobby__hint">
+                    {isHost
+                      ? 'Pick the vibe. It stays the same the whole game.'
+                      : `Waiting for ${nameOf(room.host_player_id)} to pick a vibe.`}
+                  </p>
+                )}
+                {isHost && (
+                  <ThemePicker
+                    value={room.theme ?? ''}
+                    onChange={(theme) => saveSettings({ theme })}
+                  />
+                )}
+              </div>
+            )}
+
+            {classic && token && me && room.theme && (
+              <div className="bt-lobby__pick">
+                {hasEntry(me) ? (
+                  <div className="bt-locked">
+                    <span className="bt-locked__icon">
+                      <CheckIcon size={22} />
+                    </span>
+                    <SectionLabel>Your pick is in</SectionLabel>
+                    <strong className="bt-locked__title">{me.entry_song_title}</strong>
+                    <span className="bt-sub">{me.entry_song_artist}</span>
+                  </div>
+                ) : (
+                  <SongPicker
+                    disabled={busy}
+                    onPick={(song) =>
+                      guard(async () => {
+                        await battle.submitEntry(token, {
+                          title: song.title,
+                          artist: song.artist,
+                          artworkUrl: song.artworkUrl,
+                          previewUrl: song.previewUrl,
+                          externalId: song.externalId,
+                          source: song.source,
+                        });
+                        await refresh();
+                      })
+                    }
+                  />
+                )}
+              </div>
+            )}
           </Card>
 
           <Card>
             <SectionLabel>
-              Players · {connected.length}/{room.max_players}
+              {classic
+                ? `Songs in · ${players.filter(hasEntry).length}/${room.max_players}`
+                : `Players · ${connected.length}/${room.max_players}`}
             </SectionLabel>
             <div style={{ marginTop: 12 }}>
               <Roster
                 players={players}
                 hostId={room.host_player_id}
                 meId={me?.id ?? null}
-                waitingSlots={Math.max(0, room.min_players - connected.length)}
+                waitingSlots={classic ? 0 : Math.max(0, room.min_players - connected.length)}
+                statusOf={
+                  classic
+                    ? (p) => (hasEntry(p) ? 'locked' : 'picking')
+                    : undefined
+                }
               />
             </div>
 
+            {classic && players.filter(hasEntry).length > 0 && (
+              <ul className="bt-entries">
+                {players.filter(hasEntry).map((p) => (
+                  <li key={p.id} className="bt-entry">
+                    {p.entry_artwork_url ? (
+                      <img src={p.entry_artwork_url} alt="" className="bt-entry__art" />
+                    ) : (
+                      <div className="bt-entry__art bt-entry__art--empty" />
+                    )}
+                    <span className="bt-entry__text">
+                      <strong>{p.entry_song_title}</strong>
+                      <span>
+                        {p.entry_song_artist} · {p.display_name}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             {isHost ? (
-              connected.length < room.min_players ? (
+              classic ? (
+                !room.theme ? (
+                  <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
+                    Pick a vibe so people know what to submit.
+                  </p>
+                ) : players.filter(hasEntry).length < room.min_players ? (
+                  <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
+                    Waiting for {room.min_players - players.filter(hasEntry).length} more{' '}
+                    {room.min_players - players.filter(hasEntry).length === 1 ? 'song' : 'songs'} to
+                    start.
+                  </p>
+                ) : (
+                  action?.id === 'start' && (
+                    <VividButton icon={<PlayIcon size={18} />} disabled={busy} onClick={runAction}>
+                      {action.label}
+                    </VividButton>
+                  )
+                )
+              ) : connected.length < room.min_players ? (
                 <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
                   Waiting for {room.min_players - connected.length} more to start.
                 </p>
               ) : (
-                <VividButton
-                  icon={<PlayIcon size={18} />}
-                  disabled={busy}
-                  onClick={() =>
-                    void guard(async () => {
-                      if (isBracket) {
-                        await battle.generateBracket(token!);
-                        const fresh = await battle.getRoom(room.id);
-                        const seeded = await battle.getMatches(room.id);
-                        const first =
-                          seeded.find((m) => m.id === fresh?.current_match_id) ??
-                          seeded.find(
-                            (m) => m.status === 'pending' && m.player_a_id && m.player_b_id
-                          );
-                        if (!first) throw new Error('Could not build a bracket from this room.');
-                        await startMatchRound(first, fresh?.round_number ?? 0);
-                      } else {
-                        await startPartyRound(room.round_number);
-                      }
-                    })
-                  }
-                >
-                  {isBracket ? 'Start the bracket' : 'Start the battle'}
-                </VividButton>
+                action?.id === 'start' && (
+                  <VividButton icon={<PlayIcon size={18} />} disabled={busy} onClick={runAction}>
+                    {action.label}
+                  </VividButton>
+                )
               )
             ) : (
               <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
@@ -509,7 +509,7 @@ export default function BattleRoom() {
       )}
 
       {/* ---------- Matchup, shown through every phase of a match ---------- */}
-      {isBracket && currentMatch && matchupSides && phase && (
+      {isBracket && !championId && currentMatch && matchupSides && phase && (
         <MatchupCard
           title={roundTitle(currentMatch.bracket_round, matches)}
           left={matchupSides.left}
@@ -519,10 +519,10 @@ export default function BattleRoom() {
       )}
 
       {/* ---------- Picking ---------- */}
-      {phase === 'picking' && round && (
+      {phase === 'picking' && !championId && round && (
         <Card>
           <div className="bt-genre">
-            <PromptLabel>This round&rsquo;s vibe</PromptLabel>
+            <PromptLabel>{classic ? 'This game\u2019s vibe' : 'This round\u2019s vibe'}</PromptLabel>
             <h2 className="bt-genre__title">{round.genre}</h2>
           </div>
 
@@ -532,10 +532,18 @@ export default function BattleRoom() {
               value={`${submissions.length}/${expectedPickers(currentMatch, connected, votingMode === 'judge' ? judgeId : null)}`}
               label="Locked in"
             />
-            <CountdownRing
-              seconds={secondsUntil(round.phase_deadline_at)}
-              progress={ringProgress(round.phase_deadline_at, PICK_SECONDS)}
-            />
+            {round.phase_deadline_at ? (
+              <CountdownRing
+                seconds={secondsUntil(round.phase_deadline_at)}
+                progress={ringProgress(round.phase_deadline_at, PICK_SECONDS)}
+              />
+            ) : (
+              <StatTile
+                icon={<PlayIcon size={17} />}
+                value="No clock"
+                label="Take your time"
+              />
+            )}
             <StatTile
               icon={<TrophyIcon size={17} />}
               value={
@@ -584,7 +592,7 @@ export default function BattleRoom() {
             </p>
           )}
 
-          {isHost && submissions.length >= 2 && (
+          {action?.id === 'play' && (
             <VividButton
               // Once everyone is in, this is the only thing left to do, so it
               // stops being a shortcut and becomes the call to action.
@@ -596,40 +604,22 @@ export default function BattleRoom() {
               tone="blue"
               icon={<PlayIcon size={16} />}
               disabled={busy}
-              onClick={() =>
-                void guard(() =>
-                  battle.startPlayback(
-                    token!,
-                    round.id,
-                    submissions.map((s) => s.id),
-                    CLIP_SECONDS
-                  )
-                )
-              }
+              onClick={runAction}
             >
-              Play them now
+              {action.label}
             </VividButton>
           )}
 
           {/* The clock ran out with an empty round. There is nothing to play
               and nobody to crown, so the only way forward is more time. */}
-          {emptyKey === deadlineKey && submissions.length === 0 && (
+          {pickedNothing && (
             <>
               <p className="bt-sub bt-sub--center" style={{ marginBottom: isHost ? 12 : 0 }}>
                 Time&rsquo;s up and nobody picked a song.
               </p>
-              {isHost && (
-                <VividButton
-                  tone="blue"
-                  disabled={busy}
-                  onClick={() =>
-                    void guard(async () => {
-                      await battle.advancePhase(token!, round.id, 'picking', PICK_SECONDS);
-                      setEmptyKey(null);
-                    })
-                  }
-                >
-                  Give them another {PICK_SECONDS} seconds
+              {action?.id === 'extend' && (
+                <VividButton tone="blue" disabled={busy} onClick={runAction}>
+                  {action.label}
                 </VividButton>
               )}
             </>
@@ -638,7 +628,7 @@ export default function BattleRoom() {
       )}
 
       {/* ---------- Playing ---------- */}
-      {phase === 'playing' && (
+      {phase === 'playing' && !championId && (
         <Card>
           <div className="bt-phase-head">
             <SectionLabel tone="blue">
@@ -717,7 +707,7 @@ export default function BattleRoom() {
       )}
 
       {/* ---------- Judging ---------- */}
-      {phase === 'judging' && round && (
+      {phase === 'judging' && !championId && round && (
         <Card>
           <div className="bt-phase-head">
             <SectionLabel tone="orange">Crown a winner</SectionLabel>
@@ -799,37 +789,20 @@ export default function BattleRoom() {
             </p>
           )}
 
-          {isHost && (
+          {action?.id === 'reveal' && (
             <VividButton
               icon={<CrownIcon size={18} />}
-              disabled={busy || submissions.length === 0}
-              onClick={() =>
-                void guard(async () => {
-                  // A unique lead from chat or the room stands. Anything else
-                  // (nobody voted, or a tie) is a coin flip, same as a two
-                  // player bracket where nobody is allowed to vote at all.
-                  if (voteLeader) {
-                    await battle.setRoundWinner(token!, round.id, voteLeader);
-                  } else {
-                    try {
-                      await battle.pickAiRoundWinner(token!, round.id);
-                    } catch {
-                      const pick =
-                        submissions[Math.floor(Math.random() * submissions.length)];
-                      if (pick) await battle.setRoundWinner(token!, round.id, pick.id);
-                    }
-                  }
-                })
-              }
+              disabled={busy || action.disabled}
+              onClick={runAction}
             >
-              {voteLeader || needsAiJudge ? 'Reveal the winner' : 'Let the AI judge call it'}
+              {action.label}
             </VividButton>
           )}
         </Card>
       )}
 
       {/* ---------- Revealed ---------- */}
-      {phase === 'revealed' && round && (
+      {phase === 'revealed' && !championId && round && (
         <Card tone="orange" className="bt-reveal">
           {(() => {
             const winning = submissions.find((s) => s.id === round.winner_submission_id);
@@ -854,48 +827,9 @@ export default function BattleRoom() {
             );
           })()}
 
-          {isHost && room.status !== 'complete' && (
-            <VividButton
-              disabled={busy}
-              onClick={() =>
-                void guard(async () => {
-                  const winning = submissions.find((s) => s.id === round.winner_submission_id);
-                  if (!winning) return;
-
-                  if (!isBracket) {
-                    if (room.round_number >= PARTY_ROUNDS) {
-                      await battle.setRoomStatus(token!, 'complete');
-                      await refresh();
-                    } else {
-                      await startPartyRound(room.round_number);
-                    }
-                    return;
-                  }
-
-                  if (!currentMatch) return;
-                  const nextId = await battle.reportMatchWinner(
-                    token!,
-                    currentMatch.id,
-                    winning.player_id
-                  );
-                  const seeded = await battle.getMatches(room.id);
-                  const next = nextId ? seeded.find((m) => m.id === nextId) : null;
-
-                  if (next) await startMatchRound(next, room.round_number);
-                  else {
-                    await battle.setRoomStatus(token!, 'complete');
-                    await refresh();
-                  }
-                })
-              }
-            >
-              {isBracket
-                ? currentMatch?.next_match_id
-                  ? 'Next matchup'
-                  : 'Crown the champion'
-                : room.round_number >= PARTY_ROUNDS
-                  ? 'See who won'
-                  : 'Next round'}
+          {action?.id === 'next' && (
+            <VividButton disabled={busy} onClick={runAction}>
+              {action.label}
             </VividButton>
           )}
         </Card>

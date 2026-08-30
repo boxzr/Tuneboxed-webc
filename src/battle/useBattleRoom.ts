@@ -94,18 +94,25 @@ export function useBattleRoom(roomId: string | null, token: string | null) {
 
     // A closing tab gets one last best-effort "I'm gone" so the roster does
     // not show ghosts until the seat goes stale on its own.
-    const onHide = () => {
-      if (document.visibilityState === 'hidden') {
-        void battle.sesh(token, false).catch(() => {});
-      } else {
-        void battle.sesh(token, true).catch(() => {});
-      }
+    //
+    // Only on pagehide, never on a tab merely going background. A host running
+    // a stream keeps the board open in a second tab, and marking them away the
+    // moment they look at it emptied their seat and put the room a handover
+    // away from taking the host badge off them.
+    const onLeave = () => void battle.sesh(token, false).catch(() => {});
+    window.addEventListener('pagehide', onLeave);
+
+    // Background tabs get their timers throttled well past the point a seat
+    // goes stale, so coming back to the foreground checks in immediately.
+    const onShow = () => {
+      if (document.visibilityState === 'visible') void battle.sesh(token, true).catch(() => {});
     };
-    document.addEventListener('visibilitychange', onHide);
+    document.addEventListener('visibilitychange', onShow);
 
     return () => {
       clearInterval(t);
-      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onLeave);
+      document.removeEventListener('visibilitychange', onShow);
     };
   }, [token]);
 

@@ -33,15 +33,19 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I put the battle on my stream?',
-    a: 'Yes. Every room has a board at its own address, showing the matchup, the songs and the live vote counts with none of your controls. Open it in a second tab and share that as your stream, or paste the same URL into OBS, Streamlabs or anything else with a Browser Source. No broadcasting software is required.',
+    a: 'Yes. Every room has a board at its own address, showing the matchup, the vibe, the songs and the live vote counts. Open it in another tab and share that as your stream — you can reveal songs and advance rounds from that screen, and the buttons fade when you stop moving. Or paste the same URL into OBS, Streamlabs or anything else with a Browser Source. No broadcasting software is required.',
   },
   {
     q: 'How long does a battle take?',
-    a: 'Players get 45 seconds to pick, and each song plays for 30 seconds. A full 16 player bracket is four stages, so budget somewhere around 20 to 30 minutes depending on how long you leave voting open.',
+    a: 'In TuneBoxed mode players get 45 seconds to pick, and each song plays for 15 seconds. Classic has no pick clock — songs go in before the host starts. A full 16 player bracket is four stages, so budget somewhere around 15 to 25 minutes depending on how long you leave voting open.',
+  },
+  {
+    q: 'What is Classic vs TuneBoxed mode?',
+    a: 'Classic is the preset for a bracket. The host picks one vibe for the whole game, players lock a song in the lobby with no timer, and those songs are what the bracket plays. TuneBoxed mode is the live game: a fresh random vibe each round and 45 seconds to pick. Switch in game settings.',
   },
   {
     q: 'Where do the songs come from?',
-    a: "Players search Apple's public music catalogue, and each track plays as a 30 second preview. Nobody needs a Spotify or Apple Music subscription.",
+    a: "Players search Apple's public music catalogue, and each track plays as a 15 second preview. Nobody needs a Spotify or Apple Music subscription.",
   },
   {
     q: 'Can I use SoundCloud or YouTube?',

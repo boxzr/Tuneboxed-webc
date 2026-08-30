@@ -28,6 +28,8 @@ export interface PublicStats {
   champions_crowned: number;
 }
 export type BattleVotingMode = 'judge' | 'host' | 'everyone';
+/** How the room asks for songs. See playStyle.ts. */
+export type BattlePlayStyle = 'classic' | 'tuneboxed';
 export type BattleRoomStatus = 'lobby' | 'in_round' | 'judging' | 'results' | 'complete';
 export type BattleRoundPhase = 'picking' | 'playing' | 'judging' | 'revealed';
 export type BattleMatchStatus = 'pending' | 'active' | 'complete';
@@ -45,6 +47,10 @@ export interface BattleRoom {
   max_players: number;
   format: BattleFormat;
   voting_mode: BattleVotingMode;
+  /** Missing on rooms that predate the column; those play as TuneBoxed. */
+  play_style: BattlePlayStyle | null;
+  /** Host-picked vibe for Classic. Null in TuneBoxed mode. */
+  theme: string | null;
   host_speaker_enabled: boolean | null;
   current_match_id: string | null;
   bracket_size: number | null;
@@ -64,6 +70,14 @@ export interface BattlePlayer {
   is_connected: boolean;
   last_seen_at: string;
   joined_at: string;
+  /** Classic lobby pick. Absent on rooms that predate the column. */
+  entry_song_title?: string | null;
+  entry_song_artist?: string | null;
+  entry_artwork_url?: string | null;
+  entry_preview_url?: string | null;
+  entry_external_id?: string | null;
+  entry_source?: string | null;
+  entry_submitted_at?: string | null;
 }
 
 export interface BattleRound {

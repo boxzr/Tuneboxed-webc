@@ -73,6 +73,7 @@ export default function BattleEntry({
               displayName: name.trim(),
               format: playKind === 'bracket' ? 'bracket' : 'rounds',
               votingMode: playKind === 'bracket' ? 'everyone' : 'judge',
+              playStyle: playKind === 'bracket' ? 'classic' : 'tuneboxed',
               twitchLogin: playKind === 'bracket' ? identity?.login ?? null : null,
               twitchAvatarUrl: playKind === 'bracket' ? identity?.avatarUrl ?? null : null,
             })
@@ -149,7 +150,9 @@ export default function BattleEntry({
             onClick={() => setPlayKind('bracket')}
           >
             <strong>Bracket</strong>
-            <span>Up to 16, head to head. Built for a stream, with optional Twitch chat voting.</span>
+            <span>
+              Up to 16, head to head. Opens in Classic: one vibe, songs in before you start.
+            </span>
           </button>
         </div>
       )}

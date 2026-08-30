@@ -11,7 +11,7 @@ html.tv-active body,
 html.tv-active #root {
   height: 100%;
   margin: 0;
-  background: var(--tb-canvas-tv);
+  background: #fff;
   /* The marketing site sets smooth scrolling; a board never scrolls. */
   overflow: hidden;
 }
@@ -25,9 +25,36 @@ html.tv-active #root {
   width: 100vw;
   height: 100vh;
   padding: 3vh 4vw;
-  background: var(--tb-canvas-tv);
+  background: #fff;
   color: var(--tb-ink);
   text-align: center;
+  overflow: hidden;
+}
+
+/* Cartoon of the vibe, edge to edge. No blur, no wash. Missed search stays white. */
+.tv-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tv-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Everything the audience reads, held above the backdrop. */
+.tv-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .tv-eyebrow {
@@ -41,6 +68,7 @@ html.tv-active #root {
 
 /* Streamer identity, parked in a corner so it never competes with the game. */
 .tv-host {
+  z-index: 2;
   position: absolute;
   top: 2.4vh;
   right: 2.4vw;
@@ -81,7 +109,10 @@ html.tv-active #root {
   margin: 1vh 0 0;
   font-size: clamp(2.5rem, 8vw, 8rem);
   font-weight: 800;
-  line-height: 1;
+  /* Room for descenders, which gradient clipped text loses at line-height 1. */
+  line-height: 1.16;
+  padding-bottom: 0.06em;
+  overflow-wrap: break-word;
   background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
   -webkit-background-clip: text;
   background-clip: text;
@@ -113,6 +144,10 @@ html.tv-active #root {
   align-items: center;
 }
 
+.tv-lobby .tv-genre {
+  margin-top: 1.4vh;
+}
+
 .tv-lobby__code {
   margin: 1vh 0;
   font-size: clamp(3rem, 11vw, 11rem);
@@ -141,12 +176,21 @@ html.tv-active #root {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  max-width: 70vw;
   padding: 8px 20px 8px 8px;
   border-radius: 999px;
   background: var(--tb-surface);
   box-shadow: var(--tb-shadow-card);
   font-size: clamp(0.9rem, 1.3vw, 1.5rem);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-chip--on {
+  background: rgba(61, 214, 153, 0.16);
+  box-shadow: none;
 }
 
 /* ---------- Live ---------- */
@@ -159,20 +203,30 @@ html.tv-active #root {
   max-width: 1500px;
 }
 
+/* Two rows, not three columns.
+   The prompt used to share a row with the room code and the clock, so
+   "You Blast This Home Alone" had about a third of the screen to fit in and
+   lost the end of itself. It gets the full width now and the fixed width
+   furniture sits above it. */
 .tv-head {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
   width: 100%;
   margin-bottom: 2vh;
 }
 
-.tv-head__left {
+.tv-head__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2vw;
+  width: 100%;
+}
+
+.tv-head__cell {
   text-align: left;
 }
 
-.tv-head__right {
-  text-align: right;
+.tv-head__prompt {
+  margin-top: 1.2vh;
 }
 
 .tv-code {
@@ -184,14 +238,37 @@ html.tv-active #root {
 }
 
 .tv-genre {
-  margin: 0.4vh 0 0;
-  font-size: clamp(1.8rem, 4.4vw, 4.6rem);
+  max-width: 94%;
+  margin: 0.4vh auto 0;
   font-weight: 800;
-  line-height: 1.05;
-  background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  line-height: 1.18;
+  padding-bottom: 0.06em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  color: var(--tb-orange);
+  text-shadow:
+    0 2px 0 var(--tb-ink),
+    2px 0 0 var(--tb-ink),
+    0 -2px 0 var(--tb-ink),
+    -2px 0 0 var(--tb-ink),
+    2px 2px 0 var(--tb-ink),
+    -2px 2px 0 var(--tb-ink),
+    2px -2px 0 var(--tb-ink),
+    -2px -2px 0 var(--tb-ink);
+}
+
+/* A ramp rather than one size, so "Gym" fills the board and
+   "Feels Like Stranger Things" still lands on one or two lines. */
+.tv-genre[data-len='short'] {
+  font-size: clamp(2.4rem, 6.6vw, 6.8rem);
+}
+
+.tv-genre[data-len='medium'] {
+  font-size: clamp(2rem, 5vw, 5.2rem);
+}
+
+.tv-genre[data-len='long'] {
+  font-size: clamp(1.7rem, 3.8vw, 4rem);
 }
 
 .tv-timer {
@@ -417,16 +494,130 @@ html.tv-active #root {
   color: var(--tb-ink-muted);
 }
 
-/* A phone held sideways is a legitimate second screen, but the three column
-   header does not survive it. */
+/* A phone held sideways is a legitimate second screen. */
 @media (max-aspect-ratio: 1/1) {
-  .tv-head {
-    grid-template-columns: 1fr;
+  .tv-head__bar {
+    flex-direction: column;
     gap: 1vh;
   }
 
-  .tv-head__left,
-  .tv-head__right {
+  .tv-head__cell {
     text-align: center;
   }
+
+  .tv-now {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ---------- Now playing ---------- */
+
+.tv-now {
+  display: flex;
+  align-items: center;
+  gap: 2vw;
+  padding: 1.6vh 2.4vw;
+  border-radius: var(--tb-r-card);
+  background: var(--tb-surface);
+  box-shadow: var(--tb-shadow-card);
+  text-align: left;
+  max-width: 90%;
+}
+
+.tv-now__art {
+  width: clamp(72px, 9vw, 160px);
+  height: clamp(72px, 9vw, 160px);
+  border-radius: var(--tb-r-control);
+  object-fit: cover;
+}
+
+.tv-now__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3vh;
+  min-width: 0;
+}
+
+.tv-now__title {
+  font-size: clamp(1.3rem, 2.6vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.tv-now__artist {
+  font-size: clamp(1rem, 1.7vw, 1.8rem);
+  color: var(--tb-ink-muted);
+}
+
+.tv-now__by {
+  font-size: clamp(0.85rem, 1.3vw, 1.4rem);
+  color: var(--tb-ink-faint);
+}
+
+/* ---------- The host's controls ----------
+   Present only for a host reading this in their own browser. They fade out
+   whenever the mouse stops, so a board being captured shows the game and not
+   the buttons driving it. */
+
+.tv-controls {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 3vh;
+  transform: translate(-50%, 1.4vh);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px 10px 22px;
+  border-radius: 999px;
+  background: rgba(31, 41, 51, 0.9);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.35s var(--ease-out),
+    transform 0.35s var(--ease-out);
+}
+
+.tv-controls--on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.tv-controls__go {
+  padding: 0.7em 1.6em;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
+  color: #fff;
+  font: inherit;
+  font-size: clamp(0.95rem, 1.3vw, 1.35rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.2s var(--ease-out);
+}
+
+.tv-controls__go:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.tv-controls__go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tv-controls__idle,
+.tv-controls__hint {
+  font-size: clamp(0.72rem, 0.95vw, 1rem);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tv-controls__error {
+  font-size: clamp(0.72rem, 0.95vw, 1rem);
+  font-weight: 600;
+  color: #ffb4a8;
 }

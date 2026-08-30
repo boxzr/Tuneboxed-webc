@@ -16,7 +16,7 @@ const PARTY_STEPS = [
   },
   {
     title: 'The songs play together',
-    body: 'Each pick plays for 30 seconds, in sync for everyone in the room at the same moment.',
+    body: 'Each pick plays for 15 seconds, in sync for everyone in the room at the same moment.',
   },
   {
     title: 'A rotating judge crowns a winner',
@@ -31,11 +31,15 @@ const PARTY_STEPS = [
 const BRACKET_STEPS = [
   {
     title: 'Start a Bracket room',
-    body: 'Up to 16 players. Share the code however suits you, including on a stream.',
+    body: 'Up to 16 players. Share the code however suits you, including on a stream. Bracket opens in Classic.',
+  },
+  {
+    title: 'Pick one vibe, then lock songs in',
+    body: 'The host names the vibe for the whole game — sunset, 2016 rap, whatever they want. Players submit before anything starts. There is no clock and nothing is live yet, so nobody is rushed.',
   },
   {
     title: 'Two songs go head to head',
-    body: 'Each matchup plays both tracks for 30 seconds, in sync for everyone in the room.',
+    body: 'Each matchup plays both tracks for 15 seconds, in sync for everyone in the room. Those are the songs people locked in, not a new pick each round.',
   },
   {
     title: 'The room votes',
@@ -73,7 +77,12 @@ export default function Rules() {
 
       <section className="page-section">
         <h2>Bracket</h2>
-        <p>Head to head until one song is left. The format a stream can put on screen.</p>
+        <p>
+          Head to head until one song is left. The format a stream can put on screen.
+          Classic is the default: one vibe, songs in first. Switch to TuneBoxed mode
+          in game settings if you want a fresh random vibe each matchup and a live
+          pick clock.
+        </p>
         <ol className="page-steps">
           {BRACKET_STEPS.map((s, i) => (
             <li key={s.title}>
@@ -107,7 +116,8 @@ export default function Rules() {
           A bracket needs pairs. When the count is odd, byes are spread across
           the first stage rather than piled at the end, so at most one player
           per matchup sits it out. A bye moves you to the next stage without
-          playing, and you pick again there like everyone else.
+          playing. In TuneBoxed mode you pick again there; in Classic you keep
+          the song you locked in.
         </p>
         <p>
           If you ever reach a matchup with nobody opposite you, you take it
@@ -130,13 +140,13 @@ export default function Rules() {
         <h2>Where songs come from</h2>
         <p>
           Search covers Apple's public music catalogue, and each result plays as
-          a 30 second preview. Nobody needs a Spotify or Apple Music
+          a 15 second clip. Nobody needs a Spotify or Apple Music
           subscription, because everyone in the room plays the same preview
           rather than a stream only some of them can reach.
         </p>
         <p>
           Switch search to music videos to battle with the video instead of the
-          track. It runs on the same clock and the same 30 seconds, so the room
+          track. It runs on the same clock and the same 15 seconds, so the room
           watches it together rather than only hearing it.
         </p>
         <p>

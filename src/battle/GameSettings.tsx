@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Card, SectionLabel } from './ui/primitives';
 import { SlidersIcon } from './ui/icons';
-import type { BattleFormat, BattleRoom, BattleVotingMode } from '../types/battle';
+import { defaultPlayStyle, isClassic } from './playStyle';
+import type { BattleFormat, BattlePlayStyle, BattleRoom, BattleVotingMode } from '../types/battle';
 
 const VOTING: Record<
   BattleVotingMode,
@@ -36,8 +37,9 @@ export function resolvedVoting(room: BattleRoom): BattleVotingMode {
 
 export function rulesSummary(room: BattleRoom, aiJudge: boolean): string {
   const format = room.format === 'bracket' ? 'Bracket' : 'Best of 3';
+  const style = isClassic(room) ? 'Classic' : 'TuneBoxed';
   const judging = aiJudge ? 'AI judge' : VOTING[resolvedVoting(room)].title;
-  return `${format} · ${judging}`;
+  return `${format} · ${style} · ${judging}`;
 }
 
 type Patch = {
@@ -45,6 +47,8 @@ type Patch = {
   votingMode?: BattleVotingMode;
   format?: BattleFormat;
   maxPlayers?: number;
+  playStyle?: BattlePlayStyle;
+  theme?: string | null;
 };
 
 /**
@@ -66,6 +70,7 @@ export function GameSettingsPanel({
 }) {
   const isBracket = room.format === 'bracket';
   const inLobby = room.status === 'lobby';
+  const classic = isClassic(room);
   const voting = resolvedVoting(room);
   const votingOptions: BattleVotingMode[] = isBracket ? ['host', 'everyone'] : ['judge', 'host', 'everyone'];
   const hostOnly = room.host_speaker_enabled === true;
@@ -126,9 +131,30 @@ export function GameSettingsPanel({
             onChange={(id) =>
               onChange({
                 format: id,
+                playStyle: defaultPlayStyle(id),
                 votingMode: id === 'bracket' && voting === 'judge' ? 'everyone' : voting,
               })
             }
+          />
+        </SettingsBlock>
+      )}
+
+      {inLobby && (
+        <SettingsBlock
+          title="Style"
+          subtitle={
+            classic
+              ? 'You pick one vibe for the whole game. Players lock a song in before anything starts, with no clock.'
+              : 'A fresh random vibe each round. Players have 45 seconds to pick once the round is live.'
+          }
+        >
+          <Segmented
+            value={classic ? 'classic' : 'tuneboxed'}
+            options={[
+              { id: 'classic', label: 'Classic' },
+              { id: 'tuneboxed', label: 'TuneBoxed' },
+            ]}
+            onChange={(id) => onChange({ playStyle: id })}
           />
         </SettingsBlock>
       )}

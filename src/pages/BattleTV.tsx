@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
 import { useBattleRoom } from '../battle/useBattleRoom';
 import { useBattleRound } from '../battle/useBattleRound';
+import { useRoundAutopilot } from '../battle/useRoundAutopilot';
+import { useSyncedPlayback } from '../battle/useSyncedPlayback';
+import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
+import { type HostContext, nextHostAction } from '../battle/hostActions';
+import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
+import { useGenreBackdrop } from '../battle/useGenreBackdrop';
+import { uniqueLeader } from '../battle/voteLeader';
 import { BoxerSprite, Gloves, Monogram } from '../battle/ui/primitives';
 import { CheckIcon, CrownIcon, TrophyIcon } from '../battle/ui/icons';
 import type { BattleMatch, BattlePlayer, BattleSubmission } from '../types/battle';
@@ -21,16 +28,26 @@ import './tv.css';
  * installed, and it still drops into a Browser Source for anyone who wants
  * that.
  *
- * It takes no session token and calls no mutation, so putting it on a stream
- * cannot occupy a player slot or cast a vote.
+ * A host who opens it in their own browser also gets the controls, because
+ * they have a session for this room in that browser. Anyone else, including an
+ * OBS Browser Source with its own empty storage, gets exactly what it always
+ * was: a screen that reads the room and can write nothing to it.
  */
 export default function BattleTV() {
   const { code = '' } = useParams<{ code: string }>();
   const [params] = useSearchParams();
   const demo = params.get('demo') === '1';
+  // For a host who captures this tab directly rather than through a Browser
+  // Source, where their own controls would otherwise go out on the stream.
+  const controlsAllowed = params.get('controls') !== '0';
+
+  const stored = useMemo(() => (demo ? null : battle.loadSession(code)), [code, demo]);
+  const token = stored?.token ?? null;
 
   const [roomId, setRoomId] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Loads on its own rather than through the room page, so it syncs its own
   // clock or every countdown would run against the local one.
@@ -70,7 +87,7 @@ export default function BattleTV() {
     };
   }, [code, demo]);
 
-  const liveRoom = useBattleRoom(roomId, null);
+  const liveRoom = useBattleRoom(roomId, token);
   const liveRound = useBattleRound(liveRoom.room);
 
   // ?demo=1 renders a sample battle. Sizing and positioning a board has to
@@ -80,9 +97,29 @@ export default function BattleTV() {
   const { room, players, matches } = demo ? DEMO : liveRoom;
   const { round, submissions, votes } = demo ? DEMO : liveRound;
 
+  const isHost = Boolean(room && stored && room.host_player_id === stored.playerId);
+  const usedGenres = useUsedGenres(roomId, round?.id ?? null);
+
+  // Read purely to know when the clips have run out. The board never sounds:
+  // the songs come out of the host's room tab or their speakers, and a second
+  // copy playing half a second behind would be worse than silence.
+  const playback = useSyncedPlayback(round, submissions, false);
+
+  // The host drives the game from whichever tab they are looking at, so the
+  // parts of a round that run themselves have to run here too.
+  const { empty: pickedNothing } = useRoundAutopilot({
+    token,
+    isHost,
+    round,
+    submissions,
+    playbackFinished: playback.finished,
+  });
+
+  const pointerActive = usePointerActivity();
+
   if (missing) {
     return (
-      <Board>
+      <Board genre={null}>
         <div className="tv-idle">
           <Gloves size={220} />
           <h1 className="tv-idle__title">No room with that code</h1>
@@ -93,7 +130,7 @@ export default function BattleTV() {
 
   if (!room) {
     return (
-      <Board>
+      <Board genre={null}>
         <div className="tv-idle">
           <Gloves size={220} />
           <h1 className="tv-idle__title">Connecting…</h1>
@@ -105,12 +142,68 @@ export default function BattleTV() {
   const nameOf = (id: string | null) =>
     players.find((p) => p.id === id)?.display_name ?? 'Player';
 
+  const isBracket = room.format === 'bracket';
+  const classic = isClassic(room);
+  const currentMatch = matches.find((m) => m.id === room.current_match_id) ?? null;
+  const connected = players.filter((p) => p.is_connected);
+
   const championId =
     matches.find((m) => m.next_match_id === null && m.winner_player_id)?.winner_player_id ?? null;
 
+  // Chat decides in a room tied to a Twitch channel. The board is never the
+  // client reading chat, so it shows whatever the host last published.
+  const chatTally = room.host_twitch_login ? round?.chat_tally ?? {} : null;
+
+  const isCompetitor = (p: BattlePlayer) =>
+    Boolean(currentMatch && (p.id === currentMatch.player_a_id || p.id === currentMatch.player_b_id));
+
+  const needsAiJudge =
+    isBracket && !chatTally && connected.length > 0 && connected.every(isCompetitor);
+
+  const ballotCounts: Record<string, number> = {};
+  for (const s of submissions) {
+    ballotCounts[s.id] = chatTally
+      ? chatTally[s.id] ?? 0
+      : votes.filter((v) => v.submission_id === s.id).length;
+  }
+  const voteLeader = uniqueLeader(ballotCounts);
+
+  const hostCtx: HostContext | null =
+    token && isHost
+      ? { token, room, matches, round, submissions, voteLeader, usedGenres, refresh: liveRoom.refresh }
+      : null;
+
+  const action = hostCtx
+    ? nextHostAction(hostCtx, {
+        ready: classic ? classicReady(room, players) : connected.length >= room.min_players,
+        needsAiJudge,
+        empty: pickedNothing,
+        finished: championId !== null,
+      })
+    : null;
+
+  const controls =
+    isHost && controlsAllowed ? (
+      <HostBar
+        action={action}
+        busy={busy}
+        error={actionError}
+        visible={pointerActive}
+        onRun={() => {
+          if (!action) return;
+          setActionError(null);
+          setBusy(true);
+          action
+            .run()
+            .catch((e: Error) => setActionError(e.message))
+            .finally(() => setBusy(false));
+        }}
+      />
+    ) : null;
+
   if (championId) {
     return (
-      <Board>
+      <Board genre={round?.genre ?? null} controls={controls}>
         <div className="tv-champion">
           <span className="tv-champion__trophy">
             <TrophyIcon size={96} />
@@ -125,35 +218,53 @@ export default function BattleTV() {
 
   if (!round) {
     return (
-      <Board host={room.host_twitch_login} avatar={room.host_avatar_url}>
-        <Lobby code={room.code} players={players} max={room.max_players} />
+      <Board
+        genre={classic ? room.theme : null}
+        host={room.host_twitch_login}
+        avatar={room.host_avatar_url}
+        controls={controls}
+      >
+        <Lobby
+          code={room.code}
+          players={players}
+          max={room.max_players}
+          theme={classic ? room.theme : null}
+        />
       </Board>
     );
   }
 
-  const currentMatch = matches.find((m) => m.id === room.current_match_id) ?? null;
   const seconds = round.phase_deadline_at ? secondsUntil(round.phase_deadline_at) : null;
 
   return (
-    <Board host={room.host_twitch_login} avatar={room.host_avatar_url}>
+    <Board
+      genre={round.genre}
+      host={room.host_twitch_login}
+      avatar={room.host_avatar_url}
+      controls={controls}
+    >
       <div className="tv-live">
         <header className="tv-head">
-          <div className="tv-head__left">
-            <span className="tv-eyebrow">Room code</span>
-            <span className="tv-code">{room.code}</span>
-          </div>
+          <div className="tv-head__bar">
+            <span className="tv-head__cell">
+              <span className="tv-eyebrow">Room code</span>
+              <span className="tv-code">{room.code}</span>
+            </span>
 
-          <div className="tv-head__mid">
-            <span className="tv-eyebrow">This round&rsquo;s vibe</span>
-            <h1 className="tv-genre">{round.genre}</h1>
-          </div>
-
-          <div className="tv-head__right">
             {seconds !== null && (
               <span className={`tv-timer${seconds <= 10 ? ' tv-timer--urgent' : ''}`}>
                 {seconds}
               </span>
             )}
+          </div>
+
+          {/* Its own full width row. Sharing one with the code and the clock
+              meant a long prompt ran out of room and clipped mid word. */}
+          <div className="tv-head__prompt">
+            <span className="tv-eyebrow">{classic ? 'This game\u2019s vibe' : 'This round\u2019s vibe'}</span>
+            <h1 className="tv-genre" data-len={lengthClass(round.genre)}>
+              {round.genre}
+            </h1>
           </div>
         </header>
 
@@ -172,13 +283,14 @@ export default function BattleTV() {
           <Picking players={players} match={currentMatch} submissions={submissions} />
         )}
 
-        {round.phase === 'playing' && <Playing submissions={submissions} nameOf={nameOf} />}
+        {round.phase === 'playing' && (
+          <Playing now={playback.current} total={playback.total} index={playback.index} nameOf={nameOf} />
+        )}
 
         {round.phase === 'judging' && (
           <Ballot
             submissions={submissions}
-            tally={round.chat_tally ?? {}}
-            inRoomVotes={votes.length}
+            counts={ballotCounts}
             chatChannel={room.host_twitch_login}
           />
         )}
@@ -208,14 +320,18 @@ const DEMO = {
     id: 'demo',
     code: 'DEMO1',
     status: 'in_round',
+    format: 'bracket',
+    min_players: 2,
     max_players: 16,
+    round_number: 1,
     current_match_id: 'm1',
+    host_player_id: null,
     host_twitch_login: 'yourchannel',
     host_avatar_url: null,
   },
   players: [
-    { id: '1', display_name: 'Ashley' },
-    { id: '2', display_name: 'Marcus' },
+    { id: '1', display_name: 'Ashley', is_connected: true },
+    { id: '2', display_name: 'Marcus', is_connected: true },
   ],
   matches: [
     {
@@ -232,36 +348,128 @@ const DEMO = {
   round: {
     id: 'r1',
     phase: 'judging',
-    genre: 'Divorced Dad Rock',
+    genre: 'Feels Like Stranger Things',
     phase_deadline_at: null,
     winner_submission_id: null,
     chat_tally: { s1: 128, s2: 74 },
   },
   submissions: [
-    { id: 's1', player_id: '1', song_title: 'Ms. Jackson', song_artist: 'Outkast' },
-    { id: 's2', player_id: '2', song_title: 'Hey Ya!', song_artist: 'Outkast' },
+    { id: 's1', player_id: '1', song_title: 'Ms. Jackson', song_artist: 'Outkast', artwork_url: null },
+    { id: 's2', player_id: '2', song_title: 'Hey Ya!', song_artist: 'Outkast', artwork_url: null },
   ],
   votes: [],
 } as unknown as ReturnType<typeof useBattleRoom> & ReturnType<typeof useBattleRound>;
 
+/**
+ * Long prompts get a smaller type ramp rather than a clipped one. "Feels Like
+ * Stranger Things" and "70's Rock" cannot share a size and both look right.
+ */
+function lengthClass(genre: string): 'short' | 'medium' | 'long' {
+  if (genre.length <= 12) return 'short';
+  if (genre.length <= 22) return 'medium';
+  return 'long';
+}
+
+/**
+ * Whether anyone is at the keyboard.
+ *
+ * The host controls ride on this, so they fade off a board that is being
+ * captured and are one mouse twitch away on the one the host is driving.
+ */
+function usePointerActivity(idleMs = 2500): boolean {
+  const [active, setActive] = useState(true);
+
+  useEffect(() => {
+    let timer = window.setTimeout(() => setActive(false), idleMs);
+    const wake = () => {
+      setActive(true);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setActive(false), idleMs);
+    };
+    window.addEventListener('pointermove', wake);
+    window.addEventListener('pointerdown', wake);
+    window.addEventListener('keydown', wake);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove', wake);
+      window.removeEventListener('pointerdown', wake);
+      window.removeEventListener('keydown', wake);
+    };
+  }, [idleMs]);
+
+  return active;
+}
+
 function Board({
   children,
+  genre,
   host,
   avatar,
+  controls,
 }: {
   children: React.ReactNode;
+  genre: string | null;
   host?: string | null;
   avatar?: string | null;
+  controls?: React.ReactNode;
 }) {
+  const cartoon = useGenreBackdrop(genre);
+
   return (
     <div className="tv">
+      {cartoon && (
+        <div className="tv-backdrop" aria-hidden="true">
+          <img src={cartoon} alt="" />
+        </div>
+      )}
+
       {host && (
         <div className="tv-host">
           {avatar && <img className="tv-host__avatar" src={avatar} alt="" />}
           <span>{host}</span>
         </div>
       )}
-      {children}
+
+      <div className="tv-stage">{children}</div>
+      {controls}
+    </div>
+  );
+}
+
+/**
+ * The host's controls, on the board itself.
+ *
+ * Running a stream off two tabs meant clicking back to the room for every
+ * reveal, which put the game's own UI on camera for a second each time. The
+ * one thing there is to press now sits under the board it belongs to, and
+ * fades out whenever the mouse stops so a captured tab shows a clean screen.
+ */
+function HostBar({
+  action,
+  busy,
+  error,
+  visible,
+  onRun,
+}: {
+  action: { label: string; disabled: boolean } | null;
+  busy: boolean;
+  error: string | null;
+  visible: boolean;
+  onRun: () => void;
+}) {
+  return (
+    <div className={`tv-controls${visible ? ' tv-controls--on' : ''}`}>
+      {error && <span className="tv-controls__error">{error}</span>}
+
+      {action ? (
+        <button className="tv-controls__go" disabled={busy || action.disabled} onClick={onRun}>
+          {busy ? 'Working…' : action.label}
+        </button>
+      ) : (
+        <span className="tv-controls__idle">Nothing to press yet</span>
+      )}
+
+      <span className="tv-controls__hint">Only you can see this</span>
     </div>
   );
 }
@@ -270,25 +478,37 @@ function Lobby({
   code,
   players,
   max,
+  theme,
 }: {
   code: string;
   players: BattlePlayer[];
   max: number;
+  theme: string | null;
 }) {
+  const locked = players.filter(hasEntry);
+
   return (
     <div className="tv-lobby">
       <Gloves size={180} />
       <span className="tv-eyebrow">Join at tuneboxed.com</span>
       <div className="tv-lobby__code">{code}</div>
+      {theme ? (
+        <h1 className="tv-genre" data-len={lengthClass(theme)}>
+          {theme}
+        </h1>
+      ) : null}
       <p className="tv-lobby__sub">
-        {players.length} of {max} in the room
+        {theme
+          ? `${locked.length} of ${max} songs in`
+          : `${players.length} of ${max} in the room`}
       </p>
 
       <div className="tv-chips">
         {players.map((p) => (
-          <span key={p.id} className="tv-chip">
+          <span key={p.id} className={`tv-chip${hasEntry(p) ? ' tv-chip--on' : ''}`}>
             <Monogram name={p.display_name} size={28} />
             {p.display_name}
+            {hasEntry(p) ? ` · ${p.entry_song_title}` : ''}
           </span>
         ))}
       </div>
@@ -378,22 +598,39 @@ function Picking({
   );
 }
 
+/**
+ * The track that is sounding right now. Naming it is safe here and useful:
+ * the room can already hear it, and a viewer who just tuned in cannot.
+ */
 function Playing({
-  submissions,
+  now,
+  index,
+  total,
   nameOf,
 }: {
-  submissions: BattleSubmission[];
+  now: BattleSubmission | null;
+  index: number;
+  total: number;
   nameOf: (id: string | null) => string;
 }) {
+  if (!now) {
+    return (
+      <div className="tv-status">
+        <span className="tv-pill tv-pill--wide">Getting the first track ready…</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="tv-status">
-      <span className="tv-pill tv-pill--wide">Both tracks are playing</span>
-      <div className="tv-tracks">
-        {submissions.map((s) => (
-          <span key={s.id} className="tv-track">
-            {nameOf(s.player_id)}
-          </span>
-        ))}
+    <div className="tv-now">
+      {now.artwork_url && <img className="tv-now__art" src={now.artwork_url} alt="" />}
+      <div className="tv-now__text">
+        <span className="tv-eyebrow">
+          Now playing · {Math.min(index + 1, total)} of {total}
+        </span>
+        <strong className="tv-now__title">{now.song_title}</strong>
+        <span className="tv-now__artist">{now.song_artist}</span>
+        <span className="tv-now__by">Picked by {nameOf(now.player_id)}</span>
       </div>
     </div>
   );
@@ -407,21 +644,19 @@ function Playing({
  */
 function Ballot({
   submissions,
-  tally,
-  inRoomVotes,
+  counts,
   chatChannel,
 }: {
   submissions: BattleSubmission[];
-  tally: Record<string, number>;
-  inRoomVotes: number;
+  counts: Record<string, number>;
   chatChannel: string | null;
 }) {
-  const total = Object.values(tally).reduce((a, b) => a + b, 0);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
     <div className="tv-ballot">
       {submissions.map((s, i) => {
-        const count = tally[s.id] ?? 0;
+        const count = counts[s.id] ?? 0;
         const share = total > 0 ? (count / total) * 100 : 0;
         return (
           <div key={s.id} className="tv-option">
@@ -431,7 +666,7 @@ function Ballot({
               <strong>{s.song_title}</strong>
               <span>{s.song_artist}</span>
             </span>
-            {chatChannel && <span className="tv-option__count">{count}</span>}
+            <span className="tv-option__count">{count}</span>
           </div>
         );
       })}
@@ -444,7 +679,7 @@ function Ballot({
           </>
         ) : (
           <>
-            {inRoomVotes} {inRoomVotes === 1 ? 'vote' : 'votes'} in
+            {total} {total === 1 ? 'vote' : 'votes'} in
           </>
         )}
       </p>

@@ -10,6 +10,9 @@ import { CopyIcon, ScreenIcon } from './ui/icons';
  * software, works on every platform rather than only the ones with a browser
  * source, and the board is designed to be looked at. The OBS route is offered
  * second, for people who already have a scene they want this inside.
+ *
+ * The host who opens this URL in their own browser also gets the controls,
+ * so they can reveal and advance without clicking back to this room tab.
  */
 export default function StreamCard({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
@@ -20,9 +23,8 @@ export default function StreamCard({ code }: { code: string }) {
       <SectionLabel tone="blue">Show it to your audience</SectionLabel>
 
       <p className="bt-sub">
-        Open the board in a second tab and share that tab. It shows the matchup, the songs
-        and the votes at a size that reads on a stream, and it never shows anyone&rsquo;s
-        controls.
+        Open the board in another tab and share that tab. Reveal and advance
+        from there so you never have to click back here.
       </p>
 
       <code className="bt-stream__url">{url}</code>
@@ -55,7 +57,8 @@ export default function StreamCard({ code }: { code: string }) {
       </div>
 
       <p className="bt-sub bt-stream__obs">
-        Using OBS or Streamlabs? Add the same URL as a Browser Source at 1920 by 1080.
+        Buttons fade when you stop moving. For OBS, paste the same URL as a
+        1920×1080 Browser Source.
       </p>
     </Card>
   );

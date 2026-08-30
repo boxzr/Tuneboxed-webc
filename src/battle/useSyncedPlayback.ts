@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { serverTime } from './clock';
+import { CLIP_SECONDS, clipIndex, clipsFinished } from './rules';
 import type { BattleRound, BattleSubmission } from '../types/battle';
 
 interface Playback {
@@ -63,14 +64,13 @@ export function useSyncedPlayback(
     return submissions.map((s) => s.id);
   }, [round, submissions]);
 
-  const perSong = round?.seconds_per_song ?? 30;
+  const perSong = round?.seconds_per_song ?? CLIP_SECONDS;
   const startedAt = round?.playback_started_at ? new Date(round.playback_started_at).getTime() : null;
 
   const elapsed = startedAt !== null ? (serverTime() - startedAt) / 1000 : 0;
-  const rawIndex = startedAt !== null ? Math.floor(elapsed / perSong) : -1;
-  const finished = rawIndex >= order.length;
-  const index = finished ? order.length - 1 : rawIndex;
-  const offset = startedAt !== null ? elapsed - index * perSong : 0;
+  const finished = startedAt !== null && clipsFinished(elapsed, order.length, perSong);
+  const index = startedAt !== null ? clipIndex(elapsed, order.length, perSong) : -1;
+  const offset = startedAt !== null ? elapsed - Math.max(0, index) * perSong : 0;
 
   const current = useMemo(() => {
     if (index < 0 || finished) return null;

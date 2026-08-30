@@ -4,6 +4,7 @@ import type {
   BattleFormat,
   BattleMatch,
   BattleMatchStatus,
+  BattlePlayStyle,
   BattlePlayer,
   BattleRoom,
   BattleRound,
@@ -142,6 +143,7 @@ export async function createRoom(opts: {
   mode?: 'group' | 'bar_for_bar';
   format?: BattleFormat;
   votingMode?: BattleVotingMode;
+  playStyle?: BattlePlayStyle;
   /** Set when a signed-in streamer hosts, so the room and overlay show them. */
   twitchLogin?: string | null;
   twitchAvatarUrl?: string | null;
@@ -154,6 +156,7 @@ export async function createRoom(opts: {
     p_voting_mode: opts.votingMode ?? 'judge',
     p_host_twitch_login: opts.twitchLogin ?? null,
     p_host_avatar_url: opts.twitchAvatarUrl ?? null,
+    p_play_style: opts.playStyle ?? 'tuneboxed',
   });
   saveSession(session);
   rememberName(session.player.display_name);
@@ -391,7 +394,7 @@ export const startPlayback = (
   token: string,
   roundId: string,
   order: string[],
-  secondsPerSong = 30
+  secondsPerSong = 15
 ) =>
   rpc<string | null>('battle_start_playback', {
     p_token: token,
@@ -407,6 +410,8 @@ export const updateRoomSettings = (
     votingMode?: BattleVotingMode;
     format?: BattleFormat;
     maxPlayers?: number;
+    playStyle?: BattlePlayStyle;
+    theme?: string | null;
   }
 ) =>
   rpc<BattleRoom>('battle_update_room_settings', {
@@ -415,6 +420,37 @@ export const updateRoomSettings = (
     p_voting_mode: settings.votingMode ?? null,
     p_format: settings.format ?? null,
     p_max_players: settings.maxPlayers ?? null,
+    p_play_style: settings.playStyle ?? null,
+    p_theme: settings.theme === undefined ? null : settings.theme,
+  });
+
+/** Locks a song in the Classic lobby. There is no round and no clock yet. */
+export const submitEntry = (
+  token: string,
+  song: {
+    title: string;
+    artist: string;
+    artworkUrl?: string | null;
+    previewUrl?: string | null;
+    externalId?: string | null;
+    source?: string | null;
+  }
+) =>
+  rpc<BattlePlayer>('battle_submit_entry', {
+    p_token: token,
+    p_song_title: song.title,
+    p_song_artist: song.artist,
+    p_artwork_url: song.artworkUrl ?? null,
+    p_preview_url: song.previewUrl ?? null,
+    p_external_id: song.externalId ?? null,
+    p_source: song.source ?? null,
+  });
+
+/** Copies Classic lobby songs onto a round so it can skip the pick clock. */
+export const seedRoundFromEntries = (token: string, roundId: string) =>
+  rpc<number>('battle_seed_round_from_entries', {
+    p_token: token,
+    p_round_id: roundId,
   });
 
 export const setRoomStatus = (token: string, status: BattleRoomStatus) =>
