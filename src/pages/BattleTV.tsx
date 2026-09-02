@@ -121,6 +121,8 @@ export default function BattleTV() {
   });
 
   const pointerActive = usePointerActivity();
+  const startArmedAt = useRef(0);
+  const lastTheme = useRef<string | null | undefined>(undefined);
 
   if (missing) {
     return (
@@ -187,9 +189,6 @@ export default function BattleTV() {
       })
     : null;
 
-  // Saving the vibe can enable Start on this tab. Do not treat that as a click.
-  const startArmedAt = useRef(0);
-  const lastTheme = useRef(room.theme);
   if (room.theme !== lastTheme.current) {
     if (room.theme?.trim()) startArmedAt.current = Date.now() + 1200;
     lastTheme.current = room.theme;

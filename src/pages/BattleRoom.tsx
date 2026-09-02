@@ -52,6 +52,8 @@ export default function BattleRoom() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Declared up here so Connecting / error returns do not change hook order.
+  const startArmedAt = useRef(0);
 
   useEffect(() => {
     void syncClock();
@@ -283,10 +285,6 @@ export default function BattleRoom() {
     : round
       ? `Round ${round.round_number} of ${PARTY_ROUNDS}`
       : `${connected.length} in the room`;
-
-  // Enter in the vibe field must not fire Start. Saving the theme can mount
-  // that button in the same keypress, so ignore start for a beat after.
-  const startArmedAt = useRef(0);
 
   const saveSettings = (patch: Parameters<typeof battle.updateRoomSettings>[1]) =>
     void guard(async () => {
