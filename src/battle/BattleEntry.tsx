@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
+import { isLocalPreview, liveRoomUrl } from '../lib/publicUrl';
 import { supabaseConfigured } from '../lib/supabase';
 import { signInWithTwitch, signOut, useTwitchIdentity } from '../lib/twitchAuth';
 
@@ -78,6 +79,10 @@ export default function BattleEntry({
               twitchAvatarUrl: playKind === 'bracket' ? identity?.avatarUrl ?? null : null,
             })
           : await battle.joinRoom(code.trim(), name.trim());
+      if (isLocalPreview()) {
+        window.location.replace(liveRoomUrl(session.room.code) + battle.handoffHash(session));
+        return;
+      }
       navigate(`/battle/${session.room.code}`);
     } catch (e) {
       setError((e as Error).message);

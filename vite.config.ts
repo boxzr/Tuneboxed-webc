@@ -11,6 +11,9 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true,
+    // Do not steal the browser to localhost. Hosting a real room belongs on
+    // tuneboxed.com; opening the preview automatically is how rooms ended up
+    // at http://localhost:3000/battle/...
+    open: false,
   },
 });

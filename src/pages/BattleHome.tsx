@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import BattleEntry from '../battle/BattleEntry';
 import * as battle from '../lib/battleClient';
+import { isLocalPreview, liveRoomUrl } from '../lib/publicUrl';
+import type { BattleSession } from '../types/battle';
 import logo from '../assets/tuneboxed-battle-logo.png';
 import '../battle/battle.css';
 
@@ -32,7 +34,21 @@ export default function BattleHome() {
     let live = true;
     void battle.resumeRoom(code).then((ok) => {
       if (!live) return;
-      if (ok) navigate(`/battle/${code.toUpperCase()}`, { replace: true });
+      if (ok) {
+        const stored = battle.loadSession(code);
+        if (isLocalPreview() && stored) {
+          window.location.replace(
+            liveRoomUrl(code) +
+              battle.handoffHash({
+                token: stored.token,
+                player: { id: stored.playerId },
+                room: { code: code.toUpperCase() },
+              } as BattleSession)
+          );
+          return;
+        }
+        navigate(`/battle/${code.toUpperCase()}`, { replace: true });
+      }
       else setChecking(false);
     });
     return () => {

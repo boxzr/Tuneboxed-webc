@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
+import { liveJoinUrl } from '../lib/publicUrl';
 import { useBattleRoom } from '../battle/useBattleRoom';
 import { useBattleRound } from '../battle/useBattleRound';
 import { useRoundAutopilot } from '../battle/useRoundAutopilot';
@@ -42,7 +43,10 @@ export default function BattleRoom() {
   const { code = '' } = useParams<{ code: string }>();
   const navigate = useNavigate();
 
-  const stored = useMemo(() => battle.loadSession(code), [code]);
+  const stored = useMemo(() => {
+    battle.takeHandoff(code);
+    return battle.loadSession(code);
+  }, [code]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -167,7 +171,7 @@ export default function BattleRoom() {
   }
 
   const connected = players.filter((p) => p.is_connected);
-  const joinUrl = `${window.location.origin}/join/${room.code}`;
+  const joinUrl = liveJoinUrl(room.code);
   const nameOf = (id: string | null) =>
     players.find((p) => p.id === id)?.display_name ?? 'Someone';
 

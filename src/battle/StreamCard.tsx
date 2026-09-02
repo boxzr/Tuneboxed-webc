@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { liveBoardUrl } from '../lib/publicUrl';
 import { Card, SectionLabel, VividButton } from './ui/primitives';
 import { CopyIcon, ScreenIcon } from './ui/icons';
 
@@ -16,7 +17,7 @@ import { CopyIcon, ScreenIcon } from './ui/icons';
  */
 export default function StreamCard({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
-  const url = `${window.location.origin}/tv/${code}`;
+  const url = liveBoardUrl(code);
 
   return (
     <Card className="bt-stream">

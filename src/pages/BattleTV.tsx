@@ -42,7 +42,11 @@ export default function BattleTV() {
   // Source, where their own controls would otherwise go out on the stream.
   const controlsAllowed = params.get('controls') !== '0';
 
-  const stored = useMemo(() => (demo ? null : battle.loadSession(code)), [code, demo]);
+  const stored = useMemo(() => {
+    if (demo) return null;
+    battle.takeHandoff(code);
+    return battle.loadSession(code);
+  }, [code, demo]);
   const token = stored?.token ?? null;
 
   const [roomId, setRoomId] = useState<string | null>(null);

@@ -110,6 +110,36 @@ export function clearSession(code: string): void {
 }
 
 /**
+ * One-time seat transfer from the local preview onto tuneboxed.com.
+ *
+ * The hash is stripped as soon as it is read so the token does not sit in
+ * the address bar. Do this before loadSession on the room page.
+ */
+export function takeHandoff(code: string): void {
+  if (typeof window === 'undefined') return;
+  const raw = window.location.hash.replace(/^#/, '');
+  if (!raw.includes('handoff=')) return;
+  const params = new URLSearchParams(raw);
+  const token = params.get('handoff');
+  const playerId = params.get('player');
+  if (!token || !playerId) return;
+  saveSession({
+    token,
+    player: { id: playerId } as BattleSession['player'],
+    room: { code: code.toUpperCase() } as BattleSession['room'],
+  });
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+
+export function handoffHash(session: BattleSession): string {
+  const params = new URLSearchParams({
+    handoff: session.token,
+    player: session.player.id,
+  });
+  return `#${params.toString()}`;
+}
+
+/**
  * The last name this browser played under.
  *
  * Kept apart from the per-room session because it is what gets someone back

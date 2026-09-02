@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import logo from '../assets/tuneboxed-battle-logo.png';
+import { liveJoinUrl } from '../lib/publicUrl';
 import { CopyIcon } from './ui/icons';
 
 /** The canvas and single column every battle screen sits in. */
@@ -29,7 +30,7 @@ export function RoomHeader({
   compact: boolean;
 }) {
   const [copied, setCopied] = useState(false);
-  const joinUrl = `${window.location.origin}/join/${code}`;
+  const joinUrl = liveJoinUrl(code);
 
   const copy = async () => {
     try {
