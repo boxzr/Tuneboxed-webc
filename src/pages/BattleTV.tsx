@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
 import { useBattleRoom } from '../battle/useBattleRoom';
@@ -7,13 +7,14 @@ import { useRoundAutopilot } from '../battle/useRoundAutopilot';
 import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
+import { PARTY_ROUNDS } from '../battle/rules';
 import { type HostContext, nextHostAction } from '../battle/hostActions';
 import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
-import { useGenreBackdrop } from '../battle/useGenreBackdrop';
+import GenreScene from '../battle/GenreScene';
 import { uniqueLeader } from '../battle/voteLeader';
-import { BoxerSprite, Gloves, Monogram } from '../battle/ui/primitives';
+import { BoxerSprite, Gloves, Monogram, PromptLabel } from '../battle/ui/primitives';
 import { CheckIcon, CrownIcon, TrophyIcon } from '../battle/ui/icons';
-import type { BattleMatch, BattlePlayer, BattleSubmission } from '../types/battle';
+import type { BattleMatch, BattlePlayer, BattleRoundPhase, BattleSubmission } from '../types/battle';
 import '../battle/ui/ui.css';
 import './tv.css';
 
@@ -182,6 +183,14 @@ export default function BattleTV() {
       })
     : null;
 
+  // Saving the vibe can enable Start on this tab. Do not treat that as a click.
+  const startArmedAt = useRef(0);
+  const lastTheme = useRef(room.theme);
+  if (room.theme !== lastTheme.current) {
+    if (room.theme?.trim()) startArmedAt.current = Date.now() + 1200;
+    lastTheme.current = room.theme;
+  }
+
   const controls =
     isHost && controlsAllowed ? (
       <HostBar
@@ -191,6 +200,7 @@ export default function BattleTV() {
         visible={pointerActive}
         onRun={() => {
           if (!action) return;
+          if (action.id === 'start' && Date.now() < startArmedAt.current) return;
           setActionError(null);
           setBusy(true);
           action
@@ -204,11 +214,11 @@ export default function BattleTV() {
   if (championId) {
     return (
       <Board genre={round?.genre ?? null} controls={controls}>
-        <div className="tv-champion">
+        <div className="tv-champion tv-hero">
           <span className="tv-champion__trophy">
             <TrophyIcon size={96} />
           </span>
-          <span className="tv-eyebrow">Champion</span>
+          <PromptLabel>Champion</PromptLabel>
           <h1 className="tv-champion__name">{nameOf(championId)}</h1>
           <p className="tv-champion__sub">Winner of the whole bracket</p>
         </div>
@@ -251,22 +261,29 @@ export default function BattleTV() {
               <span className="tv-code">{room.code}</span>
             </span>
 
-            {seconds !== null && (
+            {seconds !== null ? (
               <span className={`tv-timer${seconds <= 10 ? ' tv-timer--urgent' : ''}`}>
                 {seconds}
               </span>
+            ) : (
+              <span className="tv-round">
+                {isBracket
+                  ? `Round ${room.round_number}`
+                  : `Round ${room.round_number} of ${PARTY_ROUNDS}`}
+              </span>
             )}
           </div>
-
-          {/* Its own full width row. Sharing one with the code and the clock
-              meant a long prompt ran out of room and clipped mid word. */}
-          <div className="tv-head__prompt">
-            <span className="tv-eyebrow">{classic ? 'This game\u2019s vibe' : 'This round\u2019s vibe'}</span>
-            <h1 className="tv-genre" data-len={lengthClass(round.genre)}>
-              {round.genre}
-            </h1>
-          </div>
         </header>
+
+        <div className="tv-hero">
+          <PromptLabel>{classic ? "This game's vibe" : 'Genre prompt'}</PromptLabel>
+          <h1 className="tv-genre" data-len={lengthClass(round.genre)}>
+            {round.genre}
+          </h1>
+          <p className="tv-hero__sub">
+            {phaseLine(round.phase, seconds, room.host_twitch_login)}
+          </p>
+        </div>
 
         {currentMatch && (
           <Matchup
@@ -400,6 +417,25 @@ function usePointerActivity(idleMs = 2500): boolean {
   return active;
 }
 
+function phaseLine(
+  phase: BattleRoundPhase,
+  seconds: number | null,
+  chatChannel: string | null
+): string {
+  switch (phase) {
+    case 'picking':
+      return seconds !== null ? `${seconds} seconds left to pick` : 'Pick the song that fits the vibe';
+    case 'playing':
+      return 'Songs are playing…';
+    case 'judging':
+      return chatChannel ? 'Chat is voting' : 'The room is voting';
+    case 'revealed':
+      return 'Winner of the round';
+    default:
+      return '';
+  }
+}
+
 function Board({
   children,
   genre,
@@ -413,15 +449,9 @@ function Board({
   avatar?: string | null;
   controls?: React.ReactNode;
 }) {
-  const cartoon = useGenreBackdrop(genre);
-
   return (
     <div className="tv">
-      {cartoon && (
-        <div className="tv-backdrop" aria-hidden="true">
-          <img src={cartoon} alt="" />
-        </div>
-      )}
+      <GenreScene genre={genre} />
 
       {host && (
         <div className="tv-host">
@@ -462,7 +492,12 @@ function HostBar({
       {error && <span className="tv-controls__error">{error}</span>}
 
       {action ? (
-        <button className="tv-controls__go" disabled={busy || action.disabled} onClick={onRun}>
+        <button
+          type="button"
+          className="tv-controls__go"
+          disabled={busy || action.disabled}
+          onClick={onRun}
+        >
           {busy ? 'Working…' : action.label}
         </button>
       ) : (
@@ -493,9 +528,12 @@ function Lobby({
       <span className="tv-eyebrow">Join at tuneboxed.com</span>
       <div className="tv-lobby__code">{code}</div>
       {theme ? (
-        <h1 className="tv-genre" data-len={lengthClass(theme)}>
-          {theme}
-        </h1>
+        <div className="tv-hero">
+          <PromptLabel>This game&rsquo;s vibe</PromptLabel>
+          <h1 className="tv-genre" data-len={lengthClass(theme)}>
+            {theme}
+          </h1>
+        </div>
       ) : null}
       <p className="tv-lobby__sub">
         {theme
@@ -526,7 +564,7 @@ function Matchup({
   winnerId: string | null | undefined;
 }) {
   return (
-    <div className="tv-matchup">
+    <div className="tv-matchup tv-card">
       <Corner
         side="blue"
         name={nameOf(match.player_a_id)}
@@ -562,7 +600,7 @@ function Corner({
           <CrownIcon size={40} />
         </span>
       )}
-      <BoxerSprite side={side} size={190} dimmed={lost} />
+      <BoxerSprite side={side} size={96} dimmed={lost} />
       <span className="tv-corner__name">{name}</span>
     </div>
   );
@@ -622,7 +660,7 @@ function Playing({
   }
 
   return (
-    <div className="tv-now">
+    <div className="tv-now tv-card">
       {now.artwork_url && <img className="tv-now__art" src={now.artwork_url} alt="" />}
       <div className="tv-now__text">
         <span className="tv-eyebrow">
@@ -697,7 +735,7 @@ function Revealed({
   if (!winner) return <div className="tv-status">No winner recorded</div>;
 
   return (
-    <div className="tv-reveal">
+    <div className="tv-reveal tv-hero">
       <span className="tv-eyebrow">Takes the round</span>
       <h2 className="tv-reveal__name">{nameOf(winner.player_id)}</h2>
       <p className="tv-reveal__song">

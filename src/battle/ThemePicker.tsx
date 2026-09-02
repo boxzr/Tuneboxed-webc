@@ -33,7 +33,14 @@ export default function ThemePicker({
   };
 
   return (
-    <div className="bt-theme">
+    <form
+      className="bt-theme"
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        commit();
+      }}
+    >
       <input
         className="bt-theme__input"
         list="bt-theme-list"
@@ -44,10 +51,10 @@ export default function ThemePicker({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            commit();
-          }
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          e.stopPropagation();
+          commit();
         }}
       />
       <datalist id="bt-theme-list">
@@ -55,6 +62,6 @@ export default function ThemePicker({
           <option key={g} value={g} />
         ))}
       </datalist>
-    </div>
+    </form>
   );
 }

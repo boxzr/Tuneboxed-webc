@@ -89,6 +89,8 @@ export async function startPartyRound(
 
 /** Seeds the bracket if there is one, then opens the first round. */
 export async function startGame(ctx: HostContext): Promise<void> {
+  if (ctx.room.status !== 'lobby') return;
+
   if (ctx.room.format !== 'bracket') {
     await startPartyRound(ctx, ctx.room.round_number);
     return;

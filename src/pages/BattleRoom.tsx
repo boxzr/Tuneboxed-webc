@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as battle from '../lib/battleClient';
 import { useBattleRoom } from '../battle/useBattleRoom';
@@ -280,8 +280,13 @@ export default function BattleRoom() {
       ? `Round ${round.round_number} of ${PARTY_ROUNDS}`
       : `${connected.length} in the room`;
 
+  // Enter in the vibe field must not fire Start. Saving the theme can mount
+  // that button in the same keypress, so ignore start for a beat after.
+  const startArmedAt = useRef(0);
+
   const saveSettings = (patch: Parameters<typeof battle.updateRoomSettings>[1]) =>
     void guard(async () => {
+      if (patch.theme !== undefined) startArmedAt.current = Date.now() + 1200;
       await battle.updateRoomSettings(token!, patch);
       await refresh();
     });
@@ -302,7 +307,11 @@ export default function BattleRoom() {
         })
       : null;
 
-  const runAction = () => action && void guard(action.run);
+  const runAction = () => {
+    if (!action) return;
+    if (action.id === 'start' && Date.now() < startArmedAt.current) return;
+    void guard(action.run);
+  };
 
   return (
     <RoomShell>
@@ -345,7 +354,7 @@ export default function BattleRoom() {
             <Gloves size={132} />
             <p className="bt-lobby__pitch">
               {classic
-                ? 'One vibe. Lock a song in now — no clock.'
+                ? 'One vibe for the whole game. Share the code, lock songs in, then start when everyone is here.'
                 : isBracket
                   ? 'Two songs go head to head. The room votes until one is left.'
                   : votingMode === 'host'
