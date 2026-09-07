@@ -95,6 +95,12 @@ export interface BattleRound {
   playback_started_at: string | null;
   playback_order: string[] | null;
   seconds_per_song: number;
+  /**
+   * How far into each preview to start playing, for a host who wants the
+   * chorus rather than the intro. Optional because rooms and databases that
+   * predate the column simply play from the top.
+   */
+  clip_start_seconds?: number | null;
   match_id: string | null;
   created_at: string;
 }

@@ -12,6 +12,13 @@ interface Options {
   submissions: BattleSubmission[];
   /** Every clip in the round has finished playing. */
   playbackFinished: boolean;
+  /**
+   * How long each song should play for once the pick clock closes. Defaults
+   * to the fixed clip so a caller that does not care can leave it out.
+   */
+  clipSeconds?: number;
+  /** How far into each preview to start. Zero plays from the top. */
+  clipStart?: number;
 }
 
 /**
@@ -31,6 +38,8 @@ export function useRoundAutopilot({
   round,
   submissions,
   playbackFinished,
+  clipSeconds = CLIP_SECONDS,
+  clipStart = 0,
 }: Options): { empty: boolean } {
   const phase = round?.phase ?? null;
 
@@ -87,8 +96,15 @@ export function useRoundAutopilot({
     const roundId = round.id;
     const locked = submissions;
 
-    void battle
-      .closePicking(token, roundId, CLIP_SECONDS)
+    // Ahead of the clock closing, so the offset is already on the round when
+    // the server stamps a start time. Best effort for the same reason as the
+    // host actions: a database without the column plays from the top.
+    const withStart = isHost && clipStart > 0
+      ? battle.setClipStart(token, roundId, clipStart).catch(() => {})
+      : Promise.resolve();
+
+    void withStart
+      .then(() => battle.closePicking(token, roundId, clipSeconds))
       .then((outcome) => {
         if (outcome === 'empty') setEmptyKey(deadlineKey);
       })
@@ -101,13 +117,24 @@ export function useRoundAutopilot({
           void battle.setRoundWinner(token, roundId, locked[0].id).catch(() => {});
         } else if (locked.length >= 2) {
           void battle
-            .startPlayback(token, roundId, locked.map((s) => s.id), CLIP_SECONDS)
+            .startPlayback(token, roundId, locked.map((s) => s.id), clipSeconds)
             .catch(() => {});
         } else {
           setEmptyKey(deadlineKey);
         }
       });
-  }, [token, isHost, phase, round?.id, round?.phase_deadline_at, deadlineKey, submissions, tick]);
+  }, [
+    token,
+    isHost,
+    phase,
+    round?.id,
+    round?.phase_deadline_at,
+    deadlineKey,
+    submissions,
+    clipSeconds,
+    clipStart,
+    tick,
+  ]);
 
   return { empty: emptyKey !== null && emptyKey === deadlineKey && submissions.length === 0 };
 }

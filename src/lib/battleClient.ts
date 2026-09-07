@@ -433,6 +433,21 @@ export const startPlayback = (
     p_seconds_per_song: secondsPerSong,
   });
 
+/**
+ * Sets where in each preview this round's clips start.
+ *
+ * Its own call rather than an argument to `startPlayback`, so a deploy that
+ * lands before the migration does degrades to playing from the top instead of
+ * failing the whole round on an unknown parameter. Callers treat a rejection
+ * as "no offset" for the same reason.
+ */
+export const setClipStart = (token: string, roundId: string, startSeconds: number) =>
+  rpc<void>('battle_set_clip_start', {
+    p_token: token,
+    p_round_id: roundId,
+    p_clip_start_seconds: startSeconds,
+  });
+
 export const updateRoomSettings = (
   token: string,
   settings: {

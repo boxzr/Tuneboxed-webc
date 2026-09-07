@@ -296,6 +296,38 @@ html.tv-active #root {
   font-size: clamp(1.7rem, 3.8vw, 4rem);
 }
 
+/* ---------- Prompt during a fight ----------
+   A bout needs most of the screen, so the prompt gives its height back and
+   drops to a single line. It still reads from a couch; it just stops being
+   the biggest thing on the board while two songs are trading punches. */
+.tv-hero--compact {
+  width: min(92vw, 1500px);
+  padding: 1.2vh 3vw;
+}
+
+.tv-hero--compact .tv-genre {
+  margin-top: 0.1vh;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-hero--compact .tv-genre[data-len='short'] {
+  font-size: clamp(1.5rem, 3.4vw, 3.4rem);
+}
+
+.tv-hero--compact .tv-genre[data-len='medium'] {
+  font-size: clamp(1.3rem, 2.8vw, 2.9rem);
+}
+
+.tv-hero--compact .tv-genre[data-len='long'] {
+  font-size: clamp(1.1rem, 2.2vw, 2.3rem);
+}
+
+.tv-hero--compact .bt-prompt-label {
+  font-size: clamp(0.7rem, 1vw, 1.05rem);
+}
+
 .tv-timer {
   display: inline-grid;
   place-items: center;

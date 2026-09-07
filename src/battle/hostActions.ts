@@ -1,7 +1,7 @@
 import * as battle from '../lib/battleClient';
 import { resolvedVoting } from './GameSettings';
 import { genreForRound, isClassic } from './playStyle';
-import { CLIP_SECONDS, PARTY_ROUNDS, PICK_SECONDS, VOTE_SECONDS } from './rules';
+import { PARTY_ROUNDS, PICK_SECONDS, VOTE_SECONDS } from './rules';
 import type { BattleMatch, BattleRoom, BattleRound, BattleSubmission } from '../types/battle';
 
 /**
@@ -25,7 +25,31 @@ export interface HostContext {
   voteLeader: string | null;
   /** Prompts already used this room, so a bracket never repeats one. */
   usedGenres: readonly string[];
+  /**
+   * How long each song plays for. The host sets this for a bracket; every
+   * other format passes the fixed clip. See useClipSeconds.ts.
+   */
+  clipSeconds: number;
+  /** How far into each preview to start. Zero plays from the top. */
+  clipStart: number;
   refresh: () => Promise<void>;
+}
+
+/**
+ * Publishes the clip start onto the round before its songs begin.
+ *
+ * Written ahead of playback so every client already has it when the start
+ * timestamp lands, rather than beginning at the top and lurching once the
+ * offset arrives. Failure is swallowed: a database without the column yet
+ * should play from the top, not refuse to play.
+ */
+async function publishClipStart(ctx: HostContext, roundId: string): Promise<void> {
+  if (ctx.clipStart <= 0) return;
+  try {
+    await battle.setClipStart(ctx.token, roundId, ctx.clipStart);
+  } catch {
+    // Pre-migration database. Clips play from the top.
+  }
 }
 
 const matchOf = (ctx: HostContext): BattleMatch | null =>
@@ -39,11 +63,12 @@ async function playClassicRound(ctx: HostContext, roundId: string): Promise<void
   await battle.seedRoundFromEntries(ctx.token, roundId);
   const seeded = await battle.getSubmissions(roundId);
   if (seeded.length >= 2) {
+    await publishClipStart(ctx, roundId);
     await battle.startPlayback(
       ctx.token,
       roundId,
       seeded.map((s) => s.id),
-      CLIP_SECONDS
+      ctx.clipSeconds
     );
   }
   await ctx.refresh();
@@ -109,11 +134,12 @@ export async function startGame(ctx: HostContext): Promise<void> {
 /** Starts the songs before the pick clock runs out. */
 export async function playNow(ctx: HostContext): Promise<void> {
   if (!ctx.round) return;
+  await publishClipStart(ctx, ctx.round.id);
   await battle.startPlayback(
     ctx.token,
     ctx.round.id,
     ctx.submissions.map((s) => s.id),
-    CLIP_SECONDS
+    ctx.clipSeconds
   );
 }
 

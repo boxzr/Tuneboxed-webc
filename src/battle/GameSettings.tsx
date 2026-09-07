@@ -2,6 +2,15 @@ import type { ReactNode } from 'react';
 import { Card, SectionLabel } from './ui/primitives';
 import { SlidersIcon } from './ui/icons';
 import { defaultPlayStyle, isClassic } from './playStyle';
+import {
+  CLIP_MAX,
+  CLIP_MIN,
+  CLIP_START_ENABLED,
+  CLIP_STEP,
+  PREVIEW_SECONDS,
+  clipLabel,
+  maxClipStart,
+} from './rules';
 import type { BattleFormat, BattlePlayStyle, BattleRoom, BattleVotingMode } from '../types/battle';
 
 const VOTING: Record<
@@ -35,11 +44,13 @@ export function resolvedVoting(room: BattleRoom): BattleVotingMode {
   return room.voting_mode;
 }
 
-export function rulesSummary(room: BattleRoom, aiJudge: boolean): string {
+export function rulesSummary(room: BattleRoom, aiJudge: boolean, clipSeconds?: number): string {
   const format = room.format === 'bracket' ? 'Bracket' : 'Best of 3';
   const style = isClassic(room) ? 'Classic' : 'TuneBoxed';
   const judging = aiJudge ? 'AI judge' : VOTING[resolvedVoting(room)].title;
-  return `${format} · ${style} · ${judging}`;
+  // Only a bracket can change it, so only a bracket is worth reporting it on.
+  const clip = room.format === 'bracket' && clipSeconds ? ` · ${clipSeconds}s clips` : '';
+  return `${format} · ${style} · ${judging}${clip}`;
 }
 
 type Patch = {
@@ -61,11 +72,20 @@ export function GameSettingsPanel({
   room,
   playerCount,
   aiJudge,
+  clipSeconds,
+  clipStart,
+  onClipSeconds,
+  onClipStart,
   onChange,
 }: {
   room: BattleRoom;
   playerCount: number;
   aiJudge: boolean;
+  /** Bracket only. Every other format plays the fixed fifteen second clip. */
+  clipSeconds: number;
+  clipStart: number;
+  onClipSeconds: (seconds: number) => void;
+  onClipStart: (startSeconds: number) => void;
   onChange: (patch: Patch) => void;
 }) {
   const isBracket = room.format === 'bracket';
@@ -74,6 +94,10 @@ export function GameSettingsPanel({
   const voting = resolvedVoting(room);
   const votingOptions: BattleVotingMode[] = isBracket ? ['host', 'everyone'] : ['judge', 'host', 'everyone'];
   const hostOnly = room.host_speaker_enabled === true;
+  // Guarded here as well as in the hook, so a stored pair that no longer fits
+  // cannot render a thumb past the end of its own track.
+  const startCeiling = maxClipStart(clipSeconds);
+  const startPoint = Math.min(clipStart, startCeiling);
 
   return (
     <Card className="bt-settings-panel">
@@ -156,6 +180,71 @@ export function GameSettingsPanel({
             ]}
             onChange={(id) => onChange({ playStyle: id })}
           />
+        </SettingsBlock>
+      )}
+
+      {/* Streamers asked for this: a bracket is where two songs get judged
+          against each other and fifteen seconds is not always enough to hear
+          them. Available mid-game, unlike format and capacity, because the
+          right length is something a host works out while running the room. */}
+      {isBracket && (
+        <SettingsBlock
+          title="How long each song plays"
+          subtitle={`Both songs in a matchup play for ${clipLabel(
+            clipSeconds
+          )}. Takes effect from the next matchup, so it will not cut a song that is already playing.`}
+        >
+          <input
+            className="bt-slider"
+            type="range"
+            min={CLIP_MIN}
+            max={CLIP_MAX}
+            step={CLIP_STEP}
+            value={clipSeconds}
+            aria-label="Seconds each song plays for"
+            onChange={(e) => onClipSeconds(Number(e.currentTarget.value))}
+          />
+          <div className="bt-slider__scale" aria-hidden="true">
+            <span>{CLIP_MIN}s</span>
+            <strong className="bt-slider__now">{clipSeconds}s</strong>
+            <span>{CLIP_MAX}s</span>
+          </div>
+        </SettingsBlock>
+      )}
+
+      {/* The clip has to finish inside the thirty second preview, so the room
+          to move the start is whatever the length is not using. At the full
+          length there is none, and the slider says so rather than
+          disappearing. */}
+      {isBracket && CLIP_START_ENABLED && (
+        <SettingsBlock
+          title="Where each song starts"
+          subtitle={
+            startCeiling === 0
+              ? `A ${clipSeconds} second clip uses the whole preview, so it has to start at the beginning. Shorten it to skip the intro.`
+              : startPoint === 0
+                ? 'Clips play from the start of the preview. Drag to skip an intro and land on the chorus.'
+                : `Clips skip the first ${startPoint} seconds.`
+          }
+        >
+          <input
+            className="bt-slider"
+            type="range"
+            min={0}
+            max={startCeiling}
+            step={CLIP_STEP}
+            value={startPoint}
+            disabled={startCeiling === 0}
+            aria-label="Seconds to skip before each clip starts"
+            onChange={(e) => onClipStart(Number(e.currentTarget.value))}
+          />
+          <div className="bt-slider__scale" aria-hidden="true">
+            <span>0s</span>
+            <strong className="bt-slider__now">
+              {startPoint}s&ndash;{startPoint + clipSeconds}s
+            </strong>
+            <span>{PREVIEW_SECONDS}s</span>
+          </div>
         </SettingsBlock>
       )}
 

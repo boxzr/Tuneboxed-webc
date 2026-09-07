@@ -9,8 +9,75 @@
 /** Seconds on the clock to pick a song. */
 export const PICK_SECONDS = 45;
 
-/** How long each song plays for. */
+/** How long each song plays for, unless the host has changed it. */
 export const CLIP_SECONDS = 15;
+
+/**
+ * Everything a pick gives us to play.
+ *
+ * iTunes hands back a thirty second preview, and that is the whole file: an
+ * itunes-assets URL for "Ms. Jackson" measures 30.02 seconds. It is the only
+ * source that plays as plain audio in every browser, which is why the room
+ * uses it, so thirty seconds is a hard ceiling rather than a guess. Asking
+ * for a longer clip than this buys silence, not more song.
+ */
+export const PREVIEW_SECONDS = 30;
+
+/**
+ * Whether the host can move where in the preview a clip starts.
+ *
+ * The offset has to travel on the round for every listener to seek to the
+ * same place, which needs the column and function in
+ * SUPABASE_CLIP_START_MIGRATION.sql. Until that is applied the write is a
+ * no-op, and a slider that reports skipping the first ten seconds while every
+ * clip still plays from the top is worse than no slider. Flip this to true
+ * once the migration has run.
+ */
+export const CLIP_START_ENABLED = false;
+
+/**
+ * The range a host can drag the clip length across.
+ *
+ * Streamers running a bracket asked for this. Fifteen seconds is right for a
+ * party round where the room wants to move, but a head-to-head where two
+ * songs are judged against each other needs longer to sit with them. Only a
+ * bracket offers the slider; see useClipSeconds.ts.
+ */
+export const CLIP_MIN = 10;
+export const CLIP_MAX = PREVIEW_SECONDS;
+export const CLIP_STEP = 5;
+
+/** Snapped to the slider's own steps, so a stale stored value cannot drift. */
+export function clampClipSeconds(seconds: number): number {
+  if (!Number.isFinite(seconds)) return CLIP_SECONDS;
+  const snapped = Math.round(seconds / CLIP_STEP) * CLIP_STEP;
+  return Math.min(CLIP_MAX, Math.max(CLIP_MIN, snapped));
+}
+
+/**
+ * How far into the preview the host can start a clip of this length.
+ *
+ * A clip has to finish inside the preview, so the two settings are coupled:
+ * asking for the full thirty seconds pins the start at the beginning, and a
+ * shorter clip is what buys room to move it. Dragging the length up
+ * therefore has to pull an out-of-range start back down with it.
+ */
+export function maxClipStart(clipSeconds: number): number {
+  const room = PREVIEW_SECONDS - clampClipSeconds(clipSeconds);
+  return Math.max(0, Math.floor(room / CLIP_STEP) * CLIP_STEP);
+}
+
+/** Snapped to the steps, and never past where this clip length can start. */
+export function clampClipStart(startSeconds: number, clipSeconds: number): number {
+  if (!Number.isFinite(startSeconds)) return 0;
+  const snapped = Math.round(startSeconds / CLIP_STEP) * CLIP_STEP;
+  return Math.min(maxClipStart(clipSeconds), Math.max(0, snapped));
+}
+
+/** Reads as prose, so copy can say "songs play for a full minute". */
+export function clipLabel(seconds: number): string {
+  return seconds >= 60 ? 'a full minute' : `${seconds} seconds`;
+}
 
 /**
  * Which clip the room should be on, given how long playback has been running.

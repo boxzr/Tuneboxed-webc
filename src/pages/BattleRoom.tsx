@@ -9,6 +9,7 @@ import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useChatVotes } from '../battle/useChatVotes';
 import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
+import { useClipSeconds } from '../battle/useClipSeconds';
 import { CLIP_SECONDS, PARTY_ROUNDS, PICK_SECONDS } from '../battle/rules';
 import { type HostContext, nextHostAction } from '../battle/hostActions';
 import { uniqueLeader } from '../battle/voteLeader';
@@ -108,12 +109,18 @@ export default function BattleRoom() {
     if (!loading && roomId && !stored) navigate(`/join/${code.toUpperCase()}`, { replace: true });
   }, [loading, roomId, stored, code, navigate]);
 
+  // Declared above the loading returns so the hook order never shifts. Only a
+  // bracket lets the host change this; every other format gets the fixed clip.
+  const clip = useClipSeconds(room?.format === 'bracket');
+
   const { empty: pickedNothing } = useRoundAutopilot({
     token,
     isHost,
     round,
     submissions,
     playbackFinished: playback.finished,
+    clipSeconds: clip.seconds,
+    clipStart: clip.start,
   });
 
   const guard = useCallback(async (fn: () => Promise<unknown>) => {
@@ -296,7 +303,18 @@ export default function BattleRoom() {
   // The board at /tv runs these too, so a host on a stream can drive the game
   // from whichever screen they are already looking at.
   const hostCtx: HostContext | null = token
-    ? { token, room, matches, round, submissions, voteLeader, usedGenres, refresh }
+    ? {
+        token,
+        room,
+        matches,
+        round,
+        submissions,
+        voteLeader,
+        usedGenres,
+        clipSeconds: clip.seconds,
+        clipStart: clip.start,
+        refresh,
+      }
     : null;
 
   const action =
@@ -506,11 +524,15 @@ export default function BattleRoom() {
                   room={room}
                   playerCount={players.length}
                   aiJudge={needsAiJudge}
+                  clipSeconds={clip.seconds}
+                  clipStart={clip.start}
+                  onClipSeconds={clip.setSeconds}
+                  onClipStart={clip.setStart}
                   onChange={saveSettings}
                 />
               )}
               <GameSettingsButton
-                summary={rulesSummary(room, needsAiJudge)}
+                summary={rulesSummary(room, needsAiJudge, clip.seconds)}
                 open={settingsOpen}
                 onClick={() => setSettingsOpen((o) => !o)}
               />
@@ -863,11 +885,15 @@ export default function BattleRoom() {
               room={room}
               playerCount={players.length}
               aiJudge={needsAiJudge}
+              clipSeconds={clip.seconds}
+              clipStart={clip.start}
+              onClipSeconds={clip.setSeconds}
+              onClipStart={clip.setStart}
               onChange={saveSettings}
             />
           )}
           <GameSettingsButton
-            summary={rulesSummary(room, needsAiJudge)}
+            summary={rulesSummary(room, needsAiJudge, clip.seconds)}
             open={settingsOpen}
             onClick={() => setSettingsOpen((o) => !o)}
           />

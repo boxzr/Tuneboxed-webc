@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { serverTime } from './clock';
-import { CLIP_SECONDS, clipIndex, clipsFinished } from './rules';
+import { CLIP_SECONDS, clampClipStart, clipIndex, clipsFinished } from './rules';
 import type { BattleRound, BattleSubmission } from '../types/battle';
 
 interface Playback {
@@ -65,12 +65,18 @@ export function useSyncedPlayback(
   }, [round, submissions]);
 
   const perSong = round?.seconds_per_song ?? CLIP_SECONDS;
+  // Where in the preview each clip begins. Comes off the round so every
+  // client seeks to the same place; absent on rooms that predate the column,
+  // which play from the top as they always did.
+  const clipStart = clampClipStart(round?.clip_start_seconds ?? 0, perSong);
   const startedAt = round?.playback_started_at ? new Date(round.playback_started_at).getTime() : null;
 
   const elapsed = startedAt !== null ? (serverTime() - startedAt) / 1000 : 0;
   const finished = startedAt !== null && clipsFinished(elapsed, order.length, perSong);
   const index = startedAt !== null ? clipIndex(elapsed, order.length, perSong) : -1;
   const offset = startedAt !== null ? elapsed - Math.max(0, index) * perSong : 0;
+  /** Where the media element itself should be, as opposed to the clip. */
+  const seekTo = clipStart + Math.max(0, offset);
 
   const current = useMemo(() => {
     if (index < 0 || finished) return null;
@@ -119,7 +125,7 @@ export function useSyncedPlayback(
 
     if (media.src !== src) {
       media.src = src;
-      media.currentTime = Math.max(0, offset);
+      media.currentTime = seekTo;
       media.play().then(
         () => setBlocked(false),
         // Browsers block autoplay until the user has interacted with the
@@ -132,8 +138,8 @@ export function useSyncedPlayback(
 
     // Nudge back into sync if we have drifted more than a second, which
     // happens after a tab is backgrounded.
-    if (Math.abs(media.currentTime - offset) > 1) {
-      media.currentTime = Math.max(0, offset);
+    if (Math.abs(media.currentTime - seekTo) > 1) {
+      media.currentTime = seekTo;
     }
     if (media.paused) {
       media.play().then(
@@ -141,8 +147,8 @@ export function useSyncedPlayback(
         () => setBlocked(true)
       );
     }
-    // `tick` is what re-runs this; the drift check needs a fresh `offset`.
-  }, [enabled, current, offset, finished, tick, needsScreen, videoEl]);
+    // `tick` is what re-runs this; the drift check needs a fresh `seekTo`.
+  }, [enabled, current, seekTo, finished, tick, needsScreen, videoEl]);
 
   useEffect(() => {
     return () => {

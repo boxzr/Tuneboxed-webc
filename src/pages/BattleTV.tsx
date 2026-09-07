@@ -7,12 +7,14 @@ import { useRoundAutopilot } from '../battle/useRoundAutopilot';
 import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
+import { useClipSeconds } from '../battle/useClipSeconds';
 import { PARTY_ROUNDS } from '../battle/rules';
 import { type HostContext, nextHostAction } from '../battle/hostActions';
 import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
 import GenreScene from '../battle/GenreScene';
 import { uniqueLeader } from '../battle/voteLeader';
 import { BoxerSprite, Gloves, Monogram, PromptLabel } from '../battle/ui/primitives';
+import BoxingMatch, { type Fighter } from '../battle/ui/BoxingMatch';
 import { CheckIcon, CrownIcon, TrophyIcon } from '../battle/ui/icons';
 import type { BattleMatch, BattlePlayer, BattleRoundPhase, BattleSubmission } from '../types/battle';
 import '../battle/ui/ui.css';
@@ -110,6 +112,10 @@ export default function BattleTV() {
   // copy playing half a second behind would be worse than silence.
   const playback = useSyncedPlayback(round, submissions, false);
 
+  // Same preference the room page reads, since a host can drive the game from
+  // either tab and both have to agree on how long a song plays for.
+  const clip = useClipSeconds(room?.format === 'bracket');
+
   // The host drives the game from whichever tab they are looking at, so the
   // parts of a round that run themselves have to run here too.
   const { empty: pickedNothing } = useRoundAutopilot({
@@ -118,6 +124,8 @@ export default function BattleTV() {
     round,
     submissions,
     playbackFinished: playback.finished,
+    clipSeconds: clip.seconds,
+    clipStart: clip.start,
   });
 
   const pointerActive = usePointerActivity();
@@ -177,7 +185,18 @@ export default function BattleTV() {
 
   const hostCtx: HostContext | null =
     token && isHost
-      ? { token, room, matches, round, submissions, voteLeader, usedGenres, refresh: liveRoom.refresh }
+      ? {
+          token,
+          room,
+          matches,
+          round,
+          submissions,
+          voteLeader,
+          usedGenres,
+          clipSeconds: clip.seconds,
+          clipStart: clip.start,
+          refresh: liveRoom.refresh,
+        }
       : null;
 
   const action = hostCtx
@@ -249,6 +268,22 @@ export default function BattleTV() {
 
   const seconds = round.phase_deadline_at ? secondsUntil(round.phase_deadline_at) : null;
 
+  // A bracket matchup is fought rather than polled. Null until both songs are
+  // in, which covers the pick clock and a walkover where only one player
+  // submitted; those still get the plain matchup card below.
+  const fight = isBracket ? bracketFighters(currentMatch, submissions, ballotCounts, nameOf) : null;
+
+  const decidedBy =
+    submissions.find((s) => s.id === round.winner_submission_id)?.player_id ??
+    currentMatch?.winner_player_id ??
+    null;
+  const seatOf = (playerId: string | null | undefined): 'a' | 'b' | null => {
+    if (!playerId || !currentMatch) return null;
+    if (playerId === currentMatch.player_a_id) return 'a';
+    if (playerId === currentMatch.player_b_id) return 'b';
+    return null;
+  };
+
   return (
     <Board
       genre={round.genre}
@@ -269,57 +304,78 @@ export default function BattleTV() {
                 {seconds}
               </span>
             ) : (
-              <span className="tv-round">
-                {isBracket
-                  ? `Round ${room.round_number}`
-                  : `Round ${room.round_number} of ${PARTY_ROUNDS}`}
-              </span>
+              // The fight carries its own round pill between the health bars,
+              // so the header only owns this when there is no bout on screen.
+              !fight && (
+                <span className="tv-round">
+                  {isBracket
+                    ? `Round ${room.round_number}`
+                    : `Round ${room.round_number} of ${PARTY_ROUNDS}`}
+                </span>
+              )
             )}
           </div>
         </header>
 
-        <div className="tv-hero">
+        {/* Compact once there is a bout on screen. The prompt is the headline
+            of a lobby, but during a fight it is context and the ring is the
+            thing people are watching. */}
+        <div className={`tv-hero${fight ? ' tv-hero--compact' : ''}`}>
           <PromptLabel>{classic ? "This game's vibe" : 'Genre prompt'}</PromptLabel>
           <h1 className="tv-genre" data-len={lengthClass(round.genre)}>
             {round.genre}
           </h1>
-          <p className="tv-hero__sub">
-            {phaseLine(round.phase, seconds, room.host_twitch_login)}
-          </p>
+          {!fight && (
+            <p className="tv-hero__sub">
+              {phaseLine(round.phase, seconds, room.host_twitch_login)}
+            </p>
+          )}
         </div>
 
-        {currentMatch && (
-          <Matchup
-            match={currentMatch}
-            nameOf={nameOf}
-            winnerId={
-              submissions.find((s) => s.id === round.winner_submission_id)?.player_id ??
-              currentMatch.winner_player_id
-            }
-          />
-        )}
-
-        {round.phase === 'picking' && (
-          <Picking players={players} match={currentMatch} submissions={submissions} />
-        )}
-
-        {round.phase === 'playing' && (
-          <Playing now={playback.current} total={playback.total} index={playback.index} nameOf={nameOf} />
-        )}
-
-        {round.phase === 'judging' && (
-          <Ballot
-            submissions={submissions}
-            counts={ballotCounts}
+        {fight && round.phase !== 'picking' ? (
+          <BoxingMatch
+            a={fight.a}
+            b={fight.b}
+            phase={round.phase}
+            winner={seatOf(decidedBy)}
+            nowPlaying={round.phase === 'playing' ? seatOf(playback.current?.player_id) : null}
             chatChannel={room.host_twitch_login}
+            roundLabel={`Round ${room.round_number}`}
           />
-        )}
+        ) : (
+          <>
+            {currentMatch && (
+              <Matchup match={currentMatch} nameOf={nameOf} winnerId={decidedBy} />
+            )}
 
-        {round.phase === 'revealed' && (
-          <Revealed
-            winner={submissions.find((s) => s.id === round.winner_submission_id) ?? null}
-            nameOf={nameOf}
-          />
+            {round.phase === 'picking' && (
+              <Picking players={players} match={currentMatch} submissions={submissions} />
+            )}
+
+            {round.phase === 'playing' && (
+              <Playing
+                now={playback.current}
+                total={playback.total}
+                index={playback.index}
+                nameOf={nameOf}
+              />
+            )}
+
+            {round.phase === 'judging' && (
+              <Ballot
+                submissions={submissions}
+                counts={ballotCounts}
+                chatChannel={room.host_twitch_login}
+              />
+            )}
+
+            {round.phase === 'revealed' && (
+              <Revealed
+                winner={submissions.find((s) => s.id === round.winner_submission_id) ?? null}
+                nameOf={nameOf}
+              />
+            )}
+          </>
         )}
       </div>
     </Board>
@@ -379,6 +435,43 @@ const DEMO = {
   ],
   votes: [],
 } as unknown as ReturnType<typeof useBattleRoom> & ReturnType<typeof useBattleRound>;
+
+/**
+ * The two corners of a bracket matchup, or nothing.
+ *
+ * Both sides have to have a song in for there to be a fight, so a bye and a
+ * round where one player never picked both fall through to the plain matchup
+ * card rather than staging a bout against an empty corner.
+ */
+function bracketFighters(
+  match: BattleMatch | null,
+  submissions: BattleSubmission[],
+  counts: Record<string, number>,
+  nameOf: (id: string | null) => string
+): { a: Fighter; b: Fighter } | null {
+  if (!match) return null;
+
+  const corner = (playerId: string | null): Fighter | null => {
+    if (!playerId) return null;
+    const at = submissions.findIndex((s) => s.player_id === playerId);
+    if (at === -1) return null;
+    const pick = submissions[at];
+    return {
+      name: nameOf(playerId),
+      songTitle: pick.song_title,
+      songArtist: pick.song_artist,
+      artworkUrl: pick.artwork_url,
+      votes: counts[pick.id] ?? 0,
+      // Chat votes resolve against submission order, so the digit has to come
+      // from there rather than from which corner this song ended up in.
+      ballotNumber: at + 1,
+    };
+  };
+
+  const a = corner(match.player_a_id);
+  const b = corner(match.player_b_id);
+  return a && b ? { a, b } : null;
+}
 
 /**
  * Long prompts get a smaller type ramp rather than a clipped one. "Feels Like

@@ -602,6 +602,81 @@
   cursor: not-allowed;
 }
 
+/* ---------- Clip length slider ----------
+   Native range input rather than a bespoke control, so it drags correctly on
+   a touchscreen and takes arrow keys without any of that being rebuilt. Only
+   the track and the thumb are restyled. */
+
+.bt-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.bt-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--tb-surface-sunken);
+  border: 1px solid var(--tb-hairline);
+}
+
+.bt-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--tb-surface-sunken);
+  border: 1px solid var(--tb-hairline);
+}
+
+.bt-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--tb-orange);
+  box-shadow: var(--tb-shadow-orange);
+}
+
+.bt-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--tb-orange);
+  box-shadow: var(--tb-shadow-orange);
+}
+
+.bt-slider:focus-visible {
+  outline: none;
+}
+
+.bt-slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--tb-blue);
+  outline-offset: 2px;
+}
+
+.bt-slider__scale {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--tb-ink-faint);
+}
+
+.bt-slider__now {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--tb-orange-deep);
+}
+
 @media (max-width: 480px) {
   .bt-idcard__code {
     font-size: 2.6rem;
