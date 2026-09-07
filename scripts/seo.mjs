@@ -17,9 +17,12 @@ export const ROUTES = [
   {
     path: '/',
     name: 'Home',
-    title: 'TuneBoxed | The Kahoot of song battles',
+    // Leads on the boxing match rather than on being like another product.
+    // "Song battle" is the term people search and the competitors own it, so
+    // the description has to say what is different in the first line.
+    title: 'TuneBoxed | Song battles fought as boxing matches',
     description:
-      'Everyone picks a track, the room hears it together, and a bracket picks the winner. Play in the browser around a table, on a call, or on stream.',
+      'Two songs enter the ring and every vote from the room or your Twitch chat lands a punch until one is knocked out. Play free in the browser, on a call, or on stream.',
   },
   {
     path: '/battle',

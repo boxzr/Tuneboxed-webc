@@ -29,7 +29,12 @@
 
 .fight__hud {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* minmax(0, …) rather than a bare 1fr. A 1fr track refuses to shrink below
+     its content, so one long song title takes the width it wants and the
+     other fighter gets whatever is left: the two corners stop being the same
+     size and their health bars stop being comparable, which is the one thing
+     the bars have to be. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
   gap: clamp(8px, 1.2vw, 20px);
 }
@@ -94,6 +99,19 @@
   flex-direction: column;
   min-width: 0;
   line-height: 1.15;
+}
+
+/* Truncate rather than wrap or overflow. The corner is a 1fr grid column with
+   the round pill sitting between the two of them, and a title as ordinary as
+   "Never Gonna Give You Up" is long enough to run out of its column and print
+   itself over that pill. */
+.fight__player,
+.fight__song,
+.fight__artist {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fight__seat--b .fight__label {
@@ -239,13 +257,18 @@
 .fight__ring {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* Matches the HUD above it, so each fighter's boxer stays under their own
+     name and bar however long the titles are. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: end;
   justify-items: center;
   gap: clamp(8px, 2vw, 32px);
   /* The fight is the point of the screen, so the mat claims real height
-     rather than sitting in a letterbox strip under the genre card. */
-  min-height: clamp(170px, 38vh, 520px);
+     rather than sitting in a letterbox strip under the genre card. Bounded by
+     the card's width for the same reason the sprites are: the fighters shrink
+     to fit a narrow card, and a mat still sized off the viewport would leave
+     them standing at the bottom of an empty room. */
+  min-height: min(clamp(170px, 38vh, 520px), 46cqw);
   padding: clamp(14px, 3vh, 44px) clamp(12px, 2vw, 36px) clamp(10px, 1.6vh, 28px);
   border-radius: var(--tb-r-control);
   overflow: hidden;
@@ -302,8 +325,13 @@
   transform-origin: 50% 100%;
 }
 
+/* Height is what the sprite is sized by, but width is what runs out: each
+   fighter has roughly a third of the card, and the ring clips whatever spills.
+   Capping against the container's own width as well as the viewport keeps the
+   stream board exactly as it was on a wide screen, and stops a tall window
+   from growing a boxer straight through the ropes on a narrow one. */
 .fight__corner .bt-boxer {
-  height: clamp(96px, 28vh, 380px) !important;
+  height: min(clamp(96px, 28vh, 380px), 34cqw) !important;
 }
 
 /* Landing one: lunge toward the middle and dip a shoulder in. */
@@ -470,6 +498,25 @@
 
 .fight__tally {
   font-variant-numeric: tabular-nums;
+}
+
+/* The round label is chrome; the song titles are the content. On a card this
+   narrow the pill is taking the middle third of the HUD and squeezing both
+   titles down to a couple of words and an ellipsis, so it gives up its column
+   and the corners get the room back. The stream board is far wider than this
+   and keeps it. */
+@container (max-width: 620px) {
+  .fight__round {
+    display: none;
+  }
+
+  /* The track count has to come down with it. A display:none grid item is not
+     placed at all, so leaving three tracks here drops fighter B into the
+     middle auto column, sizes their corner to its text, and leaves the third
+     column empty. */
+  .fight__hud {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 /* Narrow cards, which is the room page on a phone. The ring keeps its shape

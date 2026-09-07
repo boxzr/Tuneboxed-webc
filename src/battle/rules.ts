@@ -27,11 +27,11 @@ export const PREVIEW_SECONDS = 30;
  * Whether the host can move where in the preview a clip starts.
  *
  * The offset has to travel on the round for every listener to seek to the
- * same place, which needs the column and function in
- * SUPABASE_CLIP_START_MIGRATION.sql. Until that is applied the write is a
- * no-op, and a slider that reports skipping the first ten seconds while every
- * clip still plays from the top is worse than no slider. Flip this to true
- * once the migration has run.
+ * same place, which needs the column and function in the iOS repo's
+ * supabase/migrations/add_battle_clip_start.sql. Until that is applied the
+ * write is a no-op, and a slider reporting that it skips the first ten
+ * seconds while every clip still plays from the top is worse than no slider.
+ * Flip this to true once the migration has run.
  */
 export const CLIP_START_ENABLED = false;
 

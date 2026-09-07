@@ -10,6 +10,7 @@ import BattleHome from './pages/BattleHome';
 import BattleRoom from './pages/BattleRoom';
 import BattleTV from './pages/BattleTV';
 import BattleEntry from './battle/BattleEntry';
+import FightDemo from './battle/ui/FightDemo';
 import Rules from './pages/Rules';
 import Faq from './pages/Faq';
 import Streamers from './pages/Streamers';
@@ -36,7 +37,9 @@ function MainWebsite() {
 
   useEffect(() => {
     void trackPageView('home');
-    document.title = 'TuneBoxed | The Kahoot of song battles';
+    // Kept in step with ROUTES in scripts/seo.mjs, which is what the
+    // prerendered HTML and the sitemap are built from.
+    document.title = 'TuneBoxed | Song battles fought as boxing matches';
   }, []);
 
   // Admin access with Alt+Shift+A+T
@@ -126,41 +129,86 @@ function MainWebsite() {
         {/* The hero is above the fold, so it animates on mount rather than on
             scroll. Each piece is offset by a beat so the eye is led from the
             headline down to the form instead of everything landing at once. */}
+        {/* Two columns on a wide screen: the form on the left because getting
+            into a room is still the job of this page, and a bout fighting
+            itself on the right because that is the part no competitor has.
+            Stacks on a phone, form first. */}
         <motion.section
-          className="home-hero"
+          className="home-hero home-hero--split"
           initial={reduced ? undefined : 'hidden'}
           animate={reduced ? undefined : 'shown'}
           variants={{ hidden: {}, shown: { transition: { staggerChildren: MOTION.stagger } } }}
         >
-          <motion.img
-            className="battle-hero-logo"
-            src={tuneboxedLogo}
-            alt=""
-            variants={heroItem}
-            transition={heroTransition}
-          />
+          <div className="home-pitch">
+            <motion.img
+              className="battle-hero-logo"
+              src={tuneboxedLogo}
+              alt=""
+              variants={heroItem}
+              transition={heroTransition}
+            />
 
-          <motion.h1 className="battle-hero-title" variants={heroItem} transition={heroTransition}>
-            The Kahoot of song battles
-          </motion.h1>
+            <motion.h1 className="battle-hero-title" variants={heroItem} transition={heroTransition}>
+              Two songs enter the ring
+            </motion.h1>
 
-          <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
-            Everyone picks a track, the whole room hears it at the same moment, and the
-            crowd votes the winner through a bracket. Play it around a table, in a call,
-            or live on stream. No app, no account.
-          </motion.p>
+            <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
+              Everyone picks a track. Two of them square up head to head, and every vote
+              from the room or your Twitch chat lands a punch until one song is on the
+              canvas. Play it around a table, in a call, or live on stream. No app, no
+              account.
+            </motion.p>
 
-          <motion.div
-            className="battle battle--embedded battle-hero-card"
-            variants={heroItem}
-            transition={heroTransition}
-          >
-            <BattleEntry showIntro={false} />
+            <motion.div
+              className="battle battle--embedded battle-hero-card"
+              variants={heroItem}
+              transition={heroTransition}
+            >
+              <BattleEntry showIntro={false} />
+            </motion.div>
+          </div>
+
+          {/* The real BoxingMatch, not a picture of one, so the pitch cannot
+              promise something the game does not do. */}
+          <motion.div className="home-ring" variants={heroItem} transition={heroTransition}>
+            <span className="home-ring__tag">Live on the stream board</span>
+            <FightDemo />
           </motion.div>
+        </motion.section>
+
+        <Reveal as="section" className="home-how">
+          <h2 className="home-how__title">Votes are punches</h2>
+          <p className="home-how__sub">
+            Other song battle sites give you two bars and a total. A poll tells you who is
+            winning. A fight makes the room feel it.
+          </p>
+
+          <ul className="home-points">
+            <li>
+              <strong>Chat throws the punches</strong>
+              Viewers type 1 or 2 in your Twitch chat. Every vote rocks the other song and
+              drains its health, so the crowd watches the fight turn in real time.
+            </li>
+            <li>
+              <strong>Shut a song out and it goes down</strong>
+              A close call goes to decision. A song nobody votes for hits the canvas, and
+              the board calls the knockout.
+            </li>
+            <li>
+              <strong>You control the clip</strong>
+              Bracket rounds let you set how long each song plays, up to the full preview,
+              instead of being stuck with a fixed few seconds.
+            </li>
+            <li>
+              <strong>Nothing to install</strong>
+              Share a code, share your screen. No bot in your channel, no OAuth on your
+              account, no download for your viewers.
+            </li>
+          </ul>
 
           {/* Three lines rather than a section each: the page exists to get
               somebody into a room, so anything longer competes with the form. */}
-          <motion.ul className="home-steps" variants={heroItem} transition={heroTransition}>
+          <ul className="home-steps">
             <li>
               <span className="home-step-num">1</span>
               Start a room and share the code
@@ -171,15 +219,23 @@ function MainWebsite() {
             </li>
             <li>
               <span className="home-step-num">3</span>
-              Party plays to three rounds. Bracket goes head to head until one is left.
+              Party plays to three rounds. Bracket fights head to head until one is left.
             </li>
-          </motion.ul>
+          </ul>
 
-          <motion.div variants={heroItem} transition={heroTransition}>
-            <Stats />
-          </motion.div>
-        </motion.section>
+          <div className="home-how__cta">
+            <Link to="/battle" className="app-store-btn">
+              Start a battle
+            </Link>
+            <Link to="/streamers" className="home-how__link">
+              Setting it up on stream
+            </Link>
+          </div>
+        </Reveal>
 
+        <Reveal as="div">
+          <Stats />
+        </Reveal>
       </main>
 
       <Reveal as="div">

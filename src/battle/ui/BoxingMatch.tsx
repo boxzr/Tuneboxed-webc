@@ -116,10 +116,11 @@ export default function BoxingMatch({
         chatChannel={chatChannel}
         total={total}
         decided={decided}
-        score={score}
         winnerName={winner ? (winner === 'a' ? a : b).name : null}
+        winnerVotes={winner ? (winner === 'a' ? a : b).votes : 0}
         loserFloored={floored}
         loserName={loser ? (loser === 'a' ? a : b).name : null}
+        loserVotes={loser ? (loser === 'a' ? a : b).votes : 0}
       />
     </div>
   );
@@ -245,19 +246,21 @@ function FightCall({
   chatChannel,
   total,
   decided,
-  score,
   winnerName,
+  winnerVotes,
   loserFloored,
   loserName,
+  loserVotes,
 }: {
   phase: BattleRoundPhase;
   chatChannel: string | null;
   total: number;
   decided: boolean;
-  score: FightScore;
   winnerName: string | null;
+  winnerVotes: number;
   loserFloored: boolean;
   loserName: string | null;
+  loserVotes: number;
 }) {
   if (decided && winnerName) {
     return (
@@ -267,8 +270,11 @@ function FightCall({
             <strong>{winnerName}</strong> knocks <strong>{loserName}</strong> out
           </>
         ) : (
+          // Votes rather than health. Health is a reading of the vote gap and
+          // the two rarely match, so quoting it here contradicts the counts
+          // sitting on the bars a few pixels above.
           <>
-            <strong>{winnerName}</strong> takes it {score.healthA}&ndash;{score.healthB}
+            <strong>{winnerName}</strong> takes it {winnerVotes}&ndash;{loserVotes} on votes
           </>
         )}
       </p>
