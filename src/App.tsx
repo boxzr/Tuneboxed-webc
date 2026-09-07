@@ -129,52 +129,66 @@ function MainWebsite() {
         {/* The hero is above the fold, so it animates on mount rather than on
             scroll. Each piece is offset by a beat so the eye is led from the
             headline down to the form instead of everything landing at once. */}
-        {/* Two columns on a wide screen: the form on the left because getting
-            into a room is still the job of this page, and a bout fighting
-            itself on the right because that is the part no competitor has.
-            Stacks on a phone, form first. */}
-        <motion.section
-          className="home-hero home-hero--split"
-          initial={reduced ? undefined : 'hidden'}
-          animate={reduced ? undefined : 'shown'}
-          variants={{ hidden: {}, shown: { transition: { staggerChildren: MOTION.stagger } } }}
-        >
-          <div className="home-pitch">
-            <motion.img
-              className="battle-hero-logo"
-              src={tuneboxedLogo}
-              alt=""
-              variants={heroItem}
-              transition={heroTransition}
-            />
+        {/* A dark, lit arena rather than the white page the rest of the site
+            uses. Boxing happens under lights, and the competitors' pages are
+            both dark, so a white marketing page reads as the plainer product
+            however good the game underneath is. */}
+        <section className="home-arena">
+          <div className="home-arena__lights" aria-hidden="true" />
 
-            <motion.h1 className="battle-hero-title" variants={heroItem} transition={heroTransition}>
-              Two songs enter the ring
-            </motion.h1>
-
-            <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
-              Everyone picks a track. Two of them square up head to head, and every vote
-              from the room or your Twitch chat lands a punch until one song is on the
-              canvas. Play it around a table, in a call, or live on stream. No app, no
-              account.
-            </motion.p>
-
+          {/* Two columns on a wide screen: the form on the left because
+              getting into a room is still the job of this page, and a bout
+              fighting itself on the right because that is the part no
+              competitor has. Stacks on a phone, form first. */}
+          <motion.div
+            className="home-hero home-hero--split"
+            initial={reduced ? undefined : 'hidden'}
+            animate={reduced ? undefined : 'shown'}
+            variants={{ hidden: {}, shown: { transition: { staggerChildren: MOTION.stagger } } }}
+          >
             <motion.div
-              className="battle battle--embedded battle-hero-card"
-              variants={heroItem}
-              transition={heroTransition}
+              className="home-pitch"
+              variants={{ hidden: {}, shown: { transition: { staggerChildren: MOTION.stagger } } }}
             >
-              <BattleEntry showIntro={false} />
-            </motion.div>
-          </div>
+              <motion.span className="home-kicker" variants={heroItem} transition={heroTransition}>
+                <img src={tuneboxedLogo} alt="" />
+                TuneBoxed
+              </motion.span>
 
-          {/* The real BoxingMatch, not a picture of one, so the pitch cannot
-              promise something the game does not do. */}
-          <motion.div className="home-ring" variants={heroItem} transition={heroTransition}>
-            <span className="home-ring__tag">Live on the stream board</span>
-            <FightDemo />
+              <motion.h1 className="battle-hero-title" variants={heroItem} transition={heroTransition}>
+                We turned song battles into <em>boxing fights</em>
+              </motion.h1>
+
+              <motion.p className="home-lede" variants={heroItem} transition={heroTransition}>
+                Two songs enter the ring. Your chat decides who walks out.
+              </motion.p>
+
+              <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
+                Everyone picks a track. Two of them square up head to head, and every
+                vote lands a punch until one song is on the canvas. Around a table, in a
+                call, or live on stream. No app, no account.
+              </motion.p>
+
+              <motion.div
+                className="battle battle--embedded battle-hero-card"
+                variants={heroItem}
+                transition={heroTransition}
+              >
+                <BattleEntry showIntro={false} />
+              </motion.div>
+            </motion.div>
+
+            {/* The real BoxingMatch, not a picture of one, so the pitch cannot
+                promise something the game does not do. */}
+            <motion.div className="home-ring" variants={heroItem} transition={heroTransition}>
+              <span className="home-ring__tag">
+                <span className="home-ring__dot" aria-hidden="true" />
+                Live on the stream board
+              </span>
+              <FightDemo />
+            </motion.div>
           </motion.div>
-        </motion.section>
+        </section>
 
         <Reveal as="section" className="home-how">
           <h2 className="home-how__title">Votes are punches</h2>

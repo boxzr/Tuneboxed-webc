@@ -48,12 +48,16 @@ html {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 4rem;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: saturate(180%) blur(12px);
+  /* Dark glass. It used to be translucent white, which sat over the home
+     page's lit arena as a grey smear with the orange lamp bleeding through it.
+     Dark reads as deliberate over both the arena and the white content
+     pages. */
+  background: rgba(10, 16, 32, 0.72);
+  backdrop-filter: saturate(160%) blur(14px);
   z-index: 1000;
   /* Hairline rather than a shadow, so the bar reads as an edge and not a
      floating panel once content scrolls under it. */
-  border-bottom: 1px solid rgba(27, 45, 78, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: border-color var(--dur-control) var(--ease-standard);
 }
 
@@ -98,7 +102,7 @@ html {
 }
 
 .nav-link {
-  color: var(--primary-navy);
+  color: rgba(255, 255, 255, 0.82);
   text-decoration: none;
   font-size: 1rem;
   font-weight: 500;
@@ -113,7 +117,7 @@ html {
 }
 
 .nav-link:hover {
-  background: rgba(27, 45, 78, 0.04);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--primary-orange);
 }
 
@@ -129,11 +133,36 @@ html {
 /* ---------- Home ---------- */
 
 .home {
-  /* Clears the fixed nav. */
-  padding-top: 132px;
-  /* Keeps the last of the hero off the footer now that the App Store section
-     below it is gone. */
+  /* Nav clearance belongs to .home-arena now, so its dark background runs up
+     behind the fixed bar rather than starting below a white gap. */
   padding-bottom: 72px;
+}
+
+/* ---------- The arena ----------
+   A dark, lit stage for the hero. The page padding that used to clear the
+   fixed nav moves in here so the dark runs all the way to the top of the
+   window instead of leaving a white band above it. */
+
+.home-arena {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(128px, 15vh, 190px) 0 clamp(56px, 8vh, 104px);
+  overflow: hidden;
+  background: linear-gradient(180deg, #0a1020 0%, #141d33 52%, #0a1020 100%);
+}
+
+/* Two lamps over the ring, in the corner colours, plus a cold floor bounce.
+   Separate from the section so it can sit behind the content and be ignored
+   by screen readers. */
+.home-arena__lights {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(46% 40% at 68% 4%, rgba(253, 156, 7, 0.4), transparent 68%),
+    radial-gradient(40% 36% at 30% 0%, rgba(0, 159, 253, 0.3), transparent 70%),
+    radial-gradient(70% 46% at 50% 104%, rgba(0, 159, 253, 0.12), transparent 70%);
 }
 
 /* ---------- Split hero ----------
@@ -167,19 +196,65 @@ html {
   text-align: left;
 }
 
-.home .home-hero--split .battle-hero-logo {
-  height: 84px;
+/* Brand line above the headline. The logo used to be a 112px block here,
+   which pushed the headline down the fold for no information. */
+.home-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-/* Bigger than the old single-column hero. It is the first thing read and it
-   now has a column to itself rather than a 560px page to share. */
+.home-kicker img {
+  height: 22px;
+  width: auto;
+}
+
+/* The headline, as a fight poster. Anton is condensed, so it takes a much
+   larger size than the system font did at the same column width, and it needs
+   the tracking opened back up a little because caps this heavy set tight. */
 .home .home-hero--split .battle-hero-title {
-  font-size: clamp(2.1rem, 3.6vw, 3.4rem);
-  letter-spacing: -0.02em;
+  font-family: var(--tb-font-display);
+  font-size: clamp(2.6rem, 4.6vw, 4.6rem);
+  font-weight: 400;
+  line-height: 0.96;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: #fff;
+  text-wrap: balance;
+}
+
+/* The three words the whole page is about. */
+.home .home-hero--split .battle-hero-title em {
+  font-style: normal;
+  color: var(--tb-orange);
+  /* Enough glow to read as lit rather than simply coloured, which is what
+     stops the accent looking like a stray link. */
+  text-shadow: 0 0 32px rgba(253, 156, 7, 0.5);
+}
+
+.home-lede {
+  margin: 18px 0 0;
+  font-size: clamp(1.1rem, 1.7vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: #fff;
 }
 
 .home .home-hero--split .battle-hero-sub {
-  max-width: 42ch;
+  max-width: 44ch;
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.66);
+  opacity: 1;
 }
 
 .home-ring {
@@ -188,16 +263,52 @@ html {
 }
 
 .home-ring__tag {
-  display: inline-block;
-  margin-bottom: 10px;
-  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: var(--tb-ink);
-  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+/* The on-air dot. Says "this is happening" without another line of copy. */
+.home-ring__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff4d4d;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.9);
+  animation: home-onair 1.6s var(--ease-standard) infinite;
+}
+
+@keyframes home-onair {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Lifts the white fight card off the dark mat so it reads as the lit ring. */
+.home-ring .fight {
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ring__dot {
+    animation: none;
+  }
 }
 
 /* One column below this, and the form comes first: a visitor on a phone is
@@ -232,9 +343,12 @@ html {
 
 .home-how__title {
   margin: 0;
-  font-size: clamp(1.9rem, 4vw, 3.1rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-family: var(--tb-font-display);
+  font-size: clamp(2.1rem, 4.4vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
   color: var(--tb-ink);
 }
 
@@ -335,7 +449,7 @@ html {
 }
 
 @media (max-width: 600px) {
-  .home {
+  .home-arena {
     padding-top: 104px;
   }
 }
@@ -384,7 +498,7 @@ html {
 @media (hover: none) {
   .nav-link:hover {
     background: none;
-    color: var(--primary-navy);
+    color: rgba(255, 255, 255, 0.82);
   }
 
   .nav-logo:hover .nav-logo-image {

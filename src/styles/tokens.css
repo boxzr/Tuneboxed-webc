@@ -61,6 +61,11 @@
   --tb-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   --tb-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  /* Headlines and fight callouts. Loaded in index.html. The fallback is the
+     narrowest heavy face on each platform, so a headline reflows rather than
+     doubling in width if Anton has not arrived yet. */
+  --tb-font-display: 'Anton', 'Haettenschweiler', 'Arial Narrow Bold',
+    'Impact', sans-serif;
 
   /* ---------- Motion ----------
      The short durations are the point: hovers land in around a tenth of a
