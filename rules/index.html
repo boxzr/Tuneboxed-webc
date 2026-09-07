@@ -16,6 +16,22 @@
     <link rel="manifest" href="/manifest.json" />
 
     <!--
+      Anton, for headlines only.
+      The body stack stays on the system font so the site keeps matching the
+      iOS app, but a hero set in the system UI font reads as a settings screen
+      rather than a fight poster, which is exactly what a headline about
+      boxing cannot afford. Condensed heavy caps are the register of a bout
+      poster, and they are also nothing like the rounded grotesks the other
+      song battle sites use.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&display=swap"
+      rel="stylesheet"
+    />
+
+    <!--
       scripts/prerender.mjs rewrites the canonical, title, description, og,
       twitter and JSON-LD below for each route it emits, so the shapes here
       have to stay predictable. Check that script before reformatting them.
@@ -139,8 +155,8 @@
   ]
 }
     </script>
-    <script type="module" crossorigin src="/assets/index-CCXpy8gW.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-l9or95ss.css">
+    <script type="module" crossorigin src="/assets/index-bYVBxjVo.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-HDqLRDzG.css">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
