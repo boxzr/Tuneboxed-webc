@@ -61,11 +61,13 @@
   --tb-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   --tb-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-  /* Headlines and fight callouts. Loaded in index.html. The fallback is the
-     narrowest heavy face on each platform, so a headline reflows rather than
-     doubling in width if Anton has not arrived yet. */
-  --tb-font-display: 'Anton', 'Haettenschweiler', 'Arial Narrow Bold',
-    'Impact', sans-serif;
+  /* Headlines. The same face the app sets its titles in: AppleTypography's
+     largeTitle is system heavy with design .rounded, which is SF Pro Rounded,
+     and `ui-rounded` is how a browser asks for it. This was briefly a webfont
+     (Anton), which read as a steakhouse sign and matched nothing in the
+     product. Falls back to the body stack off Apple hardware. */
+  --tb-font-display: ui-rounded, 'SF Pro Rounded', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   /* ---------- Motion ----------
      The short durations are the point: hovers land in around a tenth of a

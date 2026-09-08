@@ -12,12 +12,17 @@
    carries ink-coloured type throughout. Putting the whole bout on a single
    light surface is what keeps the names, the songs and the voting
    instructions legible over a dark scene instead of disappearing into it. */
+/* Everything inside scales in cqw, against this card, not in vw against the
+   window. The fight is full-width on the stream board, where the two are the
+   same thing, but on the home page it is one column of a grid: sized in vw,
+   a 1920px desktop set the song titles at 2.4rem inside a 580px card and
+   truncated both of them to "Blindin…" and "Uptow…". */
 .fight {
   display: flex;
   flex-direction: column;
   gap: clamp(10px, 1.8vh, 26px);
   width: 100%;
-  padding: clamp(14px, 2.4vh, 34px) clamp(14px, 2vw, 38px);
+  padding: clamp(14px, 2.4vh, 34px) clamp(14px, 2cqw, 38px);
   background: var(--tb-surface);
   border: 1px solid var(--tb-border);
   border-radius: var(--tb-r-card);
@@ -36,7 +41,7 @@
      the bars have to be. */
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
-  gap: clamp(8px, 1.2vw, 20px);
+  gap: clamp(8px, 1.2cqw, 20px);
 }
 
 .fight__seat {
@@ -49,7 +54,7 @@
 .fight__seat-top {
   display: flex;
   align-items: center;
-  gap: clamp(6px, 0.7vw, 12px);
+  gap: clamp(6px, 0.7cqw, 12px);
   min-width: 0;
 }
 
@@ -66,11 +71,11 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: clamp(28px, 3.2vw, 60px);
-  height: clamp(28px, 3.2vw, 60px);
+  width: clamp(28px, 3.2cqw, 60px);
+  height: clamp(28px, 3.2cqw, 60px);
   border-radius: 14px;
   color: #fff;
-  font-size: clamp(0.95rem, 1.9vw, 2.1rem);
+  font-size: clamp(0.95rem, 1.9cqw, 2.1rem);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
@@ -86,8 +91,8 @@
 }
 
 .fight__art {
-  width: clamp(42px, 5vw, 92px);
-  height: clamp(42px, 5vw, 92px);
+  width: clamp(42px, 5cqw, 92px);
+  height: clamp(42px, 5cqw, 92px);
   border-radius: 12px;
   object-fit: cover;
   flex: none;
@@ -123,7 +128,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: clamp(0.7rem, 1vw, 1.15rem);
+  font-size: clamp(0.7rem, 1cqw, 1.15rem);
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -157,7 +162,7 @@
 }
 
 .fight__song {
-  font-size: clamp(1.05rem, 2vw, 2.4rem);
+  font-size: clamp(1.05rem, 2cqw, 2.4rem);
   font-weight: 800;
   line-height: 1.1;
   color: var(--tb-ink);
@@ -167,7 +172,7 @@
 }
 
 .fight__artist {
-  font-size: clamp(0.78rem, 1.15vw, 1.3rem);
+  font-size: clamp(0.78rem, 1.15cqw, 1.3rem);
   color: var(--tb-ink-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -224,7 +229,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  font-size: clamp(0.7rem, 1.1vw, 1.25rem);
+  font-size: clamp(0.7rem, 1.1cqw, 1.25rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--tb-ink);
@@ -245,7 +250,7 @@
   border-radius: 999px;
   background: var(--tb-ink);
   color: #fff;
-  font-size: clamp(0.6rem, 0.8vw, 0.85rem);
+  font-size: clamp(0.6rem, 0.8cqw, 0.85rem);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -262,14 +267,14 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: end;
   justify-items: center;
-  gap: clamp(8px, 2vw, 32px);
+  gap: clamp(8px, 2cqw, 32px);
   /* The fight is the point of the screen, so the mat claims real height
      rather than sitting in a letterbox strip under the genre card. Bounded by
      the card's width for the same reason the sprites are: the fighters shrink
      to fit a narrow card, and a mat still sized off the viewport would leave
      them standing at the bottom of an empty room. */
   min-height: min(clamp(170px, 38vh, 520px), 46cqw);
-  padding: clamp(14px, 3vh, 44px) clamp(12px, 2vw, 36px) clamp(10px, 1.6vh, 28px);
+  padding: clamp(14px, 3vh, 44px) clamp(12px, 2cqw, 36px) clamp(10px, 1.6vh, 28px);
   border-radius: var(--tb-r-control);
   overflow: hidden;
   /* A lit canvas mat: warm at the centre where the fighters are, falling off
@@ -476,13 +481,13 @@
   align-self: center;
   display: grid;
   place-items: center;
-  min-width: clamp(56px, 8vw, 150px);
+  min-width: clamp(56px, 8cqw, 150px);
 }
 
 .fight__vs {
   font-family: var(--tb-font-display);
-  font-size: clamp(1.6rem, 3.8vw, 4.4rem);
-  font-weight: 400;
+  font-size: clamp(1.6rem, 3.8cqw, 4.4rem);
+  font-weight: 900;
   font-style: italic;
   letter-spacing: 0.02em;
   color: var(--tb-orange-deep);
@@ -499,7 +504,7 @@
   border-radius: 999px;
   background: var(--tb-ink);
   color: #fff;
-  font-size: clamp(0.7rem, 1.15vw, 1.25rem);
+  font-size: clamp(0.7rem, 1.15cqw, 1.25rem);
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -512,8 +517,8 @@
    animation restarts for every punch instead of only the first. */
 .fight__spark {
   position: absolute;
-  width: clamp(40px, 6vw, 110px);
-  height: clamp(40px, 6vw, 110px);
+  width: clamp(40px, 6cqw, 110px);
+  height: clamp(40px, 6cqw, 110px);
   border-radius: 50%;
   pointer-events: none;
   background: radial-gradient(circle, #fff 0%, var(--tb-peach) 45%, transparent 70%);
@@ -556,7 +561,7 @@
 .fight__call {
   margin: 0;
   text-align: center;
-  font-size: clamp(0.85rem, 1.4vw, 1.6rem);
+  font-size: clamp(0.85rem, 1.4cqw, 1.6rem);
   font-weight: 600;
   color: var(--tb-ink-muted);
 }
@@ -576,7 +581,7 @@
 }
 
 .fight__call--won {
-  font-size: clamp(0.95rem, 1.5vw, 1.7rem);
+  font-size: clamp(0.95rem, 1.5cqw, 1.7rem);
   color: var(--tb-ink);
 }
 

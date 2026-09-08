@@ -17,6 +17,7 @@ import SongPicker from '../battle/SongPicker';
 import EmbedPlayer from '../battle/EmbedPlayer';
 import RoomShell, { RoomHeader } from '../battle/RoomShell';
 import StreamCard from '../battle/StreamCard';
+import PublishChampion from '../battle/PublishChampion';
 import { GameSettingsButton, GameSettingsPanel, resolvedVoting, rulesSummary } from '../battle/GameSettings';
 import ThemePicker from '../battle/ThemePicker';
 import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
@@ -364,6 +365,10 @@ export default function BattleRoom() {
               {action.label}
             </VividButton>
           )}
+
+          {/* Bracket only: the RPC refuses a party room, which has no final
+              match to read a winning song off. */}
+          {isHost && isBracket && token && <PublishChampion token={token} />}
         </Card>
       )}
 

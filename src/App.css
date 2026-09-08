@@ -146,7 +146,10 @@ html {
 .home-arena {
   position: relative;
   isolation: isolate;
-  padding: clamp(128px, 15vh, 190px) 0 clamp(56px, 8vh, 104px);
+  /* Bottom padding is much shorter than the top. The top is nav clearance;
+     the bottom only has to separate the hero from the next section, and the
+     larger value left a dark empty band under the form on a desktop. */
+  padding: clamp(120px, 14vh, 176px) 0 clamp(40px, 5vh, 68px);
   overflow: hidden;
   background: linear-gradient(180deg, #0a1020 0%, #141d33 52%, #0a1020 100%);
 }
@@ -174,11 +177,14 @@ html {
    imported after this file and otherwise wins on source order alone. */
 .home .home-hero--split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  /* The ring takes the larger share. It has to clear the 620px the fight card
+     needs before it stops dropping the round label and squeezing the song
+     titles, which a 1.05fr column on a 1320px page did not. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   align-items: center;
-  gap: clamp(28px, 4vw, 72px);
-  max-width: 1320px;
-  margin: 0 auto 72px;
+  gap: clamp(28px, 3.5vw, 64px);
+  max-width: 1480px;
+  margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 56px);
   text-align: left;
 }
@@ -219,16 +225,15 @@ html {
   width: auto;
 }
 
-/* The headline, as a fight poster. Anton is condensed, so it takes a much
-   larger size than the system font did at the same column width, and it needs
-   the tracking opened back up a little because caps this heavy set tight. */
+/* The headline, in the app's own title face. Rounded heavy sets wide, so it
+   wants tight tracking and mixed case rather than the caps a condensed poster
+   face carries; uppercase rounded reads as a children's book. */
 .home .home-hero--split .battle-hero-title {
   font-family: var(--tb-font-display);
-  font-size: clamp(2.6rem, 4.6vw, 4.6rem);
-  font-weight: 400;
-  line-height: 0.96;
-  letter-spacing: 0.005em;
-  text-transform: uppercase;
+  font-size: clamp(2.4rem, 4.2vw, 4.1rem);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
   color: #fff;
   text-wrap: balance;
 }
@@ -251,7 +256,7 @@ html {
 }
 
 .home .home-hero--split .battle-hero-sub {
-  max-width: 44ch;
+  max-width: 50ch;
   margin-top: 12px;
   color: rgba(255, 255, 255, 0.66);
   opacity: 1;
@@ -344,11 +349,10 @@ html {
 .home-how__title {
   margin: 0;
   font-family: var(--tb-font-display);
-  font-size: clamp(2.1rem, 4.4vw, 3.6rem);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0.005em;
-  text-transform: uppercase;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
   color: var(--tb-ink);
 }
 
@@ -396,6 +400,11 @@ html {
   justify-content: center;
   gap: 18px;
   margin-top: clamp(28px, 4vh, 44px);
+}
+
+.home-streamers {
+  margin-top: clamp(20px, 3vh, 34px);
+  text-align: center;
 }
 
 .home-how__link {

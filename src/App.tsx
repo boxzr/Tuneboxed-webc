@@ -160,7 +160,7 @@ function MainWebsite() {
               </motion.h1>
 
               <motion.p className="home-lede" variants={heroItem} transition={heroTransition}>
-                Two songs enter the ring. Your chat decides who walks out.
+                Two songs enter the ring. You decide who walks out.
               </motion.p>
 
               <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
@@ -241,14 +241,21 @@ function MainWebsite() {
             <Link to="/battle" className="app-store-btn">
               Start a battle
             </Link>
-            <Link to="/streamers" className="home-how__link">
-              Setting it up on stream
-            </Link>
           </div>
         </Reveal>
 
         <Reveal as="div">
           <Stats />
+        </Reveal>
+
+        {/* Under the stat line rather than beside the main call to action.
+            It is the one link on the page aimed at streamers specifically, so
+            it reads as a footnote to the numbers instead of competing with
+            "start a battle". */}
+        <Reveal as="div" className="home-streamers">
+          <Link to="/streamers" className="home-how__link">
+            Setting it up on stream
+          </Link>
         </Reveal>
       </main>
 
