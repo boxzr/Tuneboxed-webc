@@ -328,12 +328,17 @@
   min-width: 0;
 }
 
+/* Two lines rather than one with an ellipsis. This is the song somebody is
+   about to vote for, so a title long enough to be cut off is exactly the one
+   they need to read. The artist below it still truncates. */
 .bt-choice__text strong {
   font-size: 0.95rem;
   font-weight: 700;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .bt-choice__text span {
@@ -455,11 +460,15 @@
   min-width: 0;
 }
 
+/* Same as the ballot: a player checking what they locked in wants the whole
+   title, not the first two thirds of it. */
 .bt-entry__text strong {
   font-size: 0.95rem;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .bt-entry__text span {
