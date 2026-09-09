@@ -405,6 +405,16 @@
   margin-top: 12px;
 }
 
+.bt-theme__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tb-ink-muted);
+}
+
 .bt-theme__input {
   width: 100%;
   height: 48px;
@@ -702,6 +712,59 @@
   font-size: 1.05rem;
   font-weight: 800;
   color: var(--tb-orange-deep);
+}
+
+.bt-end {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--tb-hairline);
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--tb-ink);
+  cursor: pointer;
+}
+
+.bt-end:hover {
+  border-color: #c2410c;
+  color: #c2410c;
+}
+
+.bt-mix {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--tb-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bt-mix__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(80px, 1.4fr) 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.bt-mix__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.bt-mix__row--live .bt-mix__name {
+  color: var(--tb-orange-deep);
+}
+
+.bt-mix__pct {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--tb-ink-muted);
 }
 
 @media (max-width: 480px) {

@@ -5,30 +5,40 @@ import {
   CLIP_MIN,
   CLIP_SECONDS,
   CLIP_STEP,
+  PICK_SECONDS,
   PREVIEW_SECONDS,
   clampClipSeconds,
   clampClipStart,
+  clampPickSeconds,
   clipIndex,
   clipLabel,
   clipsFinished,
   maxClipStart,
 } from './rules.ts';
 
-test('a clip is fifteen seconds', () => {
-  assert.equal(CLIP_SECONDS, 15);
+test('a pick clock is ninety seconds', () => {
+  assert.equal(PICK_SECONDS, 90);
 });
 
-test('the first song holds until 15 seconds, then the next one starts', () => {
+test('a pick clock of zero means no clock', () => {
+  assert.equal(clampPickSeconds(0), 0);
+});
+
+test('a clip is thirty seconds', () => {
+  assert.equal(CLIP_SECONDS, 30);
+});
+
+test('the first song holds until 30 seconds, then the next one starts', () => {
   assert.equal(clipIndex(0, 2), 0);
-  assert.equal(clipIndex(14.9, 2), 0);
-  assert.equal(clipIndex(15, 2), 1);
-  assert.equal(clipIndex(29.9, 2), 1);
+  assert.equal(clipIndex(29.9, 2), 0);
+  assert.equal(clipIndex(30, 2), 1);
+  assert.equal(clipIndex(59.9, 2), 1);
 });
 
 test('the set is finished only after every clip has had its window', () => {
-  assert.equal(clipsFinished(14.9, 2), false);
-  assert.equal(clipsFinished(15, 2), false);
-  assert.equal(clipsFinished(30, 2), true);
+  assert.equal(clipsFinished(29.9, 2), false);
+  assert.equal(clipsFinished(30, 2), false);
+  assert.equal(clipsFinished(60, 2), true);
 });
 
 test('a host dragging the clip longer changes when each song hands over', () => {

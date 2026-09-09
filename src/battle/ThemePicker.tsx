@@ -41,13 +41,18 @@ export default function ThemePicker({
         commit();
       }}
     >
+      <label className="bt-theme__label" htmlFor="bt-theme-input">
+        Enter genre
+      </label>
       <input
+        id="bt-theme-input"
         className="bt-theme__input"
         list="bt-theme-list"
         value={draft}
         disabled={disabled}
         maxLength={48}
-        placeholder="Sunset, 2016 Rap, one-hit wonders…"
+        placeholder="Enter genre"
+        aria-label="Enter genre"
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {

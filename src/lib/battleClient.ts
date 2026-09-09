@@ -1,3 +1,4 @@
+import { CLIP_SECONDS, PICK_SECONDS } from '../battle/rules';
 import { supabase } from './supabase';
 import type {
   BattleChampion,
@@ -235,6 +236,13 @@ export async function resumeRoom(code: string): Promise<boolean> {
   const existing = loadSession(code);
   if (!existing) return false;
   try {
+    const room = await getRoomByCode(code);
+    // A finished room is done. Putting people back into it is how lobbies
+    // felt like they never ended: close the tab, reopen the link, same game.
+    if (!room || room.status === 'complete') {
+      if (room?.status === 'complete') clearSession(code);
+      return false;
+    }
     await sesh(existing.token);
     return true;
   } catch (e) {
@@ -424,7 +432,7 @@ export const startPlayback = (
   token: string,
   roundId: string,
   order: string[],
-  secondsPerSong = 15
+  secondsPerSong = CLIP_SECONDS
 ) =>
   rpc<string | null>('battle_start_playback', {
     p_token: token,
@@ -518,7 +526,7 @@ export const startRound = (
     p_genre: opts.genre,
     p_is_premium_genre: opts.isPremiumGenre ?? false,
     p_judge_player_id: opts.judgePlayerId ?? null,
-    p_pick_seconds: opts.pickSeconds ?? 60,
+    p_pick_seconds: opts.pickSeconds ?? PICK_SECONDS,
     p_match_id: opts.matchId ?? null,
   });
 

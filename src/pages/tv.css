@@ -630,8 +630,11 @@ html.tv-active #root {
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
   color: #fff;
-  opacity: 0;
-  pointer-events: none;
+  /* Stays faintly clickable when idle. The old fully-hidden bar ate clicks
+     on Next matchup the moment the mouse stopped, which is how a streamer
+     reported the button doing nothing. */
+  opacity: 0.18;
+  pointer-events: auto;
   transition:
     opacity 0.35s var(--ease-out),
     transform 0.35s var(--ease-out);

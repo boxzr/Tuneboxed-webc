@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BoxerSprite } from './primitives';
 import { CrownIcon } from './icons';
 import { type FightScore, fightScore, fightVerdict } from '../fight';
@@ -213,11 +213,13 @@ function HealthBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${fighter.name} health`}
+        style={{ '--health': health } as CSSProperties}
       >
-        {/* Two layers: the red shows through instantly where damage has landed,
-            the fill eases down to it so the drop is legible on camera. */}
-        <span className="fight__bar-hurt" style={{ width: `${health}%` }} />
-        <span className="fight__bar-fill" style={{ width: `${health}%` }} />
+        {/* Width is a scale on a full-size layer, not `right` plus a
+            percentage. iOS Safari draws that second pair wrong: the orange
+            fill starts from the left, overflows the pill, or disappears. */}
+        <span className="fight__bar-hurt" />
+        <span className="fight__bar-fill" />
         <span className="fight__bar-votes">{fighter.votes}</span>
       </div>
     </div>

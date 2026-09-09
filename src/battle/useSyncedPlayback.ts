@@ -22,8 +22,41 @@ interface Playback {
   /** True when the browser refused to autoplay and needs a tap. */
   blocked: boolean;
   unblock: () => void;
+  /**
+   * Call from any click handler. Plays and pauses a silent clip on the audio
+   * element so the browser counts it as user-started, which is what lets the
+   * real song start later on the room's clock rather than on a tap. Safari in
+   * particular refuses the first play() of an element that did not happen
+   * inside a gesture, and the host's "Start" click is a gesture going spare.
+   */
+  prime: () => void;
   /** True when the current pick is a music video and needs the screen. */
   needsScreen: boolean;
+}
+
+/** How loud, and out of what. All optional; the defaults are what always was. */
+export interface PlaybackOutput {
+  /** Master level, 0 to 1. */
+  volume?: number;
+  /** Per-song multiplier on top of the master. See useAudioSettings.ts. */
+  gainFor?: (submission: BattleSubmission | null) => number;
+  /** Output device for setSinkId. Empty string is the browser default. */
+  sinkId?: string;
+}
+
+/**
+ * A millisecond of silence as a WAV, for priming. A real file rather than an
+ * empty src, which play() rejects outright before the browser has decided
+ * anything about gestures.
+ */
+const SILENCE =
+  'data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YRAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+/** Volume the element can actually take: the product, held inside 0..1. */
+function levelFor(output: PlaybackOutput | undefined, current: BattleSubmission | null): number {
+  const master = output?.volume ?? 1;
+  const gain = output?.gainFor?.(current) ?? 1;
+  return Math.min(1, Math.max(0, master * gain));
 }
 
 /**
@@ -42,12 +75,21 @@ export function useSyncedPlayback(
   round: BattleRound | null,
   submissions: BattleSubmission[],
   enabled: boolean,
-  videoEl?: HTMLVideoElement | null
+  videoEl?: HTMLVideoElement | null,
+  output?: PlaybackOutput
 ): Playback {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const activeRef = useRef<HTMLMediaElement | null>(null);
   const [tick, setTick] = useState(0);
   const [blocked, setBlocked] = useState(false);
+
+  // Created up front rather than on first play, so prime() has an element to
+  // unlock before there is anything to hear.
+  if (!audioRef.current && typeof Audio !== 'undefined') {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audioRef.current = audio;
+  }
 
   // Keeps the derived position moving between realtime updates.
   useEffect(() => {
@@ -110,16 +152,15 @@ export function useSyncedPlayback(
       media = videoEl ?? null;
     } else {
       videoEl?.pause();
-      if (!audioRef.current) {
-        const audio = new Audio();
-        audio.preload = 'auto';
-        audioRef.current = audio;
-      }
       media = audioRef.current;
     }
 
     if (!media) return;
     activeRef.current = media;
+
+    // Set every pass, since the level depends on which song this is and the
+    // measured gain for it can land mid-clip.
+    media.volume = levelFor(output, current);
 
     const src = current.preview_url;
 
@@ -148,7 +189,23 @@ export function useSyncedPlayback(
       );
     }
     // `tick` is what re-runs this; the drift check needs a fresh `seekTo`.
-  }, [enabled, current, seekTo, finished, tick, needsScreen, videoEl]);
+  }, [enabled, current, seekTo, finished, tick, needsScreen, videoEl, output]);
+
+  // Route to the chosen output device. Chromium only; everywhere else the
+  // method is missing and the browser default is what plays. A rejected
+  // device (unplugged since it was chosen) also falls back to the default
+  // rather than to silence.
+  const sinkId = output?.sinkId ?? '';
+  useEffect(() => {
+    const targets = [audioRef.current, videoEl].filter(Boolean) as HTMLMediaElement[];
+    for (const el of targets) {
+      const sinkable = el as HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
+      if (typeof sinkable.setSinkId !== 'function') continue;
+      sinkable.setSinkId(sinkId).catch(() => {
+        if (sinkId) sinkable.setSinkId?.('').catch(() => {});
+      });
+    }
+  }, [sinkId, videoEl]);
 
   useEffect(() => {
     return () => {
@@ -166,6 +223,24 @@ export function useSyncedPlayback(
     );
   };
 
+  const prime = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    // Only while idle. An element that has played a song is already unlocked,
+    // and one that is playing must not be interrupted.
+    if (audio.src && audio.src !== SILENCE) return;
+    audio.src = SILENCE;
+    audio.play().then(
+      () => {
+        audio.pause();
+        setBlocked(false);
+      },
+      () => {
+        /* still gated; the tap-to-hear button remains the fallback */
+      }
+    );
+  };
+
   return {
     current,
     index: Math.max(0, index),
@@ -176,6 +251,7 @@ export function useSyncedPlayback(
     finished,
     blocked,
     unblock,
+    prime,
     needsScreen: Boolean(needsScreen),
   };
 }

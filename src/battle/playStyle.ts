@@ -6,7 +6,7 @@ import { nextGenre } from './genres';
  *
  * Classic is the songbattle.io shape: one vibe for the whole game, songs in
  * before anything starts, no pick clock. TuneBoxed is the live game: a fresh
- * random prompt each round and 45 seconds on the clock.
+ * random prompt each round and a pick clock the host can set.
  *
  * A room that predates the column, or an iOS room that never set one, reads
  * as TuneBoxed so those games keep the behaviour they already have.

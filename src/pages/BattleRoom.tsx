@@ -10,8 +10,10 @@ import { useChatVotes } from '../battle/useChatVotes';
 import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
 import { useClipSeconds } from '../battle/useClipSeconds';
-import { CLIP_SECONDS, PARTY_ROUNDS, PICK_SECONDS } from '../battle/rules';
-import { type HostContext, nextHostAction } from '../battle/hostActions';
+import { usePickSeconds } from '../battle/usePickSeconds';
+import { useAudioSettings } from '../battle/useAudioSettings';
+import { PARTY_ROUNDS, PICK_SECONDS } from '../battle/rules';
+import { endBattle, type HostContext, nextHostAction } from '../battle/hostActions';
 import { uniqueLeader } from '../battle/voteLeader';
 import SongPicker from '../battle/SongPicker';
 import EmbedPlayer from '../battle/EmbedPlayer';
@@ -85,11 +87,19 @@ export default function BattleRoom() {
   const token = stored?.token ?? null;
 
   const phase = round?.phase ?? null;
-  const hearAudio = !room?.host_speaker_enabled || isHost;
+  const pick = usePickSeconds();
+  const audio = useAudioSettings(submissions);
+  const hearAudio = (!room?.host_speaker_enabled || isHost) && audio.where === 'room';
   // A music video plays through a real element on the page, so the hook can
   // only drive it once React has put it there.
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
-  const playback = useSyncedPlayback(round, submissions, phase === 'playing' && hearAudio, videoEl);
+  const playback = useSyncedPlayback(
+    round,
+    submissions,
+    phase === 'playing' && hearAudio,
+    videoEl,
+    { volume: audio.volume, gainFor: audio.gainFor, sinkId: audio.sinkId }
+  );
   const [embedBlocked, setEmbedBlocked] = useState(false);
   useSecondTicker(phase === 'picking' || phase === 'judging');
 
@@ -110,9 +120,8 @@ export default function BattleRoom() {
     if (!loading && roomId && !stored) navigate(`/join/${code.toUpperCase()}`, { replace: true });
   }, [loading, roomId, stored, code, navigate]);
 
-  // Declared above the loading returns so the hook order never shifts. Only a
-  // bracket lets the host change this; every other format gets the fixed clip.
-  const clip = useClipSeconds(room?.format === 'bracket');
+  // Declared above the loading returns so the hook order never shifts.
+  const clip = useClipSeconds();
 
   const { empty: pickedNothing } = useRoundAutopilot({
     token,
@@ -314,6 +323,7 @@ export default function BattleRoom() {
         usedGenres,
         clipSeconds: clip.seconds,
         clipStart: clip.start,
+        pickSeconds: pick.seconds,
         refresh,
       }
     : null;
@@ -331,8 +341,41 @@ export default function BattleRoom() {
   const runAction = () => {
     if (!action) return;
     if (action.id === 'start' && Date.now() < startArmedAt.current) return;
+    // The host's click is a user gesture. Spend it unlocking audio so the
+    // first song is not blocked by the browser after the clock starts.
+    if (action.id === 'start' || action.id === 'play') playback.prime();
     void guard(action.run);
   };
+
+  const settingsAudio = {
+    volume: audio.volume,
+    onVolume: audio.setVolume,
+    autoLevel: audio.autoLevel,
+    onAutoLevel: audio.setAutoLevel,
+    where: audio.where,
+    onWhere: audio.setWhere,
+  };
+
+  const settingsPanel = (
+    <GameSettingsPanel
+      room={room}
+      playerCount={players.length}
+      aiJudge={needsAiJudge}
+      clipSeconds={clip.seconds}
+      clipStart={clip.start}
+      onClipSeconds={clip.setSeconds}
+      onClipStart={clip.setStart}
+      pickSeconds={pick.seconds}
+      onPickSeconds={pick.setSeconds}
+      audio={settingsAudio}
+      onEndBattle={
+        hostCtx && room.status !== 'lobby' && room.status !== 'complete'
+          ? () => void guard(() => endBattle(hostCtx))
+          : undefined
+      }
+      onChange={saveSettings}
+    />
+  );
 
   return (
     <RoomShell>
@@ -464,23 +507,11 @@ export default function BattleRoom() {
             </div>
 
             {classic && players.filter(hasEntry).length > 0 && (
-              <ul className="bt-entries">
-                {players.filter(hasEntry).map((p) => (
-                  <li key={p.id} className="bt-entry">
-                    {p.entry_artwork_url ? (
-                      <img src={p.entry_artwork_url} alt="" className="bt-entry__art" />
-                    ) : (
-                      <div className="bt-entry__art bt-entry__art--empty" />
-                    )}
-                    <span className="bt-entry__text">
-                      <strong>{p.entry_song_title}</strong>
-                      <span>
-                        {p.entry_song_artist} · {p.display_name}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <p className="bt-sub" style={{ margin: '12px 0 0' }}>
+                {players.filter(hasEntry).length === 1
+                  ? 'One song is locked in. Titles stay hidden until you start.'
+                  : `${players.filter(hasEntry).length} songs are locked in. Titles stay hidden until you start.`}
+              </p>
             )}
 
             {isHost ? (
@@ -524,20 +555,9 @@ export default function BattleRoom() {
 
           {isHost && (
             <>
-              {settingsOpen && (
-                <GameSettingsPanel
-                  room={room}
-                  playerCount={players.length}
-                  aiJudge={needsAiJudge}
-                  clipSeconds={clip.seconds}
-                  clipStart={clip.start}
-                  onClipSeconds={clip.setSeconds}
-                  onClipStart={clip.setStart}
-                  onChange={saveSettings}
-                />
-              )}
+              {settingsOpen && settingsPanel}
               <GameSettingsButton
-                summary={rulesSummary(room, needsAiJudge, clip.seconds)}
+                summary={rulesSummary(room, needsAiJudge, clip.seconds, pick.seconds)}
                 open={settingsOpen}
                 onClick={() => setSettingsOpen((o) => !o)}
               />
@@ -573,7 +593,7 @@ export default function BattleRoom() {
             {round.phase_deadline_at ? (
               <CountdownRing
                 seconds={secondsUntil(round.phase_deadline_at)}
-                progress={ringProgress(round.phase_deadline_at, PICK_SECONDS)}
+                progress={ringProgress(round.phase_deadline_at, pickWindowSeconds(round, pick.seconds))}
               />
             ) : (
               <StatTile
@@ -701,6 +721,31 @@ export default function BattleRoom() {
                 progress={playback.offset / playback.perSong}
               />
 
+              {isHost && hearAudio && submissions.length > 0 && (
+                <ul className="bt-mix">
+                  {submissions.map((s) => {
+                    const trim = audio.trimOf(s.id);
+                    const live = playback.current?.id === s.id;
+                    return (
+                      <li key={s.id} className={`bt-mix__row${live ? ' bt-mix__row--live' : ''}`}>
+                        <span className="bt-mix__name">{s.song_title}</span>
+                        <input
+                          className="bt-slider"
+                          type="range"
+                          min={0}
+                          max={200}
+                          step={5}
+                          value={Math.round(trim * 100)}
+                          aria-label={`Volume for ${s.song_title}`}
+                          onChange={(e) => audio.setTrim(s.id, Number(e.currentTarget.value) / 100)}
+                        />
+                        <span className="bt-mix__pct">{Math.round(trim * 100)}%</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
               {/* A music video pick is the same clip on the same clock, just
                   with something to look at. The hook drives this element
                   directly, so it has to be on the page before it can play. */}
@@ -723,6 +768,7 @@ export default function BattleRoom() {
                   externalId={playback.current.external_id ?? ''}
                   offset={playback.offset}
                   playing
+                  volume={audio.volume * audio.gainFor(playback.current)}
                   onBlocked={setEmbedBlocked}
                 />
               )}
@@ -885,20 +931,9 @@ export default function BattleRoom() {
 
       {round && isHost && (
         <>
-          {settingsOpen && (
-            <GameSettingsPanel
-              room={room}
-              playerCount={players.length}
-              aiJudge={needsAiJudge}
-              clipSeconds={clip.seconds}
-              clipStart={clip.start}
-              onClipSeconds={clip.setSeconds}
-              onClipStart={clip.setStart}
-              onChange={saveSettings}
-            />
-          )}
+          {settingsOpen && settingsPanel}
           <GameSettingsButton
-            summary={rulesSummary(room, needsAiJudge, clip.seconds)}
+            summary={rulesSummary(room, needsAiJudge, clip.seconds, pick.seconds)}
             open={settingsOpen}
             onClick={() => setSettingsOpen((o) => !o)}
           />
@@ -1001,8 +1036,28 @@ function roundTitle(round: number, matches: BattleMatch[]): string {
 
 /** How much of the pick window is left, as 1 down to 0, for the ring. */
 function ringProgress(deadline: string | null, total: number): number {
-  if (!deadline) return 0;
+  if (!deadline || total <= 0) return 0;
   return Math.max(0, Math.min(1, secondsUntil(deadline) / total));
+}
+
+/**
+ * How long this pick window actually is.
+ *
+ * Prefer the gap between the round opening and its deadline, so a host who
+ * dragged the slider after this round started does not shrink the ring of a
+ * clock that is already running. Fall back to the host's preference, then
+ * the default, for a round that has no deadline.
+ */
+function pickWindowSeconds(
+  round: { created_at: string; phase_deadline_at: string | null },
+  preferred: number
+): number {
+  if (round.phase_deadline_at) {
+    const span =
+      (new Date(round.phase_deadline_at).getTime() - new Date(round.created_at).getTime()) / 1000;
+    if (Number.isFinite(span) && span > 0) return span;
+  }
+  return preferred > 0 ? preferred : PICK_SECONDS;
 }
 
 /**

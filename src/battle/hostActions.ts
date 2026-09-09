@@ -26,14 +26,23 @@ export interface HostContext {
   /** Prompts already used this room, so a bracket never repeats one. */
   usedGenres: readonly string[];
   /**
-   * How long each song plays for. The host sets this for a bracket; every
-   * other format passes the fixed clip. See useClipSeconds.ts.
+   * How long each song plays for. The host sets this; see useClipSeconds.ts.
    */
   clipSeconds: number;
   /** How far into each preview to start. Zero plays from the top. */
   clipStart: number;
+  /**
+   * Seconds on the pick clock when a round opens, or zero for no clock. The
+   * host sets this; see usePickSeconds.ts. Classic ignores it, since its
+   * songs are already in before a round exists.
+   */
+  pickSeconds: number;
   refresh: () => Promise<void>;
 }
+
+/** What a picking round should put on the clock. */
+const pickClock = (ctx: HostContext): number =>
+  isClassic(ctx.room) ? 0 : ctx.pickSeconds;
 
 /**
  * Publishes the clip start onto the round before its songs begin.
@@ -84,7 +93,7 @@ export async function startMatchRound(
   const created = await battle.startRound(ctx.token, {
     roundNumber: roomRoundNumber + 1,
     genre: genreForRound(ctx.room, ctx.usedGenres),
-    pickSeconds: classic ? 0 : PICK_SECONDS,
+    pickSeconds: pickClock(ctx),
     matchId: match.id,
   });
   await battle.setMatchRound(ctx.token, match.id, created.id, 'active');
@@ -103,7 +112,7 @@ export async function startPartyRound(
   const created = await battle.startRound(ctx.token, {
     roundNumber: roomRoundNumber + 1,
     genre: genreForRound(ctx.room, ctx.usedGenres),
-    pickSeconds: classic ? 0 : PICK_SECONDS,
+    pickSeconds: pickClock(ctx),
     judgePlayerId,
   });
   // First Classic party round uses the lobby songs. Later rounds pick again,
@@ -146,7 +155,24 @@ export async function playNow(ctx: HostContext): Promise<void> {
 /** Reopens the pick clock after it expired with nothing in. */
 export async function extendPicking(ctx: HostContext): Promise<void> {
   if (!ctx.round) return;
-  await battle.advancePhase(ctx.token, ctx.round.id, 'picking', PICK_SECONDS);
+  // A host who turned the clock off still needs a number here, since the
+  // only way into this state is a clock that ran out.
+  const seconds = ctx.pickSeconds > 0 ? ctx.pickSeconds : PICK_SECONDS;
+  await battle.advancePhase(ctx.token, ctx.round.id, 'picking', seconds);
+}
+
+/**
+ * Ends the battle where it stands.
+ *
+ * Rooms had no way to stop. A bracket that was abandoned halfway sat in
+ * `in_round` for good, its players' browsers kept checking in, and the next
+ * time the host opened the site it offered to put them back into it. This
+ * marks the room complete, which every client already treats as the end:
+ * playback stops, the heartbeats stop, and the home page stops resuming it.
+ */
+export async function endBattle(ctx: HostContext): Promise<void> {
+  await battle.setRoomStatus(ctx.token, 'complete');
+  await ctx.refresh();
 }
 
 /**
@@ -170,35 +196,85 @@ export async function revealWinner(ctx: HostContext): Promise<void> {
   }
 }
 
-/** Moves past a revealed round: next matchup, next round, or the trophy. */
+/**
+ * Moves past a revealed round: next matchup, next round, or the trophy.
+ *
+ * Reads the round and its songs back from the server before acting, rather
+ * than trusting what the page had in hand. "Next matchup does nothing
+ * sometimes" came down to exactly that: the button appears the moment the
+ * reveal lands over realtime, but the submissions list on the page can still
+ * be one refresh behind, and a click in that window found no winning song
+ * and returned without a word. Now the click either gets somewhere or says
+ * why it could not, and it never fails on data that is merely late.
+ */
 export async function advance(ctx: HostContext): Promise<void> {
-  const round = ctx.round;
-  if (!round) return;
-  const winning = ctx.submissions.find((s) => s.id === round.winner_submission_id);
-  if (!winning) return;
+  if (!ctx.round) throw new Error('There is no round to move on from yet.');
+
+  const [round, submissions] = await Promise.all([
+    battle.getRound(ctx.room.id, ctx.room.round_number),
+    battle.getSubmissions(ctx.round.id),
+  ]);
+  if (!round || round.id !== ctx.round.id) {
+    // Somebody (the other tab, usually) has already moved the room on.
+    await ctx.refresh();
+    return;
+  }
+  if (round.phase !== 'revealed' || !round.winner_submission_id) {
+    throw new Error('Reveal the winner before moving on.');
+  }
+  const winning = submissions.find((s) => s.id === round.winner_submission_id);
+  if (!winning) throw new Error('Could not find the winning song. Try again in a second.');
 
   if (ctx.room.format !== 'bracket') {
-    if (ctx.room.round_number >= PARTY_ROUNDS) {
+    if (round.round_number >= PARTY_ROUNDS) {
       await battle.setRoomStatus(ctx.token, 'complete');
       await ctx.refresh();
     } else {
-      await startPartyRound(ctx, ctx.room.round_number);
+      await startPartyRound(ctx, round.round_number);
     }
     return;
   }
 
-  const current = matchOf(ctx);
-  if (!current) return;
+  // The match is found through the round that was just played, not through
+  // the room's current_match_id. Reporting a winner moves that pointer to the
+  // upcoming match on the server, so a page one refresh behind would look up
+  // the wrong match and crown this round's winner in a bout they are not in.
+  const matches = await battle.getMatches(ctx.room.id);
+  const played =
+    matches.find((m) => m.id === round.match_id) ??
+    matches.find((m) => m.round_id === round.id) ??
+    null;
+  if (!played) throw new Error('Could not find the matchup for this round. Try again in a second.');
 
-  const nextId = await battle.reportMatchWinner(ctx.token, current.id, winning.player_id);
+  let upcomingId: string | null;
+  if (played.winner_player_id) {
+    // Already reported, usually by the other tab. The server moved the
+    // room's pointer when it did, so that is where the next bout is.
+    const fresh = await battle.getRoom(ctx.room.id);
+    if (!fresh || fresh.status === 'complete') {
+      await ctx.refresh();
+      return;
+    }
+    upcomingId = fresh.current_match_id;
+  } else {
+    upcomingId = await battle.reportMatchWinner(ctx.token, played.id, winning.player_id);
+  }
+
   const seeded = await battle.getMatches(ctx.room.id);
-  const next = nextId ? seeded.find((m) => m.id === nextId) : null;
+  const next = upcomingId ? seeded.find((m) => m.id === upcomingId) : null;
 
-  if (next) await startMatchRound(ctx, next, ctx.room.round_number);
-  else {
+  if (!next) {
     await battle.setRoomStatus(ctx.token, 'complete');
     await ctx.refresh();
+    return;
   }
+  // A bout that already has its round was opened by the other tab; opening
+  // a second one would orphan it.
+  if (next.round_id) {
+    await ctx.refresh();
+    return;
+  }
+  await startMatchRound(ctx, next, round.round_number);
 }
 
 /** Clears the bracket and puts everyone back in the lobby. */
@@ -269,9 +345,10 @@ export function nextHostAction(
         return { id: 'play', label: 'Play them now', disabled: false, run: () => playNow(ctx) };
       }
       if (empty) {
+        const seconds = ctx.pickSeconds > 0 ? ctx.pickSeconds : PICK_SECONDS;
         return {
           id: 'extend',
-          label: `Give them another ${PICK_SECONDS} seconds`,
+          label: `Give them another ${seconds} seconds`,
           disabled: false,
           run: () => extendPicking(ctx),
         };

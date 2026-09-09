@@ -8,6 +8,8 @@ import { useSyncedPlayback } from '../battle/useSyncedPlayback';
 import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
 import { useClipSeconds } from '../battle/useClipSeconds';
+import { usePickSeconds } from '../battle/usePickSeconds';
+import { useAudioSettings } from '../battle/useAudioSettings';
 import { PARTY_ROUNDS } from '../battle/rules';
 import { type HostContext, nextHostAction } from '../battle/hostActions';
 import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
@@ -107,14 +109,21 @@ export default function BattleTV() {
   const isHost = Boolean(room && stored && room.host_player_id === stored.playerId);
   const usedGenres = useUsedGenres(roomId, round?.id ?? null);
 
-  // Read purely to know when the clips have run out. The board never sounds:
-  // the songs come out of the host's room tab or their speakers, and a second
-  // copy playing half a second behind would be worse than silence.
-  const playback = useSyncedPlayback(round, submissions, false);
+  const pick = usePickSeconds();
+  const audio = useAudioSettings(submissions);
+  const hearBoard = audio.where === 'board';
+  // The host chooses which tab sounds. A streamer captures this board, so
+  // when they send audio here the stream hears the songs. The other tab
+  // stays quiet so the two do not play half a second apart.
+  const playback = useSyncedPlayback(round, submissions, hearBoard && round?.phase === 'playing', undefined, {
+    volume: audio.volume,
+    gainFor: audio.gainFor,
+    sinkId: audio.sinkId,
+  });
 
   // Same preference the room page reads, since a host can drive the game from
   // either tab and both have to agree on how long a song plays for.
-  const clip = useClipSeconds(room?.format === 'bracket');
+  const clip = useClipSeconds();
 
   // The host drives the game from whichever tab they are looking at, so the
   // parts of a round that run themselves have to run here too.
@@ -195,6 +204,7 @@ export default function BattleTV() {
           usedGenres,
           clipSeconds: clip.seconds,
           clipStart: clip.start,
+          pickSeconds: pick.seconds,
           refresh: liveRoom.refresh,
         }
       : null;
@@ -219,10 +229,13 @@ export default function BattleTV() {
         action={action}
         busy={busy}
         error={actionError}
-        visible={pointerActive}
+        hearBlocked={hearBoard && playback.blocked}
+        onUnblock={() => playback.unblock()}
+        visible={pointerActive || Boolean(actionError) || (hearBoard && playback.blocked)}
         onRun={() => {
           if (!action) return;
           if (action.id === 'start' && Date.now() < startArmedAt.current) return;
+          if (action.id === 'start' || action.id === 'play') playback.prime();
           setActionError(null);
           setBusy(true);
           action
@@ -575,17 +588,27 @@ function HostBar({
   busy,
   error,
   visible,
+  hearBlocked,
+  onUnblock,
   onRun,
 }: {
   action: { label: string; disabled: boolean } | null;
   busy: boolean;
   error: string | null;
   visible: boolean;
+  hearBlocked: boolean;
+  onUnblock: () => void;
   onRun: () => void;
 }) {
   return (
     <div className={`tv-controls${visible ? ' tv-controls--on' : ''}`}>
       {error && <span className="tv-controls__error">{error}</span>}
+
+      {hearBlocked && (
+        <button type="button" className="tv-controls__go" onClick={onUnblock}>
+          Tap to hear the songs
+        </button>
+      )}
 
       {action ? (
         <button
@@ -597,7 +620,7 @@ function HostBar({
           {busy ? 'Working…' : action.label}
         </button>
       ) : (
-        <span className="tv-controls__idle">Nothing to press yet</span>
+        !hearBlocked && <span className="tv-controls__idle">Nothing to press yet</span>
       )}
 
       <span className="tv-controls__hint">Only you can see this</span>
@@ -642,7 +665,7 @@ function Lobby({
           <span key={p.id} className={`tv-chip${hasEntry(p) ? ' tv-chip--on' : ''}`}>
             <Monogram name={p.display_name} size={28} />
             {p.display_name}
-            {hasEntry(p) ? ` · ${p.entry_song_title}` : ''}
+            {hasEntry(p) ? ' · locked in' : ''}
           </span>
         ))}
       </div>

@@ -6,11 +6,41 @@
  * room. When these lived in the room page the board could only watch.
  */
 
-/** Seconds on the clock to pick a song. */
-export const PICK_SECONDS = 45;
+/**
+ * Seconds on the clock to pick a song, unless the host has changed it.
+ *
+ * This was forty-five, and it was the first thing streamers complained about:
+ * finding a song that fits "feels like Stranger Things" means searching,
+ * previewing two or three results and second-guessing, and forty-five seconds
+ * had people submitting the first thing that came up or missing the round.
+ * Ninety is the default; the host can drag it from PICK_MIN to PICK_MAX or
+ * turn the clock off altogether (see usePickSeconds.ts).
+ */
+export const PICK_SECONDS = 90;
 
-/** How long each song plays for, unless the host has changed it. */
-export const CLIP_SECONDS = 15;
+/** The range a host can set the pick clock to. Zero means no clock. */
+export const PICK_MIN = 30;
+export const PICK_MAX = 180;
+export const PICK_STEP = 15;
+
+/** Snapped to the slider's steps. Zero passes through as "no clock". */
+export function clampPickSeconds(seconds: number): number {
+  if (!Number.isFinite(seconds)) return PICK_SECONDS;
+  if (seconds <= 0) return 0;
+  const snapped = Math.round(seconds / PICK_STEP) * PICK_STEP;
+  return Math.min(PICK_MAX, Math.max(PICK_MIN, snapped));
+}
+
+/**
+ * How long each song plays for, unless the host has changed it.
+ *
+ * Thirty, which is the whole iTunes preview. It was fifteen, and every
+ * streamer who ran a bracket said the same thing: fifteen seconds is not
+ * long enough to judge a song against another one, and the room was voting
+ * on an intro. The slider still goes down to CLIP_MIN for a host who wants a
+ * faster party round.
+ */
+export const CLIP_SECONDS = 30;
 
 /**
  * Everything a pick gives us to play.
@@ -38,10 +68,10 @@ export const CLIP_START_ENABLED = false;
 /**
  * The range a host can drag the clip length across.
  *
- * Streamers running a bracket asked for this. Fifteen seconds is right for a
- * party round where the room wants to move, but a head-to-head where two
- * songs are judged against each other needs longer to sit with them. Only a
- * bracket offers the slider; see useClipSeconds.ts.
+ * Streamers asked for this. The full preview is right for a head-to-head
+ * where two songs are judged against each other, but a party round with
+ * eight picks in it wants to move, and a shorter clip is how the host makes
+ * it. Every format offers the slider; see useClipSeconds.ts.
  */
 export const CLIP_MIN = 10;
 export const CLIP_MAX = PREVIEW_SECONDS;

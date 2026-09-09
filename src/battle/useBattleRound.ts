@@ -55,8 +55,10 @@ export function useBattleRound(room: BattleRoom | null) {
     void refresh();
   }, [refresh]);
 
+  const finished = room?.status === 'complete';
+
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || finished) return;
 
     const channel = supabase
       .channel(`battle-round:${roomId}`)
@@ -80,15 +82,16 @@ export function useBattleRound(room: BattleRoom | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [roomId, refresh]);
+  }, [roomId, refresh, finished]);
 
   // Realtime covers the normal case; this catches a dropped socket, which
   // during a live stream is the difference between a stalled room and a
-  // slightly late update.
+  // slightly late update. A finished room has nowhere left to go.
   useEffect(() => {
+    if (finished) return;
     const t = setInterval(() => void refresh(), 6000);
     return () => clearInterval(t);
-  }, [refresh]);
+  }, [refresh, finished]);
 
   return { ...state, refresh };
 }

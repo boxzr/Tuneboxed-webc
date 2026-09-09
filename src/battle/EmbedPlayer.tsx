@@ -73,6 +73,8 @@ interface Props {
   offset: number;
   /** False while the countdown runs, so nothing sounds early. */
   playing: boolean;
+  /** 0 to 1. Applied once the provider player is ready. */
+  volume?: number;
   onBlocked?: (blocked: boolean) => void;
 }
 
@@ -81,6 +83,7 @@ export default function EmbedPlayer({
   externalId,
   offset,
   playing,
+  volume = 1,
   onBlocked,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -150,6 +153,8 @@ export default function EmbedPlayer({
       return;
     }
 
+    setVolume(player, volume);
+
     currentTime(player).then((now) => {
       if (playerRef.current !== player) return;
       if (now !== null && Math.abs(now - offsetRef.current) > DRIFT_TOLERANCE) {
@@ -161,7 +166,7 @@ export default function EmbedPlayer({
       );
     });
     // Runs on every clock tick via `offset`, which is what drives the drift check.
-  }, [ready, playing, offset, onBlocked]);
+  }, [ready, playing, offset, volume, onBlocked]);
 
   return (
     <div className={`battle-embed battle-embed--${source}`}>
@@ -181,6 +186,7 @@ interface YouTubePlayer {
   pauseVideo(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
+  setVolume(percent: number): void;
   destroy(): void;
 }
 
@@ -189,6 +195,7 @@ interface SoundCloudWidget {
   play(): void;
   pause(): void;
   seekTo(milliseconds: number): void;
+  setVolume(percent: number): void;
   getPosition(cb: (ms: number) => void): void;
   bind(event: string, cb: () => void): void;
 }
@@ -278,6 +285,15 @@ function pause(p: YouTubePlayer | SoundCloudWidget): void {
     else p.pause();
   } catch {
     /* nothing to pause yet */
+  }
+}
+
+function setVolume(p: YouTubePlayer | SoundCloudWidget, level: number): void {
+  const percent = Math.round(Math.min(1, Math.max(0, level)) * 100);
+  try {
+    p.setVolume(percent);
+  } catch {
+    /* player is not ready to take a volume yet */
   }
 }
 

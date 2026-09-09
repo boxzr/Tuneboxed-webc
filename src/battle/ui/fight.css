@@ -103,6 +103,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%;
   line-height: 1.15;
 }
 
@@ -174,6 +175,7 @@
      which is what actually keeps a long title inside its own column.
      Three lines, not two: a remaster or a "feat." credit still fits on a
      phone, where the corner is only a couple of hundred pixels wide. */
+  width: 100%;
   max-width: 100%;
   white-space: normal;
   overflow-wrap: break-word;
@@ -193,6 +195,7 @@
 
 .fight__bar {
   position: relative;
+  width: 100%;
   height: clamp(18px, 3vh, 40px);
   border-radius: 999px;
   background: var(--tb-surface-sunken);
@@ -201,32 +204,32 @@
 }
 
 /* Damage shows through instantly underneath; the coloured fill eases down to
-   meet it, so a hit reads as a red flash resolving rather than a silent jump. */
+   meet it, so a hit reads as a red flash resolving rather than a silent jump.
+
+   Both layers are the full width of the pill and shrink with scaleX from
+   the fighter's own edge. The orange corner used to set `right: 0` and an
+   inline width percentage, which iOS Safari treats as a left-anchored box:
+   the fill grew the wrong way, spilled out of the pill, or vanished. */
 .fight__bar-hurt,
 .fight__bar-fill {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  border-radius: inherit;
-}
-
-.fight__seat--a .fight__bar-hurt,
-.fight__seat--a .fight__bar-fill {
-  left: 0;
+  inset: 0;
+  transform: scaleX(calc(var(--health, 100) / 100));
+  transform-origin: left center;
 }
 
 .fight__seat--b .fight__bar-hurt,
 .fight__seat--b .fight__bar-fill {
-  right: 0;
+  transform-origin: right center;
 }
 
 .fight__bar-hurt {
   background: var(--tb-red);
-  transition: width 0.08s linear;
+  transition: transform 0.08s linear;
 }
 
 .fight__bar-fill {
-  transition: width 0.5s var(--ease-out);
+  transition: transform 0.5s var(--ease-out);
 }
 
 .fight__seat--a .fight__bar-fill {
@@ -615,6 +618,18 @@
      placed at all, so leaving three tracks here drops fighter B into the
      middle auto column, sizes their corner to its text, and leaves the third
      column empty. */
+  .fight__hud {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* Same squeeze as the container query, for browsers that do not run
+   @container. The homepage preview on an iPhone is the usual case. */
+@media (max-width: 620px) {
+  .fight__round {
+    display: none;
+  }
+
   .fight__hud {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }

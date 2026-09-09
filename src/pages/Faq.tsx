@@ -37,15 +37,15 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'How long does a battle take?',
-    a: 'In TuneBoxed mode players get 45 seconds to pick, and each song plays for 15 seconds. Classic has no pick clock — songs go in before the host starts. A full 16 player bracket is four stages, so budget somewhere around 15 to 25 minutes depending on how long you leave voting open.',
+    a: 'In TuneBoxed mode players get 90 seconds to pick by default, and each song plays for 30 seconds. The host can change both in game settings. Classic has no pick clock — songs go in before the host starts. A full 16 player bracket is four stages, so budget somewhere around 15 to 25 minutes depending on how long you leave voting open.',
   },
   {
     q: 'What is Classic vs TuneBoxed mode?',
-    a: 'Classic is the preset for a bracket. The host picks one vibe for the whole game, players lock a song in the lobby with no timer, and those songs are what the bracket plays. TuneBoxed mode is the live game: a fresh random vibe each round and 45 seconds to pick. Switch in game settings.',
+    a: 'Classic is the preset for a bracket. The host picks one vibe for the whole game, players lock a song in the lobby with no timer, and those songs are what the bracket plays. TuneBoxed mode is the live game: a fresh random vibe each round and a pick clock the host sets (90 seconds by default). Switch in game settings.',
   },
   {
     q: 'Where do the songs come from?',
-    a: "Players search Apple's public music catalogue, and each track plays as a 15 second preview. Nobody needs a Spotify or Apple Music subscription.",
+    a: "Players search Apple's public music catalogue, and each track plays as a 30 second preview. Nobody needs a Spotify or Apple Music subscription.",
   },
   {
     q: 'Can I use SoundCloud or YouTube?',

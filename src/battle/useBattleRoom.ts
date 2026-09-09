@@ -51,9 +51,11 @@ export function useBattleRoom(roomId: string | null, token: string | null) {
     void refresh();
   }, [roomId, refresh]);
 
+  const finished = state.room?.status === 'complete';
+
   // Realtime
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || finished) return;
 
     const channel = supabase
       .channel(`battle:${roomId}`)
@@ -77,18 +79,18 @@ export function useBattleRoom(roomId: string | null, token: string | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [roomId, refresh]);
+  }, [roomId, refresh, finished]);
 
   // Polling fallback
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || finished) return;
     const t = setInterval(() => void refresh(), POLL_MS);
     return () => clearInterval(t);
-  }, [roomId, refresh]);
+  }, [roomId, refresh, finished]);
 
   // Presence
   useEffect(() => {
-    if (!token) return;
+    if (!token || finished) return;
     void battle.sesh(token).catch(() => {});
     const t = setInterval(() => void battle.sesh(token).catch(() => {}), SESH_MS);
 
@@ -114,7 +116,7 @@ export function useBattleRoom(roomId: string | null, token: string | null) {
       window.removeEventListener('pagehide', onLeave);
       document.removeEventListener('visibilitychange', onShow);
     };
-  }, [token]);
+  }, [token, finished]);
 
   return { ...state, refresh };
 }

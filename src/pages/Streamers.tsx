@@ -55,6 +55,12 @@ export default function Streamers() {
                 rather than a transparent strip, so it does not need anything
                 behind it.
               </p>
+              <p>
+                Songs do not play on the board until you send audio there. In
+                Game settings, set &ldquo;Sound comes from&rdquo; to Stream
+                board, then tap the board once so the browser will play. That is
+                also where the volume slider and song levelling live.
+              </p>
             </div>
           </li>
           <li>
