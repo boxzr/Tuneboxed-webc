@@ -38,7 +38,12 @@ import {
   VividButton,
 } from '../battle/ui/primitives';
 import { CheckIcon, CrownIcon, PlayIcon, TrophyIcon, UsersIcon } from '../battle/ui/icons';
-import type { BattleMatch, BattlePlayer, BattleSubmission } from '../types/battle';
+import type {
+  BattleMatch,
+  BattlePlayer,
+  BattleRoom as BattleRoomRow,
+  BattleSubmission,
+} from '../types/battle';
 import '../battle/battle.css';
 import '../battle/ui/ui.css';
 import '../battle/ui/room.css';
@@ -338,6 +343,8 @@ export default function BattleRoom() {
         })
       : null;
 
+  const startHint = isHost && !round ? startBlocker(room, players, connected) : null;
+
   const runAction = () => {
     if (!action) return;
     if (action.id === 'start' && Date.now() < startArmedAt.current) return;
@@ -500,7 +507,7 @@ export default function BattleRoom() {
                 waitingSlots={classic ? 0 : Math.max(0, room.min_players - connected.length)}
                 statusOf={
                   classic
-                    ? (p) => (hasEntry(p) ? 'locked' : 'picking')
+                    ? (p) => (hasEntry(p) ? 'locked' : 'unpicked')
                     : undefined
                 }
               />
@@ -515,35 +522,30 @@ export default function BattleRoom() {
             )}
 
             {isHost ? (
-              classic ? (
-                !room.theme ? (
-                  <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
-                    Pick a vibe so people know what to submit.
+              // The start button is always on screen for the host, greyed
+              // out until the room is ready, with the reason written above
+              // it. It used to appear only once enough songs were in, so a
+              // host who had just typed the vibe saw a roster of "Picking"
+              // and no way to start, and read that as the game being stuck.
+              <>
+                {startHint && (
+                  <p
+                    className="bt-sub bt-sub--center"
+                    style={{ marginBottom: action?.id === 'start' ? 12 : 0 }}
+                  >
+                    {startHint}
                   </p>
-                ) : players.filter(hasEntry).length < room.min_players ? (
-                  <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
-                    Waiting for {room.min_players - players.filter(hasEntry).length} more{' '}
-                    {room.min_players - players.filter(hasEntry).length === 1 ? 'song' : 'songs'} to
-                    start.
-                  </p>
-                ) : (
-                  action?.id === 'start' && (
-                    <VividButton icon={<PlayIcon size={18} />} disabled={busy} onClick={runAction}>
-                      {action.label}
-                    </VividButton>
-                  )
-                )
-              ) : connected.length < room.min_players ? (
-                <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
-                  Waiting for {room.min_players - connected.length} more to start.
-                </p>
-              ) : (
-                action?.id === 'start' && (
-                  <VividButton icon={<PlayIcon size={18} />} disabled={busy} onClick={runAction}>
+                )}
+                {action?.id === 'start' && (
+                  <VividButton
+                    icon={<PlayIcon size={18} />}
+                    disabled={busy || action.disabled}
+                    onClick={runAction}
+                  >
                     {action.label}
                   </VividButton>
-                )
-              )
+                )}
+              </>
             ) : (
               <p className="bt-sub bt-sub--center" style={{ marginBottom: 0 }}>
                 Waiting for {nameOf(room.host_player_id)} to start.
@@ -1006,6 +1008,31 @@ function expectedPickers(
 ): number {
   if (match) return [match.player_a_id, match.player_b_id].filter(Boolean).length;
   return connected.filter((p) => p.id !== judgeId).length;
+}
+
+/**
+ * Why the host cannot start yet, in one line, or null once they can.
+ *
+ * Classic waits on songs rather than seats: a viewer who never picks is an
+ * audience, not a missing player. TuneBoxed waits on people in the room.
+ */
+function startBlocker(
+  room: BattleRoomRow,
+  players: BattlePlayer[],
+  connected: BattlePlayer[]
+): string | null {
+  if (isClassic(room)) {
+    if (!room.theme?.trim()) return 'Pick a vibe so people know what to submit.';
+    const missing = room.min_players - players.filter(hasEntry).length;
+    if (missing > 0) {
+      return `Waiting for ${missing} more ${missing === 1 ? 'song' : 'songs'}. Everyone locks a song in, then you start the ${
+        room.format === 'bracket' ? 'bracket' : 'battle'
+      }.`;
+    }
+    return null;
+  }
+  const missing = room.min_players - connected.length;
+  return missing > 0 ? `Waiting for ${missing} more to start.` : null;
 }
 
 function crownLeader(crowns: Record<string, number>, players: BattlePlayer[]): string | null {

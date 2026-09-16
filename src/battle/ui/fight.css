@@ -648,6 +648,92 @@
   }
 }
 
+/* Browsers with no container units.
+   OBS before 31 ships a Chromium that predates cqw, and there a declaration
+   with cqw in it is thrown out whole: every size above falls back to the
+   inherited 16px and the sprite to its intrinsic height, which is the
+   board coming out as small grey type under two enormous boxers. The board
+   is where this markup is full-width, so 1cqw is close to 1vw there. */
+@supports not (width: 1cqw) {
+  .fight {
+    padding: clamp(14px, 2.4vh, 34px) clamp(14px, 1.8vw, 38px);
+  }
+
+  .fight__hud {
+    gap: clamp(8px, 1.1vw, 20px);
+  }
+
+  .fight__seat-top {
+    gap: clamp(6px, 0.65vw, 12px);
+  }
+
+  .fight__num {
+    width: clamp(28px, 3vw, 60px);
+    height: clamp(28px, 3vw, 60px);
+    font-size: clamp(0.95rem, 1.75vw, 2.1rem);
+  }
+
+  .fight__art {
+    width: clamp(42px, 4.6vw, 92px);
+    height: clamp(42px, 4.6vw, 92px);
+  }
+
+  .fight__player {
+    font-size: clamp(0.7rem, 0.9vw, 1.15rem);
+  }
+
+  .fight__song {
+    font-size: clamp(1.05rem, 1.85vw, 2.4rem);
+  }
+
+  .fight__artist {
+    font-size: clamp(0.78rem, 1.05vw, 1.3rem);
+  }
+
+  .fight__bar-votes {
+    font-size: clamp(0.7rem, 1vw, 1.25rem);
+  }
+
+  .fight__round {
+    font-size: clamp(0.6rem, 0.75vw, 0.85rem);
+  }
+
+  .fight__ring {
+    gap: clamp(8px, 1.8vw, 32px);
+    min-height: clamp(170px, 38vh, 520px);
+    padding: clamp(14px, 3vh, 44px) clamp(12px, 1.8vw, 36px) clamp(10px, 1.6vh, 28px);
+  }
+
+  .fight__corner .bt-boxer {
+    height: clamp(96px, 28vh, 380px) !important;
+  }
+
+  .fight__centre {
+    min-width: clamp(56px, 7.4vw, 150px);
+  }
+
+  .fight__vs {
+    font-size: clamp(1.6rem, 3.5vw, 4.4rem);
+  }
+
+  .fight__verdict {
+    font-size: clamp(0.7rem, 1.05vw, 1.25rem);
+  }
+
+  .fight__spark {
+    width: clamp(40px, 5.5vw, 110px);
+    height: clamp(40px, 5.5vw, 110px);
+  }
+
+  .fight__call {
+    font-size: clamp(0.85rem, 1.3vw, 1.6rem);
+  }
+
+  .fight__call--won {
+    font-size: clamp(0.95rem, 1.4vw, 1.7rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fight__corner,
   .fight__spark,

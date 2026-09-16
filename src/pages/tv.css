@@ -3,8 +3,17 @@
    every measurement here is larger than it looks reasonable at desk distance.
    People read this from a sofa, or through a stream at 480p.
 
-   Type scales with viewport width rather than sitting at fixed pixels, so the
-   board fills a 4K capture and a laptop tab equally. */
+   Type scales with the viewport rather than sitting at fixed pixels, so the
+   board fills a 4K capture and a laptop tab equally.
+
+   The unit is --tvw, one percent of the widest 16:9 frame that fits the
+   window, not 1vw. In a 1920x1080 browser source the two are the same. In a
+   browser window they are not: a Chrome tab on a laptop is wider than it is
+   tall by more than 16:9 once the tab strip and bookmarks bar take their cut,
+   and sized in vw the type kept its width-based size while the height ran
+   out, so the room code was clipped off the top and the voting line off the
+   bottom, with nothing to scroll. Sizing against the frame means a wide,
+   short window gets the board a shorter window deserves. */
 
 html.tv-active,
 html.tv-active body,
@@ -17,6 +26,8 @@ html.tv-active #root {
 }
 
 .tv {
+  /* 1% of a 16:9 frame fitted to the window. 16/9 of 1vh is 1.7778vh. */
+  --tvw: min(1vw, 1.7778vh);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -24,7 +35,7 @@ html.tv-active #root {
   justify-content: center;
   width: 100vw;
   height: 100vh;
-  padding: 3vh 4vw;
+  padding: 3vh calc(4 * var(--tvw));
   background: var(--tb-canvas-tv);
   color: var(--tb-ink);
   font-family: var(--tb-font);
@@ -41,11 +52,15 @@ html.tv-active #root {
   align-items: center;
   justify-content: center;
   width: 100%;
+  /* The frame, less the board's side padding. The fight card inside sizes
+     itself in cqw, so bounding the stage is what keeps the ring in
+     proportion on a wide, short window too. */
+  max-width: calc(92 * var(--tvw));
 }
 
 .tv-eyebrow {
   display: block;
-  font-size: clamp(0.7rem, 1vw, 1.1rem);
+  font-size: clamp(0.7rem, calc(1 * var(--tvw)), 1.1rem);
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -62,18 +77,18 @@ html.tv-active #root {
 }
 
 .tv-hero {
-  width: min(92vw, 1100px);
-  padding: 3.2vh 4vw;
+  width: min(calc(92 * var(--tvw)), 1100px);
+  padding: 3.2vh calc(4 * var(--tvw));
 }
 
 .tv-hero .bt-prompt-label {
-  font-size: clamp(0.85rem, 1.4vw, 1.55rem);
+  font-size: clamp(0.85rem, calc(1.4 * var(--tvw)), 1.55rem);
   letter-spacing: 0.18em;
 }
 
 .tv-hero__sub {
   margin: 1.2vh 0 0;
-  font-size: clamp(1rem, 1.7vw, 1.9rem);
+  font-size: clamp(1rem, calc(1.7 * var(--tvw)), 1.9rem);
   font-weight: 600;
   color: var(--tb-ink-muted);
 }
@@ -83,7 +98,7 @@ html.tv-active #root {
   z-index: 2;
   position: absolute;
   top: 2.4vh;
-  right: 2.4vw;
+  right: calc(2.4 * var(--tvw));
   display: flex;
   align-items: center;
   gap: 10px;
@@ -91,7 +106,7 @@ html.tv-active #root {
   border-radius: 999px;
   background: var(--tb-surface);
   box-shadow: var(--tb-shadow-card);
-  font-size: clamp(0.8rem, 1.1vw, 1.2rem);
+  font-size: clamp(0.8rem, calc(1.1 * var(--tvw)), 1.2rem);
   font-weight: 600;
 }
 
@@ -106,7 +121,7 @@ html.tv-active #root {
 
 .tv-idle__title {
   margin: 3vh 0 0;
-  font-size: clamp(1.4rem, 3vw, 3rem);
+  font-size: clamp(1.4rem, calc(3 * var(--tvw)), 3rem);
   font-weight: 800;
   color: var(--tb-ink-muted);
 }
@@ -119,7 +134,7 @@ html.tv-active #root {
 
 .tv-champion__name {
   margin: 1vh 0 0;
-  font-size: clamp(2.5rem, 8vw, 8rem);
+  font-size: clamp(2.5rem, calc(8 * var(--tvw)), 8rem);
   font-weight: 800;
   /* Room for descenders, which gradient clipped text loses at line-height 1. */
   line-height: 1.16;
@@ -133,7 +148,7 @@ html.tv-active #root {
 
 .tv-champion__sub {
   margin: 2vh 0 0;
-  font-size: clamp(1rem, 1.6vw, 1.8rem);
+  font-size: clamp(1rem, calc(1.6 * var(--tvw)), 1.8rem);
   color: var(--tb-ink-muted);
 }
 
@@ -162,7 +177,7 @@ html.tv-active #root {
 
 .tv-lobby__code {
   margin: 1vh 0;
-  font-size: clamp(3rem, 11vw, 11rem);
+  font-size: clamp(3rem, calc(11 * var(--tvw)), 11rem);
   font-weight: 800;
   font-family: ui-rounded, 'SF Pro Rounded', var(--tb-font);
   letter-spacing: 0.14em;
@@ -171,9 +186,25 @@ html.tv-active #root {
   color: var(--tb-orange);
 }
 
+/* The two lines that sit straight on the scene, with no card under them.
+   Grey type on a Hip Hop or Rock backdrop was unreadable, so they get the
+   same white pill the player chips have. */
+.tv-lobby > .tv-eyebrow,
 .tv-lobby__sub {
-  margin: 0;
-  font-size: clamp(0.95rem, 1.5vw, 1.7rem);
+  padding: 0.45em 1.1em;
+  border-radius: 999px;
+  background: var(--tb-surface);
+  box-shadow: var(--tb-shadow-card);
+}
+
+.tv-lobby > .tv-eyebrow {
+  margin-top: 1vh;
+}
+
+.tv-lobby__sub {
+  margin: 1.4vh 0 0;
+  font-size: clamp(0.95rem, calc(1.5 * var(--tvw)), 1.7rem);
+  font-weight: 600;
   color: var(--tb-ink-muted);
 }
 
@@ -183,19 +214,19 @@ html.tv-active #root {
   justify-content: center;
   gap: 12px;
   margin-top: 3vh;
-  max-width: 80vw;
+  max-width: calc(80 * var(--tvw));
 }
 
 .tv-chip {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  max-width: 70vw;
+  max-width: calc(70 * var(--tvw));
   padding: 8px 20px 8px 8px;
   border-radius: 999px;
   background: var(--tb-surface);
   box-shadow: var(--tb-shadow-card);
-  font-size: clamp(0.9rem, 1.3vw, 1.5rem);
+  font-size: clamp(0.9rem, calc(1.3 * var(--tvw)), 1.5rem);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -232,7 +263,7 @@ html.tv-active #root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2vw;
+  gap: calc(2 * var(--tvw));
   width: 100%;
 }
 
@@ -251,7 +282,7 @@ html.tv-active #root {
   border: 1px solid var(--tb-border);
   border-radius: var(--tb-r-control);
   box-shadow: var(--tb-shadow-card);
-  font-size: clamp(1.1rem, 2vw, 2.1rem);
+  font-size: clamp(1.1rem, calc(2 * var(--tvw)), 2.1rem);
   font-weight: 700;
   color: var(--tb-ink);
 }
@@ -262,7 +293,7 @@ html.tv-active #root {
 
 .tv-code {
   display: block;
-  font-size: clamp(1.4rem, 2.6vw, 2.8rem);
+  font-size: clamp(1.4rem, calc(2.6 * var(--tvw)), 2.8rem);
   font-weight: 800;
   font-family: ui-rounded, 'SF Pro Rounded', var(--tb-font);
   letter-spacing: 0.12em;
@@ -285,15 +316,15 @@ html.tv-active #root {
 /* A ramp rather than one size, so "Gym" fills the board and
    "Feels Like Stranger Things" still lands on one or two lines. */
 .tv-genre[data-len='short'] {
-  font-size: clamp(2.4rem, 6.6vw, 6.8rem);
+  font-size: clamp(2.4rem, calc(6.6 * var(--tvw)), 6.8rem);
 }
 
 .tv-genre[data-len='medium'] {
-  font-size: clamp(2rem, 5vw, 5.2rem);
+  font-size: clamp(2rem, calc(5 * var(--tvw)), 5.2rem);
 }
 
 .tv-genre[data-len='long'] {
-  font-size: clamp(1.7rem, 3.8vw, 4rem);
+  font-size: clamp(1.7rem, calc(3.8 * var(--tvw)), 4rem);
 }
 
 /* ---------- Prompt during a fight ----------
@@ -301,8 +332,8 @@ html.tv-active #root {
    drops to a single line. It still reads from a couch; it just stops being
    the biggest thing on the board while two songs are trading punches. */
 .tv-hero--compact {
-  width: min(92vw, 1500px);
-  padding: 1.2vh 3vw;
+  width: min(calc(92 * var(--tvw)), 1500px);
+  padding: 1.2vh calc(3 * var(--tvw));
 }
 
 .tv-hero--compact .tv-genre {
@@ -313,19 +344,19 @@ html.tv-active #root {
 }
 
 .tv-hero--compact .tv-genre[data-len='short'] {
-  font-size: clamp(1.5rem, 3.4vw, 3.4rem);
+  font-size: clamp(1.5rem, calc(3.4 * var(--tvw)), 3.4rem);
 }
 
 .tv-hero--compact .tv-genre[data-len='medium'] {
-  font-size: clamp(1.3rem, 2.8vw, 2.9rem);
+  font-size: clamp(1.3rem, calc(2.8 * var(--tvw)), 2.9rem);
 }
 
 .tv-hero--compact .tv-genre[data-len='long'] {
-  font-size: clamp(1.1rem, 2.2vw, 2.3rem);
+  font-size: clamp(1.1rem, calc(2.2 * var(--tvw)), 2.3rem);
 }
 
 .tv-hero--compact .bt-prompt-label {
-  font-size: clamp(0.7rem, 1vw, 1.05rem);
+  font-size: clamp(0.7rem, calc(1 * var(--tvw)), 1.05rem);
 }
 
 .tv-timer {
@@ -336,7 +367,7 @@ html.tv-active #root {
   border-radius: var(--tb-r-control);
   background: var(--tb-surface);
   box-shadow: var(--tb-shadow-card);
-  font-size: clamp(1.6rem, 3vw, 3.2rem);
+  font-size: clamp(1.6rem, calc(3 * var(--tvw)), 3.2rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -366,10 +397,10 @@ html.tv-active #root {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 2vw;
-  width: min(92vw, 900px);
+  gap: calc(2 * var(--tvw));
+  width: min(calc(92 * var(--tvw)), 900px);
   margin: 2vh 0;
-  padding: 2vh 3vw;
+  padding: 2vh calc(3 * var(--tvw));
 }
 
 .tv-corner {
@@ -385,7 +416,7 @@ html.tv-active #root {
 }
 
 .tv-corner__name {
-  font-size: clamp(1.1rem, 2.2vw, 2.4rem);
+  font-size: clamp(1.1rem, calc(2.2 * var(--tvw)), 2.4rem);
   font-weight: 700;
 }
 
@@ -396,13 +427,13 @@ html.tv-active #root {
 .tv-vs {
   display: grid;
   place-items: center;
-  width: clamp(56px, 6vw, 110px);
-  height: clamp(56px, 6vw, 110px);
+  width: clamp(56px, calc(6 * var(--tvw)), 110px);
+  height: clamp(56px, calc(6 * var(--tvw)), 110px);
   border-radius: 50%;
   background: var(--tb-orange);
   box-shadow: 0 6px 18px rgba(253, 156, 7, 0.4);
   color: #fff;
-  font-size: clamp(1rem, 1.9vw, 2.1rem);
+  font-size: clamp(1rem, calc(1.9 * var(--tvw)), 2.1rem);
   font-weight: 800;
 }
 
@@ -424,7 +455,7 @@ html.tv-active #root {
   border-radius: 999px;
   background: var(--tb-surface);
   box-shadow: var(--tb-shadow-card);
-  font-size: clamp(1rem, 1.7vw, 1.9rem);
+  font-size: clamp(1rem, calc(1.7 * var(--tvw)), 1.9rem);
   font-weight: 600;
   color: var(--tb-ink-muted);
 }
@@ -446,7 +477,7 @@ html.tv-active #root {
 }
 
 .tv-track {
-  font-size: clamp(0.9rem, 1.4vw, 1.5rem);
+  font-size: clamp(0.9rem, calc(1.4 * var(--tvw)), 1.5rem);
   color: var(--tb-ink-faint);
 }
 
@@ -464,8 +495,8 @@ html.tv-active #root {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 1.4vw;
-  padding: 1.4vh 2vw;
+  gap: calc(1.4 * var(--tvw));
+  padding: 1.4vh calc(2 * var(--tvw));
   border-radius: var(--tb-r-card);
   background: var(--tb-surface);
   box-shadow: var(--tb-shadow-card);
@@ -496,7 +527,7 @@ html.tv-active #root {
   border-radius: 50%;
   background: var(--tb-ink);
   color: #fff;
-  font-size: clamp(1.1rem, 1.9vw, 2.1rem);
+  font-size: clamp(1.1rem, calc(1.9 * var(--tvw)), 2.1rem);
   font-weight: 800;
 }
 
@@ -507,7 +538,7 @@ html.tv-active #root {
 }
 
 .tv-option__text strong {
-  font-size: clamp(1.1rem, 2vw, 2.2rem);
+  font-size: clamp(1.1rem, calc(2 * var(--tvw)), 2.2rem);
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -515,13 +546,13 @@ html.tv-active #root {
 }
 
 .tv-option__text span {
-  font-size: clamp(0.85rem, 1.3vw, 1.4rem);
+  font-size: clamp(0.85rem, calc(1.3 * var(--tvw)), 1.4rem);
   color: var(--tb-ink-muted);
 }
 
 .tv-option__count {
   margin-left: auto;
-  font-size: clamp(1.6rem, 3vw, 3.2rem);
+  font-size: clamp(1.6rem, calc(3 * var(--tvw)), 3.2rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--tb-orange);
@@ -529,7 +560,7 @@ html.tv-active #root {
 
 .tv-foot {
   margin: 1vh 0 0;
-  font-size: clamp(0.95rem, 1.5vw, 1.6rem);
+  font-size: clamp(0.95rem, calc(1.5 * var(--tvw)), 1.6rem);
   color: var(--tb-ink-muted);
 }
 
@@ -541,14 +572,14 @@ html.tv-active #root {
 
 .tv-reveal__name {
   margin: 0.6vh 0 0;
-  font-size: clamp(2rem, 5.5vw, 5.5rem);
+  font-size: clamp(2rem, calc(5.5 * var(--tvw)), 5.5rem);
   font-weight: 800;
   line-height: 1;
 }
 
 .tv-reveal__song {
   margin: 1.4vh 0 0;
-  font-size: clamp(1rem, 1.8vw, 2rem);
+  font-size: clamp(1rem, calc(1.8 * var(--tvw)), 2rem);
   color: var(--tb-ink-muted);
 }
 
@@ -574,15 +605,15 @@ html.tv-active #root {
 .tv-now {
   display: flex;
   align-items: center;
-  gap: 2vw;
-  padding: 1.6vh 2.4vw;
+  gap: calc(2 * var(--tvw));
+  padding: 1.6vh calc(2.4 * var(--tvw));
   text-align: left;
   max-width: 90%;
 }
 
 .tv-now__art {
-  width: clamp(72px, 9vw, 160px);
-  height: clamp(72px, 9vw, 160px);
+  width: clamp(72px, calc(9 * var(--tvw)), 160px);
+  height: clamp(72px, calc(9 * var(--tvw)), 160px);
   border-radius: var(--tb-r-control);
   object-fit: cover;
 }
@@ -595,18 +626,18 @@ html.tv-active #root {
 }
 
 .tv-now__title {
-  font-size: clamp(1.3rem, 2.6vw, 2.8rem);
+  font-size: clamp(1.3rem, calc(2.6 * var(--tvw)), 2.8rem);
   font-weight: 800;
   line-height: 1.2;
 }
 
 .tv-now__artist {
-  font-size: clamp(1rem, 1.7vw, 1.8rem);
+  font-size: clamp(1rem, calc(1.7 * var(--tvw)), 1.8rem);
   color: var(--tb-ink-muted);
 }
 
 .tv-now__by {
-  font-size: clamp(0.85rem, 1.3vw, 1.4rem);
+  font-size: clamp(0.85rem, calc(1.3 * var(--tvw)), 1.4rem);
   color: var(--tb-ink-faint);
 }
 
@@ -653,7 +684,7 @@ html.tv-active #root {
   background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
   color: #fff;
   font: inherit;
-  font-size: clamp(0.95rem, 1.3vw, 1.35rem);
+  font-size: clamp(0.95rem, calc(1.3 * var(--tvw)), 1.35rem);
   font-weight: 700;
   cursor: pointer;
   transition: filter 0.2s var(--ease-out);
@@ -670,12 +701,12 @@ html.tv-active #root {
 
 .tv-controls__idle,
 .tv-controls__hint {
-  font-size: clamp(0.72rem, 0.95vw, 1rem);
+  font-size: clamp(0.72rem, calc(0.95 * var(--tvw)), 1rem);
   color: rgba(255, 255, 255, 0.6);
 }
 
 .tv-controls__error {
-  font-size: clamp(0.72rem, 0.95vw, 1rem);
+  font-size: clamp(0.72rem, calc(0.95 * var(--tvw)), 1rem);
   font-weight: 600;
   color: #ffb4a8;
 }

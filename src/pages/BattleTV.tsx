@@ -103,8 +103,12 @@ export default function BattleTV() {
   // happen before going live, and an empty lobby gives nobody anything to aim
   // at. Judging with chat votes is the busiest the board ever gets, so that is
   // the state worth checking against.
-  const { room, players, matches } = demo ? DEMO : liveRoom;
-  const { round, submissions, votes } = demo ? DEMO : liveRound;
+  const sample = useMemo(
+    () => (demo ? demoState(params.get('phase'), params.get('genre')) : null),
+    [demo, params]
+  );
+  const { room, players, matches } = sample ?? liveRoom;
+  const { round, submissions, votes } = sample ?? liveRound;
 
   const isHost = Boolean(room && stored && room.host_player_id === stored.playerId);
   const usedGenres = useUsedGenres(roomId, round?.id ?? null);
@@ -448,6 +452,45 @@ const DEMO = {
   ],
   votes: [],
 } as unknown as ReturnType<typeof useBattleRoom> & ReturnType<typeof useBattleRound>;
+
+/**
+ * The sample board at any point of a round, via `?demo=1&phase=…`, so the
+ * layout can be checked in a browser or an OBS source without a live room.
+ * `&genre=` swaps the prompt, and with it the backdrop, and makes the room a
+ * Classic one so the lobby shows the vibe card.
+ */
+function demoState(phase: string | null, genre: string | null): typeof DEMO {
+  const base = genre
+    ? ({
+        ...DEMO,
+        room: { ...DEMO.room, play_style: 'classic', theme: genre },
+        round: { ...DEMO.round, genre },
+      } as typeof DEMO)
+    : DEMO;
+  const at = (patch: Record<string, unknown>) =>
+    ({
+      ...base,
+      ...patch,
+      room: { ...base.room, ...((patch.room as object) ?? {}) },
+    }) as typeof DEMO;
+  switch (phase) {
+    case 'lobby':
+      return at({ room: { status: 'lobby', current_match_id: null }, round: null, submissions: [] });
+    case 'picking':
+      return at({ round: { ...base.round, phase: 'picking' }, submissions: [] });
+    case 'playing':
+      return at({ round: { ...base.round, phase: 'playing' } });
+    case 'revealed':
+      return at({ round: { ...base.round, phase: 'revealed', winner_submission_id: 's1' } });
+    case 'champion':
+      return at({
+        room: { status: 'complete', current_match_id: null },
+        matches: [{ ...base.matches[0], status: 'complete', winner_player_id: '1' }],
+      });
+    default:
+      return base;
+  }
+}
 
 /**
  * The two corners of a bracket matchup, or nothing.

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { serverTime } from './clock';
+import { freshPreviewUrl } from './musicSearch';
 import { CLIP_SECONDS, clampClipStart, clipIndex, clipsFinished } from './rules';
 import type { BattleRound, BattleSubmission } from '../types/battle';
 
@@ -80,6 +81,9 @@ export function useSyncedPlayback(
 ): Playback {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const activeRef = useRef<HTMLMediaElement | null>(null);
+  // Deezer preview links expire. Remember the live one for this song so the
+  // 250ms tick does not hit their API on every frame.
+  const previewRef = useRef<{ id: string; url: string | null } | null>(null);
   const [tick, setTick] = useState(0);
   const [blocked, setBlocked] = useState(false);
 
@@ -136,58 +140,80 @@ export function useSyncedPlayback(
   // Drive the playing element toward wherever the clock says we should be.
   // A submission with no preview URL is an embed, which plays in the provider's
   // own iframe instead; falling through here leaves everything paused.
+  // Deezer picks are the exception: they have a URL that dies, so we fetch a
+  // fresh one from the track id before pointing the element at it.
   useEffect(() => {
-    if (!enabled || !current?.preview_url || finished) {
+    if (!enabled || finished || !current) {
       audioRef.current?.pause();
       videoEl?.pause();
       activeRef.current = null;
       return;
     }
 
-    let media: HTMLMediaElement | null;
-    if (needsScreen) {
-      audioRef.current?.pause();
-      // The page mounts the video only once it knows a video is up, so the
-      // first pass through here can land before it exists.
-      media = videoEl ?? null;
-    } else {
-      videoEl?.pause();
-      media = audioRef.current;
-    }
+    let cancelled = false;
 
-    if (!media) return;
-    activeRef.current = media;
+    const playFrom = (src: string) => {
+      let media: HTMLMediaElement | null;
+      if (needsScreen) {
+        audioRef.current?.pause();
+        // The page mounts the video only once it knows a video is up, so the
+        // first pass through here can land before it exists.
+        media = videoEl ?? null;
+      } else {
+        videoEl?.pause();
+        media = audioRef.current;
+      }
 
-    // Set every pass, since the level depends on which song this is and the
-    // measured gain for it can land mid-clip.
-    media.volume = levelFor(output, current);
+      if (!media) return;
+      activeRef.current = media;
 
-    const src = current.preview_url;
+      // Set every pass, since the level depends on which song this is and the
+      // measured gain for it can land mid-clip.
+      media.volume = levelFor(output, current);
 
-    if (media.src !== src) {
-      media.src = src;
-      media.currentTime = seekTo;
-      media.play().then(
-        () => setBlocked(false),
-        // Browsers block autoplay until the user has interacted with the
-        // page. Surfacing it lets the UI ask for one tap instead of playing
-        // nothing and looking broken.
-        () => setBlocked(true)
-      );
-      return;
-    }
+      if (media.src !== src) {
+        media.src = src;
+        media.currentTime = seekTo;
+        media.play().then(
+          () => setBlocked(false),
+          // Browsers block autoplay until the user has interacted with the
+          // page. Surfacing it lets the UI ask for one tap instead of playing
+          // nothing and looking broken.
+          () => setBlocked(true)
+        );
+        return;
+      }
 
-    // Nudge back into sync if we have drifted more than a second, which
-    // happens after a tab is backgrounded.
-    if (Math.abs(media.currentTime - seekTo) > 1) {
-      media.currentTime = seekTo;
-    }
-    if (media.paused) {
-      media.play().then(
-        () => setBlocked(false),
-        () => setBlocked(true)
-      );
-    }
+      // Nudge back into sync if we have drifted more than a second, which
+      // happens after a tab is backgrounded.
+      if (Math.abs(media.currentTime - seekTo) > 1) {
+        media.currentTime = seekTo;
+      }
+      if (media.paused) {
+        media.play().then(
+          () => setBlocked(false),
+          () => setBlocked(true)
+        );
+      }
+    };
+
+    void (async () => {
+      const cached = previewRef.current?.id === current.id ? previewRef.current.url : null;
+      const src = cached ?? (await freshPreviewUrl(current));
+      if (cancelled) return;
+      previewRef.current = { id: current.id, url: src };
+      if (!src) {
+        audioRef.current?.pause();
+        videoEl?.pause();
+        activeRef.current = null;
+        return;
+      }
+      playFrom(src);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
     // `tick` is what re-runs this; the drift check needs a fresh `seekTo`.
   }, [enabled, current, seekTo, finished, tick, needsScreen, videoEl, output]);
 

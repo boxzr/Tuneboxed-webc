@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loudnessGain } from './loudness';
+import { freshPreviewUrl } from './musicSearch';
 import { readNumber, readString, writeNumber, writeString } from './prefs';
 import type { BattleSubmission } from '../types/battle';
 
@@ -104,10 +105,12 @@ export function useAudioSettings(submissions: readonly BattleSubmission[]): Audi
     if (!autoLevel) return;
     let live = true;
     for (const s of submissions) {
-      const url = s.preview_url;
-      if (!url || gains[url] !== undefined) continue;
-      void loudnessGain(url).then((g) => {
-        if (live) setGains((prev) => (prev[url] === undefined ? { ...prev, [url]: g } : prev));
+      const key = s.id;
+      if (gains[key] !== undefined) continue;
+      void freshPreviewUrl(s).then(async (url) => {
+        if (!url) return;
+        const g = await loudnessGain(url);
+        if (live) setGains((prev) => (prev[key] === undefined ? { ...prev, [key]: g } : prev));
       });
     }
     return () => {
@@ -126,7 +129,7 @@ export function useAudioSettings(submissions: readonly BattleSubmission[]): Audi
   const gainFor = useCallback(
     (submission: BattleSubmission | null) => {
       if (!submission) return 1;
-      const level = autoLevel && submission.preview_url ? gains[submission.preview_url] ?? 1 : 1;
+      const level = autoLevel ? gains[submission.id] ?? 1 : 1;
       return level * (trims[submission.id] ?? 1);
     },
     [autoLevel, gains, trims]

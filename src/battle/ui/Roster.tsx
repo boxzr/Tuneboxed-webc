@@ -2,7 +2,13 @@ import { Monogram } from './primitives';
 import { CheckIcon, CrownIcon } from './icons';
 import type { BattlePlayer } from '../../types/battle';
 
-export type RosterStatus = 'picking' | 'locked' | null;
+/**
+ * `picking` is a live round with a clock running. `unpicked` is the Classic
+ * lobby, where there is no clock and the player simply has not chosen yet;
+ * the two read differently and the lobby one used to say "Picking", which a
+ * host took to mean the game had started without them.
+ */
+export type RosterStatus = 'picking' | 'unpicked' | 'locked' | null;
 
 /**
  * The player list, shared by the lobby and every round phase.
@@ -52,6 +58,8 @@ export default function Roster({
                 </span>
               ) : status === 'picking' ? (
                 <span className="bt-player__picking">Picking</span>
+              ) : status === 'unpicked' ? (
+                <span className="bt-player__picking">No song yet</span>
               ) : (
                 <span
                   className={`bt-dot${p.is_connected ? '' : ' bt-dot--away'}`}
