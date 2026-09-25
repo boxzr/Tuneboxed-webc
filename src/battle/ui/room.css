@@ -224,6 +224,93 @@
   font-weight: 700;
 }
 
+.bt-mysongs__head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bt-mysongs__head .bt-locked__icon {
+  margin: 0;
+}
+
+.bt-mysongs__list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Same shape as a search result, in the locked-in green. */
+.bt-mysongs__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border: 1.5px solid rgba(61, 214, 153, 0.45);
+  border-radius: var(--tb-r-control);
+  background: rgba(61, 214, 153, 0.08);
+  text-align: left;
+}
+
+.bt-mysongs__art {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--tb-r-chip);
+  object-fit: cover;
+}
+
+.bt-mysongs__art--empty {
+  background: var(--tb-surface-sunken);
+}
+
+.bt-mysongs__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bt-mysongs__text strong,
+.bt-mysongs__text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bt-mysongs__text strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.bt-mysongs__text span {
+  font-size: 0.8rem;
+  color: var(--tb-ink-muted);
+}
+
+.bt-mysongs__remove {
+  flex: none;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tb-ink-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bt-mysongs__remove:hover:not(:disabled) {
+  background: rgba(22, 24, 29, 0.06);
+  color: var(--tb-ink);
+}
+
 .bt-phase-head {
   text-align: center;
   margin-bottom: 16px;
@@ -293,6 +380,24 @@
 .bt-choice--chosen {
   border-color: var(--tb-orange);
   background: rgba(253, 156, 7, 0.08);
+}
+
+/* A judging host crowns with one tap, so the whole card is the button. */
+.bt-choice--judge .bt-choice__text {
+  flex: 1;
+}
+
+.bt-choice__crown {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
 /* Chat votes by position, so the number has to be as readable as the song. */
@@ -765,6 +870,31 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--tb-ink-muted);
+}
+
+/* The start slider spans the slider and value columns, since its label is
+   longer than a percentage. */
+.bt-startpoints .bt-mix__row {
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 2fr);
+}
+
+.bt-startpoint {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bt-startpoint__label {
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--tb-ink-muted);
+}
+
+.bt-startpoint__error {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #c0392b;
 }
 
 @media (max-width: 480px) {

@@ -47,7 +47,13 @@ const MESSAGES: Record<string, string> = {
   BATTLE_FORMAT_LOCKED: 'The format can only change while you are still in the lobby.',
   BATTLE_HOST_STILL_ACTIVE: 'The host is still here.',
   BATTLE_CODE_EXHAUSTED: 'Could not create a room code. Try again.',
-  BATTLE_BRACKET_TOO_SMALL: 'A bracket needs at least two players in the room.',
+  BATTLE_BRACKET_TOO_SMALL: 'A bracket needs at least two songs in it.',
+  BATTLE_SONG_LIMIT: 'You have added as many songs as this room allows.',
+  BATTLE_BRACKET_FULL: 'The bracket is full. It takes 32 songs at most.',
+  BATTLE_HOST_IS_JUDGING: 'You are judging this bracket, so you do not add songs.',
+  BATTLE_NOT_YOUR_SONG: 'That song belongs to someone else.',
+  BATTLE_INVALID_SONGS_PER_PLAYER: 'Songs per player has to be between 1 and 5.',
+  BATTLE_INVALID_START: 'Pick a start time inside the song.',
 };
 
 export class BattleError extends Error {
@@ -465,6 +471,8 @@ export const updateRoomSettings = (
     maxPlayers?: number;
     playStyle?: BattlePlayStyle;
     theme?: string | null;
+    songsPerPlayer?: number;
+    hostJudges?: boolean;
   }
 ) =>
   rpc<BattleRoom>('battle_update_room_settings', {
@@ -475,6 +483,61 @@ export const updateRoomSettings = (
     p_max_players: settings.maxPlayers ?? null,
     p_play_style: settings.playStyle ?? null,
     p_theme: settings.theme === undefined ? null : settings.theme,
+    // Only sent when set, so a database without the columns still takes
+    // every other setting.
+    ...(settings.songsPerPlayer !== undefined && { p_songs_per_player: settings.songsPerPlayer }),
+    ...(settings.hostJudges !== undefined && { p_host_judges: settings.hostJudges }),
+  });
+
+/**
+ * Adds a song to the Classic lobby. The first fills the player's own spot;
+ * later ones each get a bracket spot of their own, up to the room's limit.
+ */
+export const addEntry = (
+  token: string,
+  song: {
+    title: string;
+    artist: string;
+    artworkUrl?: string | null;
+    previewUrl?: string | null;
+    externalId?: string | null;
+    source?: string | null;
+  }
+) =>
+  rpc<BattlePlayer>('battle_add_entry', {
+    p_token: token,
+    p_song_title: song.title,
+    p_song_artist: song.artist,
+    p_artwork_url: song.artworkUrl ?? null,
+    p_preview_url: song.previewUrl ?? null,
+    p_external_id: song.externalId ?? null,
+    p_source: song.source ?? null,
+  });
+
+/**
+ * `addEntry`, falling back to the one-song call on a database that has not
+ * run add_battle_multi_song_and_host_judge.sql yet, so the site can deploy
+ * ahead of the migration without breaking the lobby.
+ */
+export async function addLobbySong(token: string, song: Parameters<typeof addEntry>[1]) {
+  try {
+    return await addEntry(token, song);
+  } catch (e) {
+    if ((e as Error).message.includes('battle_add_entry')) return submitEntry(token, song);
+    throw e;
+  }
+}
+
+/** Takes one of the caller's lobby songs out. `entryId` is the row holding it. */
+export const removeEntry = (token: string, entryId: string) =>
+  rpc<void>('battle_remove_entry', { p_token: token, p_entry_id: entryId });
+
+/** Host only. Where a YouTube or SoundCloud pick starts, in whole seconds. */
+export const setSubmissionStart = (token: string, submissionId: string, startSeconds: number) =>
+  rpc<BattleSubmission>('battle_set_submission_start', {
+    p_token: token,
+    p_submission_id: submissionId,
+    p_start_seconds: Math.max(0, Math.round(startSeconds)),
   });
 
 /** Locks a song in the Classic lobby. There is no round and no clock yet. */

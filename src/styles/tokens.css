@@ -57,8 +57,15 @@
 
   /* Type. The app is SF Pro, so the web stack leads with the system font and
      gets the same shapes on Apple hardware. Room codes are the one exception:
-     they get tabular figures because they are read aloud and typed back. */
-  --tb-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+     they get tabular figures because they are read aloud and typed back.
+
+     Everywhere else gets Inter, bundled, rather than its own system face.
+     Windows used to land on Segoe UI, which has Bold and Black and nothing in
+     between, so every weight-800 headline on the board rendered in Black and
+     the room code, prompt and song titles came out slabbed. Inter is drawn
+     close to SF and ships every weight. `-apple-system` stays first so Apple
+     devices never download it. */
+  --tb-font: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   --tb-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   /* Headlines. The same face as the body, on purpose.
@@ -69,7 +76,7 @@
      came out soft and toy-like in iOS Safari, so a headline here gets its
      presence from size and tracking instead of from another typeface.
      A condensed webfont was tried before that and read as signage. */
-  --tb-font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  --tb-font-display: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
 
   /* ---------- Motion ----------

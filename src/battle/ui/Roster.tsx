@@ -22,6 +22,7 @@ export default function Roster({
   judgeId,
   meId,
   statusOf,
+  songCountOf,
   waitingSlots = 0,
 }: {
   players: BattlePlayer[];
@@ -30,6 +31,8 @@ export default function Roster({
   meId: string | null;
   /** Per-player pick state during the picking phase. */
   statusOf?: (player: BattlePlayer) => RosterStatus;
+  /** Songs in per player, for a lobby that takes more than one each. */
+  songCountOf?: (player: BattlePlayer) => number;
   waitingSlots?: number;
 }) {
   return (
@@ -54,6 +57,11 @@ export default function Roster({
             <span className="bt-player__trail">
               {status === 'locked' ? (
                 <span className="bt-player__locked">
+                  {songCountOf && (
+                    <span className="bt-player__count">
+                      {songCountOf(p)} {songCountOf(p) === 1 ? 'song' : 'songs'}
+                    </span>
+                  )}
                   <CheckIcon size={16} />
                 </span>
               ) : status === 'picking' ? (

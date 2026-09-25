@@ -10,10 +10,21 @@ import { secondsUntil, syncClock } from '../battle/clock';
 import { useClipSeconds } from '../battle/useClipSeconds';
 import { usePickSeconds } from '../battle/usePickSeconds';
 import { useAudioSettings } from '../battle/useAudioSettings';
-import { PARTY_ROUNDS } from '../battle/rules';
+import { BRACKET_CAP, PARTY_ROUNDS } from '../battle/rules';
 import { type HostContext, nextHostAction } from '../battle/hostActions';
-import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
+import {
+  bracketEntrants,
+  classicReady,
+  hasEntry,
+  hostJudges,
+  isClassic,
+  ownerId,
+  songsPerPlayer,
+} from '../battle/playStyle';
 import GenreScene from '../battle/GenreScene';
+import EmbedPlayer from '../battle/EmbedPlayer';
+import StartPointSlider from '../battle/StartPointSlider';
+import { embedSourceOf, embedStart } from '../battle/embeds';
 import { uniqueLeader } from '../battle/voteLeader';
 import { BoxerSprite, Gloves, Monogram, PromptLabel } from '../battle/ui/primitives';
 import BoxingMatch, { type Fighter } from '../battle/ui/BoxingMatch';
@@ -107,7 +118,8 @@ export default function BattleTV() {
     () => (demo ? demoState(params.get('phase'), params.get('genre')) : null),
     [demo, params]
   );
-  const { room, players, matches } = sample ?? liveRoom;
+  // The demo only lists people, so it doubles as its own entrants.
+  const { room, players, entrants = players, matches } = sample ?? liveRoom;
   const { round, submissions, votes } = sample ?? liveRound;
 
   const isHost = Boolean(room && stored && room.host_player_id === stored.playerId);
@@ -142,6 +154,15 @@ export default function BattleTV() {
   });
 
   const pointerActive = usePointerActivity();
+  // YouTube and SoundCloud picks play in the provider's player, which has to
+  // be on the page to sound at all. The board used to leave them out, so a
+  // streamer sending sound to the board heard nothing on a pasted link.
+  const [embedBlocked, setEmbedBlocked] = useState(false);
+  const [durations, setDurations] = useState<Record<string, number>>({});
+  const liveEmbed =
+    hearBoard && round?.phase === 'playing' && embedSourceOf(playback.current)
+      ? playback.current
+      : null;
   const startArmedAt = useRef(0);
   const lastTheme = useRef<string | null | undefined>(undefined);
 
@@ -168,10 +189,15 @@ export default function BattleTV() {
   }
 
   const nameOf = (id: string | null) =>
-    players.find((p) => p.id === id)?.display_name ?? 'Player';
+    entrants.find((p) => p.id === id)?.display_name ?? 'Player';
+  const ownerOf = (id: string | null | undefined) => {
+    const row = id ? entrants.find((p) => p.id === id) : undefined;
+    return row ? ownerId(row) : id ?? null;
+  };
 
   const isBracket = room.format === 'bracket';
   const classic = isClassic(room);
+  const judging = hostJudges(room);
   const currentMatch = matches.find((m) => m.id === room.current_match_id) ?? null;
   const connected = players.filter((p) => p.is_connected);
 
@@ -179,11 +205,15 @@ export default function BattleTV() {
     matches.find((m) => m.next_match_id === null && m.winner_player_id)?.winner_player_id ?? null;
 
   // Chat decides in a room tied to a Twitch channel. The board is never the
-  // client reading chat, so it shows whatever the host last published.
-  const chatTally = room.host_twitch_login ? round?.chat_tally ?? {} : null;
+  // client reading chat, so it shows whatever the host last published. A
+  // judging host makes the call themselves, so chat does not.
+  const chatTally = room.host_twitch_login && !judging ? round?.chat_tally ?? {} : null;
 
   const isCompetitor = (p: BattlePlayer) =>
-    Boolean(currentMatch && (p.id === currentMatch.player_a_id || p.id === currentMatch.player_b_id));
+    Boolean(
+      currentMatch &&
+        (ownerOf(currentMatch.player_a_id) === p.id || ownerOf(currentMatch.player_b_id) === p.id)
+    );
 
   const needsAiJudge =
     isBracket && !chatTally && connected.length > 0 && connected.every(isCompetitor);
@@ -215,7 +245,9 @@ export default function BattleTV() {
 
   const action = hostCtx
     ? nextHostAction(hostCtx, {
-        ready: classic ? classicReady(room, players) : connected.length >= room.min_players,
+        ready: classic
+          ? classicReady(room, entrants)
+          : connected.filter((p) => !judging || p.id !== room.host_player_id).length >= room.min_players,
         needsAiJudge,
         empty: pickedNothing,
         finished: championId !== null,
@@ -233,9 +265,42 @@ export default function BattleTV() {
         action={action}
         busy={busy}
         error={actionError}
-        hearBlocked={hearBoard && playback.blocked}
-        onUnblock={() => playback.unblock()}
-        visible={pointerActive || Boolean(actionError) || (hearBoard && playback.blocked)}
+        hearBlocked={hearBoard && (playback.blocked || embedBlocked)}
+        onUnblock={() => {
+          playback.unblock();
+          setEmbedBlocked(false);
+        }}
+        crownChoices={
+          judging && token && round?.phase === 'judging'
+            ? submissions.map((s) => ({
+                id: s.id,
+                label: s.song_title,
+                onCrown: () => {
+                  setActionError(null);
+                  setBusy(true);
+                  battle
+                    .castVote(token, round.id, s.id)
+                    .then(() => battle.setRoundWinner(token, round.id, s.id))
+                    .catch((e: Error) => setActionError(e.message))
+                    .finally(() => setBusy(false));
+                },
+              }))
+            : null
+        }
+        startSlider={
+          token && round?.phase === 'playing' && embedSourceOf(playback.current) ? (
+            <StartPointSlider
+              token={token}
+              submission={playback.current!}
+              duration={durations[playback.current!.id] ?? null}
+              className="tv-controls__slider"
+              labelClassName="tv-controls__hint"
+            />
+          ) : null
+        }
+        visible={
+          pointerActive || Boolean(actionError) || (hearBoard && (playback.blocked || embedBlocked))
+        }
         onRun={() => {
           if (!action) return;
           if (action.id === 'start' && Date.now() < startArmedAt.current) return;
@@ -276,8 +341,10 @@ export default function BattleTV() {
         <Lobby
           code={room.code}
           players={players}
-          max={room.max_players}
+          songs={bracketEntrants(room, entrants).filter(hasEntry)}
+          max={songsPerPlayer(room) > 1 ? BRACKET_CAP : room.max_players}
           theme={classic ? room.theme : null}
+          judgeId={judging ? room.host_player_id : null}
         />
       </Board>
     );
@@ -307,6 +374,22 @@ export default function BattleTV() {
       host={room.host_twitch_login}
       avatar={room.host_avatar_url}
       controls={controls}
+      embed={
+        liveEmbed ? (
+          <EmbedPlayer
+            compact
+            source={embedSourceOf(liveEmbed)!}
+            externalId={liveEmbed.external_id ?? ''}
+            offset={embedStart(liveEmbed) + playback.offset}
+            playing
+            volume={audio.volume * audio.gainFor(liveEmbed)}
+            onBlocked={setEmbedBlocked}
+            onDuration={(d) =>
+              setDurations((prev) => (prev[liveEmbed.id] === d ? prev : { ...prev, [liveEmbed.id]: d }))
+            }
+          />
+        ) : null
+      }
     >
       <div className="tv-live">
         <header className="tv-head">
@@ -358,6 +441,7 @@ export default function BattleTV() {
             nowPlaying={round.phase === 'playing' ? seatOf(playback.current?.player_id) : null}
             chatChannel={room.host_twitch_login}
             roundLabel={`Round ${room.round_number}`}
+            judgeName={judging ? room.host_twitch_login ?? nameOf(room.host_player_id) : null}
           />
         ) : (
           <>
@@ -366,7 +450,7 @@ export default function BattleTV() {
             )}
 
             {round.phase === 'picking' && (
-              <Picking players={players} match={currentMatch} submissions={submissions} />
+              <Picking players={entrants} match={currentMatch} submissions={submissions} />
             )}
 
             {round.phase === 'playing' && (
@@ -594,12 +678,15 @@ function Board({
   host,
   avatar,
   controls,
+  embed,
 }: {
   children: React.ReactNode;
   genre: string | null;
   host?: string | null;
   avatar?: string | null;
   controls?: React.ReactNode;
+  /** The provider player for a YouTube or SoundCloud pick, parked in a corner. */
+  embed?: React.ReactNode;
 }) {
   return (
     <div className="tv">
@@ -613,6 +700,7 @@ function Board({
       )}
 
       <div className="tv-stage">{children}</div>
+      {embed && <div className="tv-embed">{embed}</div>}
       {controls}
     </div>
   );
@@ -634,6 +722,8 @@ function HostBar({
   hearBlocked,
   onUnblock,
   onRun,
+  startSlider,
+  crownChoices,
 }: {
   action: { label: string; disabled: boolean } | null;
   busy: boolean;
@@ -642,10 +732,16 @@ function HostBar({
   hearBlocked: boolean;
   onUnblock: () => void;
   onRun: () => void;
+  /** Where the playing YouTube or SoundCloud song starts. */
+  startSlider?: React.ReactNode;
+  /** A judging host's verdict: one button per song, and a tap crowns it. */
+  crownChoices?: { id: string; label: string; onCrown: () => void }[] | null;
 }) {
   return (
     <div className={`tv-controls${visible ? ' tv-controls--on' : ''}`}>
       {error && <span className="tv-controls__error">{error}</span>}
+
+      {startSlider}
 
       {hearBlocked && (
         <button type="button" className="tv-controls__go" onClick={onUnblock}>
@@ -653,7 +749,19 @@ function HostBar({
         </button>
       )}
 
-      {action ? (
+      {crownChoices ? (
+        crownChoices.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className="tv-controls__go tv-controls__crown"
+            disabled={busy}
+            onClick={c.onCrown}
+          >
+            Crown {c.label}
+          </button>
+        ))
+      ) : action ? (
         <button
           type="button"
           className="tv-controls__go"
@@ -674,15 +782,20 @@ function HostBar({
 function Lobby({
   code,
   players,
+  songs,
   max,
   theme,
+  judgeId,
 }: {
   code: string;
   players: BattlePlayer[];
+  /** Every song going into the bracket, extra songs included. */
+  songs: BattlePlayer[];
   max: number;
   theme: string | null;
+  judgeId: string | null;
 }) {
-  const locked = players.filter(hasEntry);
+  const songsBy = (p: BattlePlayer) => songs.filter((s) => ownerId(s) === p.id).length;
 
   return (
     <div className="tv-lobby">
@@ -699,18 +812,27 @@ function Lobby({
       ) : null}
       <p className="tv-lobby__sub">
         {theme
-          ? `${locked.length} of ${max} songs in`
+          ? `${songs.length} of ${max} songs in`
           : `${players.length} of ${max} in the room`}
       </p>
 
       <div className="tv-chips">
-        {players.map((p) => (
-          <span key={p.id} className={`tv-chip${hasEntry(p) ? ' tv-chip--on' : ''}`}>
-            <Monogram name={p.display_name} size={28} />
-            {p.display_name}
-            {hasEntry(p) ? ' · locked in' : ''}
-          </span>
-        ))}
+        {players.map((p) => {
+          const n = songsBy(p);
+          return (
+            <span key={p.id} className={`tv-chip${n > 0 ? ' tv-chip--on' : ''}`}>
+              <Monogram name={p.display_name} size={28} />
+              {p.display_name}
+              {p.id === judgeId
+                ? ' · judging'
+                : n > 1
+                  ? ` · ${n} songs`
+                  : n === 1
+                    ? ' · locked in'
+                    : ''}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

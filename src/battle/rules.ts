@@ -42,6 +42,9 @@ export function clampPickSeconds(seconds: number): number {
  */
 export const CLIP_SECONDS = 30;
 
+/** Most songs a bracket seeds. Matches battle_bracket_cap() in the database. */
+export const BRACKET_CAP = 32;
+
 /**
  * Everything a pick gives us to play.
  *

@@ -44,6 +44,7 @@ export default function BoxingMatch({
   nowPlaying,
   chatChannel,
   roundLabel,
+  judgeName = null,
 }: {
   a: Fighter;
   b: Fighter;
@@ -55,7 +56,14 @@ export default function BoxingMatch({
   /** Twitch channel taking votes, when the room is tied to one. */
   chatChannel: string | null;
   roundLabel: string;
+  /**
+   * The host, when they judge instead of the room voting. Nobody types a
+   * number and there is nothing to tally, so the badges, counts and chat
+   * instructions give way to their name.
+   */
+  judgeName?: string | null;
 }) {
+  const judged = judgeName !== null;
   const score = fightScore(a.votes, b.votes);
   const swinging = useSwing(a.votes, b.votes);
   const decided = winner !== null;
@@ -86,6 +94,7 @@ export default function BoxingMatch({
         roundLabel={roundLabel}
         winner={winner}
         nowPlaying={nowPlaying}
+        judged={judged}
       />
 
       <div className="fight__ring">
@@ -121,6 +130,7 @@ export default function BoxingMatch({
         loserFloored={floored}
         loserName={loser ? (loser === 'a' ? a : b).name : null}
         loserVotes={loser ? (loser === 'a' ? a : b).votes : 0}
+        judgeName={judgeName}
       />
     </div>
   );
@@ -140,6 +150,7 @@ function FightHud({
   roundLabel,
   winner,
   nowPlaying,
+  judged,
 }: {
   a: Fighter;
   b: Fighter;
@@ -147,6 +158,7 @@ function FightHud({
   roundLabel: string;
   winner: 'a' | 'b' | null;
   nowPlaying: 'a' | 'b' | null;
+  judged: boolean;
 }) {
   return (
     <div className="fight__hud">
@@ -156,6 +168,7 @@ function FightHud({
         health={score.healthA}
         won={winner === 'a'}
         playing={nowPlaying === 'a'}
+        judged={judged}
       />
       <span className="fight__round">{roundLabel}</span>
       <HealthBar
@@ -164,6 +177,7 @@ function FightHud({
         health={score.healthB}
         won={winner === 'b'}
         playing={nowPlaying === 'b'}
+        judged={judged}
       />
     </div>
   );
@@ -175,12 +189,14 @@ function HealthBar({
   health,
   won,
   playing,
+  judged,
 }: {
   side: 'a' | 'b';
   fighter: Fighter;
   health: number;
   won: boolean;
   playing: boolean;
+  judged: boolean;
 }) {
   return (
     <div
@@ -190,9 +206,11 @@ function HealthBar({
     >
       <div className="fight__seat-top">
         {/* The digit chat types, on the corner it actually belongs to. */}
-        <span className="fight__num" aria-hidden="true">
-          {fighter.ballotNumber}
-        </span>
+        {!judged && (
+          <span className="fight__num" aria-hidden="true">
+            {fighter.ballotNumber}
+          </span>
+        )}
         {fighter.artworkUrl && (
           <img className="fight__art" src={fighter.artworkUrl} alt="" />
         )}
@@ -220,7 +238,7 @@ function HealthBar({
             fill starts from the left, overflows the pill, or disappears. */}
         <span className="fight__bar-hurt" />
         <span className="fight__bar-fill" />
-        <span className="fight__bar-votes">{fighter.votes}</span>
+        {!judged && <span className="fight__bar-votes">{fighter.votes}</span>}
       </div>
     </div>
   );
@@ -253,6 +271,7 @@ function FightCall({
   loserFloored,
   loserName,
   loserVotes,
+  judgeName,
 }: {
   phase: BattleRoundPhase;
   chatChannel: string | null;
@@ -263,7 +282,29 @@ function FightCall({
   loserFloored: boolean;
   loserName: string | null;
   loserVotes: number;
+  judgeName: string | null;
 }) {
+  if (judgeName !== null) {
+    if (decided && winnerName) {
+      return (
+        <p className="fight__call fight__call--won">
+          <strong>{judgeName}</strong> gives it to <strong>{winnerName}</strong>
+        </p>
+      );
+    }
+    if (phase === 'playing') {
+      return <p className="fight__call">Both songs are playing. {judgeName} is listening.</p>;
+    }
+    if (phase === 'judging') {
+      return (
+        <p className="fight__call">
+          <strong>{judgeName}</strong> is judging this one
+        </p>
+      );
+    }
+    return <p className="fight__call">Squaring up…</p>;
+  }
+
   if (decided && winnerName) {
     return (
       <p className="fight__call fight__call--won">

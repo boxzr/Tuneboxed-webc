@@ -76,6 +76,10 @@ interface Props {
   /** 0 to 1. Applied once the provider player is ready. */
   volume?: number;
   onBlocked?: (blocked: boolean) => void;
+  /** Full track length in seconds, once the provider knows it. */
+  onDuration?: (seconds: number) => void;
+  /** Smaller frame, for the stream board where the fight is the picture. */
+  compact?: boolean;
 }
 
 export default function EmbedPlayer({
@@ -85,6 +89,8 @@ export default function EmbedPlayer({
   playing,
   volume = 1,
   onBlocked,
+  onDuration,
+  compact = false,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YouTubePlayer | SoundCloudWidget | null>(null);
@@ -142,6 +148,29 @@ export default function EmbedPlayer({
     };
   }, [source, externalId]);
 
+  // Report the length once, for the host's start slider.
+  const onDurationRef = useRef(onDuration);
+  onDurationRef.current = onDuration;
+  // YouTube reports zero until the video's metadata is in, which can land
+  // after onReady, so it gets a few tries.
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player || !ready) return;
+    let tries = 0;
+    let stopped = false;
+    const ask = () => {
+      duration(player).then((seconds) => {
+        if (stopped || playerRef.current !== player) return;
+        if (seconds) onDurationRef.current?.(seconds);
+        else if (++tries < 8) window.setTimeout(ask, 1000);
+      });
+    };
+    ask();
+    return () => {
+      stopped = true;
+    };
+  }, [ready]);
+
   // Keep the player pointed at the room's position, and start or stop it as the
   // countdown allows.
   useEffect(() => {
@@ -169,7 +198,7 @@ export default function EmbedPlayer({
   }, [ready, playing, offset, volume, onBlocked]);
 
   return (
-    <div className={`battle-embed battle-embed--${source}`}>
+    <div className={`battle-embed battle-embed--${source}${compact ? ' battle-embed--compact' : ''}`}>
       <div ref={hostRef} className="battle-embed__host" />
       {!ready && !error && <p className="battle-embed__note">Loading the player…</p>}
       {error && <p className="battle-embed__note battle-embed__note--error">{error}</p>}
@@ -186,6 +215,7 @@ interface YouTubePlayer {
   pauseVideo(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
+  getDuration(): number;
   setVolume(percent: number): void;
   destroy(): void;
 }
@@ -197,6 +227,7 @@ interface SoundCloudWidget {
   seekTo(milliseconds: number): void;
   setVolume(percent: number): void;
   getPosition(cb: (ms: number) => void): void;
+  getDuration(cb: (ms: number) => void): void;
   bind(event: string, cb: () => void): void;
 }
 
@@ -304,6 +335,33 @@ function seek(p: YouTubePlayer | SoundCloudWidget, seconds: number): void {
   } catch {
     /* the player is not ready to seek; the next tick will retry */
   }
+}
+
+/** Track length in seconds, or null if the player cannot say yet. */
+function duration(p: YouTubePlayer | SoundCloudWidget): Promise<number | null> {
+  if (isYouTube(p)) {
+    try {
+      const d = p.getDuration();
+      return Promise.resolve(d > 0 ? d : null);
+    } catch {
+      return Promise.resolve(null);
+    }
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (v: number | null) => {
+      if (!settled) {
+        settled = true;
+        resolve(v);
+      }
+    };
+    try {
+      p.getDuration((ms) => done(ms > 0 ? ms / 1000 : null));
+    } catch {
+      done(null);
+    }
+    setTimeout(() => done(null), 1500);
+  });
 }
 
 /** Seconds into the track, or null if the player cannot say yet. */

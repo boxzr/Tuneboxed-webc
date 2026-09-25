@@ -1,5 +1,7 @@
-import type { BattleFormat, BattlePlayStyle, BattlePlayer, BattleRoom } from '../types/battle';
+import type { BattleFormat, BattlePlayStyle, BattleRoom } from '../types/battle';
 import { nextGenre } from './genres';
+
+export * from './entrants';
 
 /**
  * How a room asks for songs.
@@ -20,28 +22,8 @@ export function defaultPlayStyle(format: BattleFormat): BattlePlayStyle {
   return format === 'bracket' ? 'classic' : 'tuneboxed';
 }
 
-/** Whether this player has locked a Classic lobby song. */
-export function hasEntry(player: BattlePlayer): boolean {
-  return Boolean(player.entry_song_title);
-}
-
 /** The prompt a new round should use. Classic never rolls a new one. */
 export function genreForRound(room: BattleRoom, used: readonly string[]): string {
   if (isClassic(room) && room.theme) return room.theme;
   return nextGenre(used);
-}
-
-/** How many people have a song ready in the lobby. */
-export function entryCount(players: readonly BattlePlayer[]): number {
-  return players.filter(hasEntry).length;
-}
-
-/**
- * Whether Classic is allowed to leave the lobby.
- *
- * Needs a vibe and enough locked-in songs. Connected count does not matter:
- * a viewer who never picked is an audience, not a missing player.
- */
-export function classicReady(room: BattleRoom, players: readonly BattlePlayer[]): boolean {
-  return Boolean(room.theme?.trim()) && entryCount(players) >= room.min_players;
 }

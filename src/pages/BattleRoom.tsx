@@ -12,17 +12,29 @@ import { secondsUntil, syncClock } from '../battle/clock';
 import { useClipSeconds } from '../battle/useClipSeconds';
 import { usePickSeconds } from '../battle/usePickSeconds';
 import { useAudioSettings } from '../battle/useAudioSettings';
-import { PARTY_ROUNDS, PICK_SECONDS } from '../battle/rules';
+import { BRACKET_CAP, PARTY_ROUNDS, PICK_SECONDS } from '../battle/rules';
 import { endBattle, type HostContext, nextHostAction } from '../battle/hostActions';
 import { uniqueLeader } from '../battle/voteLeader';
 import SongPicker from '../battle/SongPicker';
+import LobbySongs from '../battle/LobbySongs';
 import EmbedPlayer from '../battle/EmbedPlayer';
+import StartPoints from '../battle/StartPoints';
+import { embedSourceOf, embedStart } from '../battle/embeds';
 import RoomShell, { RoomHeader } from '../battle/RoomShell';
 import StreamCard from '../battle/StreamCard';
 import PublishChampion from '../battle/PublishChampion';
 import { GameSettingsButton, GameSettingsPanel, resolvedVoting, rulesSummary } from '../battle/GameSettings';
 import ThemePicker from '../battle/ThemePicker';
-import { classicReady, hasEntry, isClassic } from '../battle/playStyle';
+import {
+  bracketEntrants,
+  classicReady,
+  hasEntry,
+  hostJudges,
+  isClassic,
+  ownerId,
+  songsOf,
+  songsPerPlayer,
+} from '../battle/playStyle';
 import BracketTree from '../battle/ui/BracketTree';
 import MatchupCard from '../battle/ui/MatchupCard';
 import NowPlaying from '../battle/ui/NowPlaying';
@@ -83,7 +95,10 @@ export default function BattleRoom() {
     };
   }, [code]);
 
-  const { room, players, matches, loading, refresh } = useBattleRoom(roomId, stored?.token ?? null);
+  const { room, players, entrants, matches, loading, refresh } = useBattleRoom(
+    roomId,
+    stored?.token ?? null
+  );
   const { round, submissions, votes } = useBattleRound(room);
   const [crowns, setCrowns] = useState<Record<string, number>>({});
 
@@ -106,11 +121,21 @@ export default function BattleRoom() {
     { volume: audio.volume, gainFor: audio.gainFor, sinkId: audio.sinkId }
   );
   const [embedBlocked, setEmbedBlocked] = useState(false);
+  // Track lengths as each YouTube or SoundCloud player reports them, so the
+  // host's start slider can reach the end of the song.
+  const [durations, setDurations] = useState<Record<string, number>>({});
+  const noteDuration = useCallback(
+    (id: string, seconds: number) =>
+      setDurations((d) => (d[id] === seconds ? d : { ...d, [id]: seconds })),
+    []
+  );
+  const embedPicks = submissions.filter((s) => embedSourceOf(s));
   useSecondTicker(phase === 'picking' || phase === 'judging');
 
   // Only the host reads chat. Every viewer opening an IRC connection would
   // multiply the load for no gain, and the tally is host-only to write anyway.
-  const chatChannel = isHost && room?.format === 'bracket' ? room.host_twitch_login ?? null : null;
+  const chatChannel =
+    isHost && room?.format === 'bracket' && !room.host_judges ? room.host_twitch_login ?? null : null;
   const chat = useChatVotes({
     enabled: isHost,
     channel: chatChannel,
@@ -196,8 +221,17 @@ export default function BattleRoom() {
 
   const connected = players.filter((p) => p.is_connected);
   const joinUrl = liveJoinUrl(room.code);
+  // Entrants, so a bracket slot holding someone's second song still reads as
+  // their name.
   const nameOf = (id: string | null) =>
-    players.find((p) => p.id === id)?.display_name ?? 'Someone';
+    entrants.find((p) => p.id === id)?.display_name ?? 'Someone';
+  const ownerOf = (id: string | null | undefined) => {
+    const row = id ? entrants.find((p) => p.id === id) : undefined;
+    return row ? ownerId(row) : id ?? null;
+  };
+  const judging = hostJudges(room);
+  const mySongs = me ? songsOf(entrants, me.id) : [];
+  const songCount = bracketEntrants(room, entrants).filter(hasEntry).length;
 
   const isBracket = room.format === 'bracket';
   const classic = isClassic(room);
@@ -211,9 +245,14 @@ export default function BattleRoom() {
   const championId = isBracket ? bracketChampionId : partyChampionId;
 
   // In a bracket only the two competitors pick a song; everybody else is an
-  // audience with a vote.
+  // audience with a vote. A player whose second song is in the matchup is a
+  // competitor too.
   const isCompetitor = (p: BattlePlayer | null) =>
-    Boolean(p && currentMatch && (p.id === currentMatch.player_a_id || p.id === currentMatch.player_b_id));
+    Boolean(
+      p &&
+        currentMatch &&
+        (ownerOf(currentMatch.player_a_id) === p.id || ownerOf(currentMatch.player_b_id) === p.id)
+    );
 
   const judgeId = round?.judge_player_id ?? null;
   const isJudge = Boolean(me && judgeId === me.id);
@@ -226,16 +265,19 @@ export default function BattleRoom() {
 
   const myVote = votes.find((v) => v.voter_player_id === me?.id) ?? null;
   const mySubmission = submissions.find((s) => s.player_id === me?.id) ?? null;
+  const isMine = (s: BattleSubmission) => Boolean(me && ownerOf(s.player_id) === me.id);
 
   // A room tied to a Twitch channel hands the decision to chat, so the in-room
   // crown buttons become a read-only scoreboard for everyone. The host shows
   // its own live counts because those update between reports; everyone else
   // reads what the host last published.
-  const chatTally = room.host_twitch_login
-    ? isHost
-      ? chat.counts
-      : round?.chat_tally ?? {}
-    : null;
+  // A judging host overrules chat: they asked to make the call themselves.
+  const chatTally =
+    room.host_twitch_login && !judging
+      ? isHost
+        ? chat.counts
+        : round?.chat_tally ?? {}
+      : null;
 
   // Nobody in the room is eligible to vote when every player is in the
   // matchup, which is exactly what a two player bracket looks like. The AI
@@ -270,6 +312,8 @@ export default function BattleRoom() {
     : null;
 
   function voteCountFor(playerId: string | null): number | null {
+    // One judge, one verdict: "0 votes / 1 vote" under the fighters is noise.
+    if (judging) return null;
     if (phase !== 'judging' && phase !== 'revealed') return null;
     const submission = submissionOf(playerId);
     if (!submission) return null;
@@ -336,14 +380,16 @@ export default function BattleRoom() {
   const action =
     isHost && hostCtx
       ? nextHostAction(hostCtx, {
-          ready: classic ? classicReady(room, players) : connected.length >= room.min_players,
+          ready: classic
+            ? classicReady(room, entrants)
+            : connected.filter((p) => !judging || p.id !== room.host_player_id).length >= room.min_players,
           needsAiJudge,
           empty: pickedNothing,
           finished: championId !== null,
         })
       : null;
 
-  const startHint = isHost && !round ? startBlocker(room, players, connected) : null;
+  const startHint = isHost && !round ? startBlocker(room, songCount, connected) : null;
 
   const runAction = () => {
     if (!action) return;
@@ -460,64 +506,69 @@ export default function BattleRoom() {
               </div>
             )}
 
-            {classic && token && me && room.theme && (
-              <div className="bt-lobby__pick">
-                {hasEntry(me) ? (
-                  <div className="bt-locked">
-                    <span className="bt-locked__icon">
-                      <CheckIcon size={22} />
-                    </span>
-                    <SectionLabel>Your pick is in</SectionLabel>
-                    <strong className="bt-locked__title">{me.entry_song_title}</strong>
-                    <span className="bt-sub">{me.entry_song_artist}</span>
-                  </div>
-                ) : (
-                  <SongPicker
-                    disabled={busy}
-                    onPick={(song) =>
-                      guard(async () => {
-                        await battle.submitEntry(token, {
-                          title: song.title,
-                          artist: song.artist,
-                          artworkUrl: song.artworkUrl,
-                          previewUrl: song.previewUrl,
-                          externalId: song.externalId,
-                          source: song.source,
-                        });
-                        await refresh();
-                      })
-                    }
-                  />
-                )}
-              </div>
+            {classic && token && me && room.theme && isHost && judging && (
+              <p className="bt-sub bt-sub--center bt-lobby__hint">
+                You are judging. You stay out of the bracket and pick the winner of every match.
+              </p>
+            )}
+
+            {classic && token && me && room.theme && !(isHost && judging) && (
+              <LobbySongs
+                songs={mySongs}
+                limit={songsPerPlayer(room)}
+                busy={busy}
+                onAdd={(song) =>
+                  guard(async () => {
+                    await battle.addLobbySong(token, song);
+                    await refresh();
+                  })
+                }
+                onRemove={(entryId) =>
+                  void guard(async () => {
+                    await battle.removeEntry(token, entryId);
+                    await refresh();
+                  })
+                }
+              />
             )}
           </Card>
 
           <Card>
             <SectionLabel>
               {classic
-                ? `Songs in · ${players.filter(hasEntry).length}/${room.max_players}`
+                ? `Songs in · ${songCount}/${songsPerPlayer(room) > 1 ? BRACKET_CAP : room.max_players}`
                 : `Players · ${connected.length}/${room.max_players}`}
             </SectionLabel>
             <div style={{ marginTop: 12 }}>
               <Roster
                 players={players}
                 hostId={room.host_player_id}
+                judgeId={judging ? room.host_player_id : null}
                 meId={me?.id ?? null}
                 waitingSlots={classic ? 0 : Math.max(0, room.min_players - connected.length)}
                 statusOf={
                   classic
-                    ? (p) => (hasEntry(p) ? 'locked' : 'unpicked')
+                    ? (p) =>
+                        judging && p.id === room.host_player_id
+                          ? null
+                          : songsOf(entrants, p.id).length > 0
+                            ? 'locked'
+                            : 'unpicked'
+                    : undefined
+                }
+                songCountOf={
+                  classic && songsPerPlayer(room) > 1
+                    ? (p) => songsOf(entrants, p.id).length
                     : undefined
                 }
               />
             </div>
 
-            {classic && players.filter(hasEntry).length > 0 && (
+            {classic && songCount > 0 && (
               <p className="bt-sub" style={{ margin: '12px 0 0' }}>
-                {players.filter(hasEntry).length === 1
+                {songCount === 1
                   ? 'One song is locked in. Titles stay hidden until you start.'
-                  : `${players.filter(hasEntry).length} songs are locked in. Titles stay hidden until you start.`}
+                  : `${songCount} songs are locked in. Titles stay hidden until you start.`}
               </p>
             )}
 
@@ -768,10 +819,11 @@ export default function BattleRoom() {
                 <EmbedPlayer
                   source={embedSourceOf(playback.current)!}
                   externalId={playback.current.external_id ?? ''}
-                  offset={playback.offset}
+                  offset={embedStart(playback.current) + playback.offset}
                   playing
                   volume={audio.volume * audio.gainFor(playback.current)}
                   onBlocked={setEmbedBlocked}
+                  onDuration={(d) => noteDuration(playback.current!.id, d)}
                 />
               )}
             </>
@@ -779,6 +831,15 @@ export default function BattleRoom() {
             <p className="bt-sub bt-sub--center" style={{ margin: 0 }}>
               Getting the first track ready…
             </p>
+          )}
+
+          {isHost && token && embedPicks.length > 0 && (
+            <StartPoints
+              token={token}
+              picks={embedPicks}
+              liveId={playback.current?.id ?? null}
+              durations={durations}
+            />
           )}
 
           {/* One shared countdown, read off the same server clock everywhere, so
@@ -808,6 +869,10 @@ export default function BattleRoom() {
                 ) : (
                   'Chat is tied. Revealing lets the AI judge call it.'
                 )
+              ) : judging ? (
+                isHost
+                  ? 'Tap the song that wins. It is crowned straight away.'
+                  : `${nameOf(room.host_player_id)} is judging this one.`
               ) : needsAiJudge ? (
                 'Nobody in the room can vote on their own song, so the AI judge calls it.'
               ) : votingMode === 'host' ? (
@@ -830,11 +895,48 @@ export default function BattleRoom() {
 
           <ul className="bt-ballot">
             {submissions.map((s, i) => {
-              const mine = s.player_id === me?.id;
+              const mine = isMine(s);
               const chosen = myVote?.submission_id === s.id;
               const count = chatTally
                 ? chatTally[s.id] ?? 0
                 : votes.filter((v) => v.submission_id === s.id).length;
+
+              // A judging host is not casting one of many votes, so there
+              // are no numbers to type and no tallies: the tap is the verdict.
+              if (judging) {
+                return (
+                  <li key={s.id}>
+                    <button
+                      className="bt-choice bt-choice--judge"
+                      disabled={busy || !isHost}
+                      onClick={() =>
+                        void guard(async () => {
+                          await battle.castVote(token!, round.id, s.id);
+                          await battle.setRoundWinner(token!, round.id, s.id);
+                        })
+                      }
+                    >
+                      {s.artwork_url ? (
+                        <img src={s.artwork_url} alt="" className="bt-choice__art" />
+                      ) : (
+                        <div className="bt-choice__art bt-choice__art--empty" />
+                      )}
+                      <span className="bt-choice__text">
+                        <strong>{s.song_title}</strong>
+                        <span>
+                          {s.song_artist} · {nameOf(s.player_id)}
+                        </span>
+                      </span>
+                      {isHost && (
+                        <span className="bt-choice__crown">
+                          <CrownIcon size={16} />
+                          Crown
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              }
 
               return (
                 <li key={s.id}>
@@ -875,7 +977,7 @@ export default function BattleRoom() {
             </p>
           )}
 
-          {action?.id === 'reveal' && (
+          {action?.id === 'reveal' && !judging && (
             <VividButton
               icon={<CrownIcon size={18} />}
               disabled={busy || action.disabled}
@@ -924,7 +1026,7 @@ export default function BattleRoom() {
       {isBracket && matches.length > 0 && (
         <BracketTree
           matches={matches}
-          players={players}
+          players={entrants}
           currentMatchId={room.current_match_id}
         />
       )}
@@ -1018,12 +1120,12 @@ function expectedPickers(
  */
 function startBlocker(
   room: BattleRoomRow,
-  players: BattlePlayer[],
+  songCount: number,
   connected: BattlePlayer[]
 ): string | null {
   if (isClassic(room)) {
     if (!room.theme?.trim()) return 'Pick a vibe so people know what to submit.';
-    const missing = room.min_players - players.filter(hasEntry).length;
+    const missing = room.min_players - songCount;
     if (missing > 0) {
       return `Waiting for ${missing} more ${missing === 1 ? 'song' : 'songs'}. Everyone locks a song in, then you start the ${
         room.format === 'bracket' ? 'bracket' : 'battle'
@@ -1031,7 +1133,10 @@ function startBlocker(
     }
     return null;
   }
-  const missing = room.min_players - connected.length;
+  const players = hostJudges(room)
+    ? connected.filter((p) => p.id !== room.host_player_id)
+    : connected;
+  const missing = room.min_players - players.length;
   return missing > 0 ? `Waiting for ${missing} more to start.` : null;
 }
 
@@ -1104,15 +1209,3 @@ function useSecondTicker(active: boolean): number {
   return count;
 }
 
-/**
- * Which embedded player a submission needs, or null when it is a plain audio
- * preview. Keyed off `source` rather than the absence of a preview URL, so a
- * pick that simply failed to resolve does not silently mount a player with
- * nothing to play.
- */
-function embedSourceOf(submission: BattleSubmission): 'soundcloud' | 'youtube' | null {
-  if (!submission.external_id) return null;
-  if (submission.source === 'soundcloud') return 'soundcloud';
-  if (submission.source === 'youtube') return 'youtube';
-  return null;
-}

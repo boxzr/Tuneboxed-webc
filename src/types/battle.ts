@@ -57,6 +57,14 @@ export interface BattleRoom {
   /** Set when a signed-in streamer hosts from the web. Null for iOS rooms. */
   host_twitch_login: string | null;
   host_avatar_url: string | null;
+  /**
+   * How many songs each player can put in a Classic bracket. Every song is its
+   * own spot. Absent before add_battle_multi_song_and_host_judge.sql, which
+   * reads as one.
+   */
+  songs_per_player?: number | null;
+  /** The host sits out of the bracket and picks every winner. */
+  host_judges?: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +86,12 @@ export interface BattlePlayer {
   entry_external_id?: string | null;
   entry_source?: string | null;
   entry_submitted_at?: string | null;
+  /**
+   * Set on a player's second and later songs. Each extra song is its own row
+   * so the bracket can seed it; this points at the person who picked it, and
+   * the row is never a seat. See playStyle.ts `people` and `withOwnerNames`.
+   */
+  owner_player_id?: string | null;
 }
 
 export interface BattleRound {
@@ -116,6 +130,11 @@ export interface BattleSubmission {
   preview_url: string | null;
   external_id: string | null;
   source: string | null;
+  /**
+   * Seconds into a YouTube or SoundCloud track this pick starts at, set by the
+   * host. Absent before add_battle_submission_start.sql, which reads as zero.
+   */
+  start_seconds?: number | null;
   submitted_at: string;
 }
 

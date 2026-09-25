@@ -510,6 +510,13 @@
 .bt-player__locked {
   color: var(--tb-green-ink);
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bt-player__count {
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .bt-player__picking {

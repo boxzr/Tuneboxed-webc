@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import * as battle from '../lib/battleClient';
+import { people, withOwnerNames } from './playStyle';
 import type { BattleMatch, BattlePlayer, BattleRoom } from '../types/battle';
 
 interface State {
   room: BattleRoom | null;
+  /** People. A player with several songs is here once. */
   players: BattlePlayer[];
+  /**
+   * Every row, extra songs included, named after their owner. Anything that
+   * names a bracket slot or counts songs reads this rather than `players`.
+   */
+  entrants: BattlePlayer[];
   matches: BattleMatch[];
   loading: boolean;
   error: string | null;
@@ -23,6 +30,7 @@ export function useBattleRoom(roomId: string | null, token: string | null) {
   const [state, setState] = useState<State>({
     room: null,
     players: [],
+    entrants: [],
     matches: [],
     loading: true,
     error: null,
@@ -37,9 +45,16 @@ export function useBattleRoom(roomId: string | null, token: string | null) {
     const id = roomIdRef.current;
     if (!id) return;
     try {
-      const [room, players] = await Promise.all([battle.getRoom(id), battle.getPlayers(id)]);
+      const [room, rows] = await Promise.all([battle.getRoom(id), battle.getPlayers(id)]);
       const matches = room?.format === 'bracket' ? await battle.getMatches(id) : [];
-      setState({ room, players, matches, loading: false, error: null });
+      setState({
+        room,
+        players: people(rows),
+        entrants: withOwnerNames(rows),
+        matches,
+        loading: false,
+        error: null,
+      });
     } catch (e) {
       setState((s) => ({ ...s, loading: false, error: (e as Error).message }));
     }

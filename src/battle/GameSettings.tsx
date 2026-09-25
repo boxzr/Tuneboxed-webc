@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import { Card, SectionLabel } from './ui/primitives';
 import { SlidersIcon } from './ui/icons';
 import type { AudioWhere } from './useAudioSettings';
-import { defaultPlayStyle, isClassic } from './playStyle';
+import { defaultPlayStyle, hostJudges, isClassic, songsPerPlayer } from './playStyle';
 import {
+  BRACKET_CAP,
   CLIP_MAX,
   CLIP_MIN,
   CLIP_START_ENABLED,
@@ -44,6 +45,7 @@ const VOTING: Record<
  * is treated as a room vote.
  */
 export function resolvedVoting(room: BattleRoom): BattleVotingMode {
+  if (hostJudges(room)) return 'host';
   if (room.format === 'bracket' && room.voting_mode === 'judge') return 'everyone';
   return room.voting_mode;
 }
@@ -56,7 +58,12 @@ export function rulesSummary(
 ): string {
   const format = room.format === 'bracket' ? 'Bracket' : 'Best of 3';
   const style = isClassic(room) ? 'Classic' : 'TuneBoxed';
-  const judging = aiJudge ? 'AI judge' : VOTING[resolvedVoting(room)].title;
+  const judging = hostJudges(room)
+    ? 'You judge'
+    : aiJudge
+      ? 'AI judge'
+      : VOTING[resolvedVoting(room)].title;
+  const songs = songsPerPlayer(room) > 1 ? ` · ${songsPerPlayer(room)} songs each` : '';
   const clip = clipSeconds ? ` · ${clipSeconds}s clips` : '';
   const pick =
     !isClassic(room) && pickSeconds !== undefined
@@ -64,7 +71,7 @@ export function rulesSummary(
         ? ` · ${pickSeconds}s to pick`
         : ' · no pick clock'
       : '';
-  return `${format} · ${style} · ${judging}${clip}${pick}`;
+  return `${format} · ${style} · ${judging}${songs}${clip}${pick}`;
 }
 
 type Patch = {
@@ -74,6 +81,8 @@ type Patch = {
   maxPlayers?: number;
   playStyle?: BattlePlayStyle;
   theme?: string | null;
+  songsPerPlayer?: number;
+  hostJudges?: boolean;
 };
 
 /**
@@ -119,6 +128,8 @@ export function GameSettingsPanel({
   const isBracket = room.format === 'bracket';
   const inLobby = room.status === 'lobby';
   const classic = isClassic(room);
+  const judging = hostJudges(room);
+  const songLimit = songsPerPlayer(room);
   const voting = resolvedVoting(room);
   const votingOptions: BattleVotingMode[] = isBracket ? ['host', 'everyone'] : ['judge', 'host', 'everyone'];
   const hostOnly = room.host_speaker_enabled === true;
@@ -203,21 +214,62 @@ export function GameSettingsPanel({
         </div>
       </SettingsBlock>
 
-      <SettingsBlock
-        title="Who votes"
-        subtitle={
-          aiJudge
-            ? 'Just the two of you, so the AI judge calls each matchup. Add a third player to vote yourselves.'
-            : VOTING[voting].detail
-        }
-      >
-        <Segmented
-          value={voting}
-          options={votingOptions.map((id) => ({ id, label: VOTING[id].short }))}
-          disabled={aiJudge}
-          onChange={(id) => onChange({ votingMode: id })}
-        />
-      </SettingsBlock>
+      {/* Who is in the bracket is fixed once it is built, so this is a
+          lobby choice. */}
+      {isBracket && inLobby && (
+        <SettingsBlock
+          title="Who judges"
+          subtitle={
+            judging
+              ? 'You stay out of the bracket and pick the winner of every match. Chat and players do not vote.'
+              : 'You are in the bracket like everyone else. Pick below who decides each match.'
+          }
+        >
+          <Segmented
+            value={judging ? 'judge' : 'play'}
+            options={[
+              { id: 'play', label: "I'm playing" },
+              { id: 'judge', label: "I'm judging" },
+            ]}
+            onChange={(id) => onChange({ hostJudges: id === 'judge' })}
+          />
+        </SettingsBlock>
+      )}
+
+      {!judging && (
+        <SettingsBlock
+          title="Who votes"
+          subtitle={
+            aiJudge
+              ? 'Just the two of you, so the AI judge calls each matchup. Add a third player to vote yourselves.'
+              : VOTING[voting].detail
+          }
+        >
+          <Segmented
+            value={voting}
+            options={votingOptions.map((id) => ({ id, label: VOTING[id].short }))}
+            disabled={aiJudge}
+            onChange={(id) => onChange({ votingMode: id })}
+          />
+        </SettingsBlock>
+      )}
+
+      {isBracket && classic && inLobby && (
+        <SettingsBlock
+          title="Songs per player"
+          subtitle={
+            songLimit === 1
+              ? 'One song each. Every player is one spot in the bracket.'
+              : `Up to ${songLimit} songs each, and every song gets its own spot. Two songs from the same player can meet. The bracket takes ${BRACKET_CAP} songs at most.`
+          }
+        >
+          <Segmented
+            value={String(songLimit) as '1' | '2' | '3' | '4' | '5'}
+            options={(['1', '2', '3', '4', '5'] as const).map((n) => ({ id: n, label: n }))}
+            onChange={(id) => onChange({ songsPerPlayer: Number(id) })}
+          />
+        </SettingsBlock>
+      )}
 
       {inLobby && (
         <SettingsBlock
