@@ -517,12 +517,13 @@ export default function BattleRoom() {
                 songs={mySongs}
                 limit={songsPerPlayer(room)}
                 busy={busy}
-                onAdd={(song) =>
-                  guard(async () => {
-                    await battle.addLobbySong(token, song);
-                    await refresh();
-                  })
-                }
+                // Not through `guard`: a refused song (already picked, limit
+                // reached) has to surface under the search box it came from,
+                // which SongPicker does when this rejects.
+                onAdd={async (song) => {
+                  await battle.addLobbySong(token, song);
+                  await refresh();
+                }}
                 onRemove={(entryId) =>
                   void guard(async () => {
                     await battle.removeEntry(token, entryId);

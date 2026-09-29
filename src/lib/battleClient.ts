@@ -49,6 +49,7 @@ const MESSAGES: Record<string, string> = {
   BATTLE_CODE_EXHAUSTED: 'Could not create a room code. Try again.',
   BATTLE_BRACKET_TOO_SMALL: 'A bracket needs at least two songs in it.',
   BATTLE_SONG_LIMIT: 'You have added as many songs as this room allows.',
+  BATTLE_SONG_TAKEN: 'That song is already in this battle. Pick a different one.',
   BATTLE_BRACKET_FULL: 'The bracket is full. It takes 32 songs at most.',
   BATTLE_HOST_IS_JUDGING: 'You are judging this bracket, so you do not add songs.',
   BATTLE_NOT_YOUR_SONG: 'That song belongs to someone else.',
