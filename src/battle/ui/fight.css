@@ -390,6 +390,8 @@
   max-width: 44%;
   pointer-events: none;
   z-index: 3;
+  /* The homepage centres its text on a phone; the card is a lower third. */
+  text-align: left;
   animation: fight-entrance-in 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
 }
 
@@ -879,6 +881,12 @@
   .fight__hud {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
+
+  /* Titles wrap at this width. Two lines are held for both corners so a
+     one-line title and a two-line one leave the health bars level. */
+  .fight__song {
+    min-height: 2.2em;
+  }
 }
 
 /* Same squeeze as the container query, for browsers that do not run
@@ -891,6 +899,10 @@
   .fight__hud {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
+
+  .fight__song {
+    min-height: 2.2em;
+  }
 }
 
 /* Narrow cards, which is the room page on a phone. The ring keeps its shape
@@ -898,6 +910,64 @@
 @container (max-width: 460px) {
   .fight__art {
     display: none;
+  }
+
+  .fight__entrance {
+    left: 2%;
+    bottom: 4%;
+    max-width: 82%;
+  }
+
+  .fight__entrance--b {
+    left: auto;
+    right: 2%;
+  }
+
+  .fight__entrance-art {
+    width: 48px;
+  }
+
+  .fight__entrance-bar {
+    width: 6px;
+  }
+
+  .fight__entrance-body {
+    padding: 6px 10px 8px;
+  }
+
+  .fight__entrance-kicker {
+    font-size: 0.56rem;
+    letter-spacing: 0.16em;
+  }
+
+  .fight__entrance-name {
+    font-size: 1.15rem;
+  }
+
+  .fight__entrance-song {
+    font-size: 0.7rem;
+  }
+
+  .fight__entrance-clock {
+    margin-top: 3px;
+  }
+}
+
+/* The same card squeeze for browsers without @container. */
+@media (max-width: 520px) {
+  .fight__entrance {
+    left: 2%;
+    bottom: 4%;
+    max-width: 82%;
+  }
+
+  .fight__entrance--b {
+    left: auto;
+    right: 2%;
+  }
+
+  .fight__entrance-body {
+    padding: 6px 10px 8px;
   }
 }
 

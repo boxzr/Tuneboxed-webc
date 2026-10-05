@@ -306,7 +306,7 @@ export default function BattleRoom() {
     !needsAiJudge &&
     !chatTally &&
     (votingMode === 'everyone'
-      ? true
+      ? !(isBracket && isCompetitor(me))
       : votingMode === 'host'
         ? isHost
         : isJudge);
@@ -973,6 +973,8 @@ export default function BattleRoom() {
                 isJudge
                   ? 'You are the judge. Pick the song you liked more.'
                   : `Waiting for ${nameOf(judgeId)} to crown a winner.`
+              ) : isBracket && isCompetitor(me) ? (
+                'You are in this matchup, so you sit this vote out.'
               ) : voteLeader ? (
                 isBracket
                   ? 'Everyone votes, except the two in the matchup.'

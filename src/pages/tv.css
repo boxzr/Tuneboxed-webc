@@ -929,3 +929,59 @@ html.tv-active #root {
 .tv--chat .tv-controls {
   left: calc((100% - var(--tv-chat-w) - var(--tv-chat-gap)) / 2);
 }
+
+/* Too narrow for code, prompt and host on one line (a phone): the prompt
+   drops to its own full-width row under the other two. */
+@media (max-width: 760px) {
+  .tv--fight .tv-head__bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+
+  .tv--fight .tv-prompt-inline {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .tv--fight .tv-head__cell {
+    padding: 6px 12px;
+  }
+}
+
+/* A phone held upright, or any narrow window: a side column would leave the
+   fight a sliver, so chat runs as a strip along the bottom instead and the
+   frame is re-based on the height left above it. */
+@media (max-aspect-ratio: 1/1), (max-width: 760px) {
+  .tv--chat {
+    --tv-chat-h: 30vh;
+    --tvw: min(1vw, calc(1.7778vh * 0.66));
+    padding-right: calc(1.4 * var(--tvw));
+    padding-bottom: calc(var(--tv-chat-h) + 2.4vh);
+  }
+
+  .tv-chat {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    height: var(--tv-chat-h);
+  }
+
+  .tv--chat .tv-host {
+    right: calc(2.4 * var(--tvw));
+  }
+
+  .tv--chat .tv-controls {
+    left: 50%;
+    bottom: calc(var(--tv-chat-h) + 3vh);
+  }
+
+  .tv-chat .demo-chat--board {
+    font-size: 14px;
+  }
+
+  .tv-chat .demo-chat__head {
+    padding: 6px 10px;
+  }
+}

@@ -2,6 +2,13 @@
    and every route, can rely on them. */
 @import './styles/tokens.css';
 
+/* iOS Safari otherwise enlarges text in some boxes and not others, most of all
+   in landscape, which throws chat lines, cards and the HUD out of proportion. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* The single type declaration for the product. Everything inherits from here
    now that the `*` rule in App.css no longer overrides it. */
 body {

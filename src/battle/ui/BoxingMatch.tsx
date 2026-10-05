@@ -515,6 +515,11 @@ function FightCall({
             <strong>{winnerName}</strong> knocks <strong>{loserName}</strong>{" "}
             out
           </>
+        ) : winnerVotes === loserVotes ? (
+          <>
+            <strong>{winnerName}</strong> takes it on the AI judge&rsquo;s call
+            after a {winnerVotes}&ndash;{loserVotes} tie
+          </>
         ) : (
           <>
             <strong>{winnerName}</strong> takes it {winnerVotes}&ndash;
