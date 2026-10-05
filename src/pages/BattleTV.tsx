@@ -29,6 +29,8 @@ import { uniqueLeader } from '../battle/voteLeader';
 import { BoxerSprite, Gloves, Monogram, PromptLabel } from '../battle/ui/primitives';
 import BoxingMatch from '../battle/ui/BoxingMatch';
 import { bracketFighters, loadoutFromPlayer, pairFighters, spectators } from '../battle/bout';
+import DemoChat, { type ChatLine } from '../battle/ui/DemoChat';
+import { useChatFeed } from '../battle/useChatFeed';
 import FightCanvas from '../fight3d/FightCanvas';
 import LockerRoom from '../fight3d/LockerRoom';
 import { CheckIcon, CrownIcon, TrophyIcon } from '../battle/ui/icons';
@@ -125,6 +127,30 @@ export default function BattleTV() {
   // The demo only lists people, so it doubles as its own entrants.
   const { room, players, entrants = players, matches } = demoBoard ?? sample ?? liveRoom;
   const { round, submissions, votes } = demoBoard ?? sample ?? liveRound;
+
+  // ?chat=1 shows the host's linked channel, ?chat=name any channel. It rides
+  // on the URL so an OBS Browser Source gets it as well as a captured tab.
+  const chatParam = params.get('chat');
+  const chatChannel =
+    chatParam === null || chatParam === '0'
+      ? null
+      : chatParam === '1' || chatParam === ''
+        ? room?.host_twitch_login ?? null
+        : TWITCH_LOGIN.test(chatParam)
+          ? chatParam.toLowerCase()
+          : null;
+  // The demo room's channel is made up, so ?demo=1&chat=1 shows sample lines.
+  // Naming a real channel previews the layout with that chat.
+  const sampleChat = demo && (chatParam === '1' || chatParam === '');
+  const chatFeed = useChatFeed(sampleChat ? null : chatChannel);
+  const chatPanel = chatChannel ? (
+    <DemoChat
+      variant="board"
+      channel={chatChannel}
+      lines={sampleChat ? DEMO_CHAT_LINES : chatFeed.lines}
+      status={chatFeed.connected ? 'Welcome to the chat room!' : `Connecting to #${chatChannel}…`}
+    />
+  ) : null;
 
   const isHost = Boolean(room && stored && room.host_player_id === stored.playerId);
   const usedGenres = useUsedGenres(roomId, round?.id ?? null);
@@ -321,7 +347,7 @@ export default function BattleTV() {
 
   if (championId) {
     return (
-      <Board genre={round?.genre ?? null} controls={controls}>
+      <Board genre={round?.genre ?? null} controls={controls} chat={chatPanel}>
         <div className="tv-champion tv-hero">
           <span className="tv-champion__trophy">
             <TrophyIcon size={96} />
@@ -350,6 +376,7 @@ export default function BattleTV() {
         host={room.host_twitch_login}
         avatar={room.host_avatar_url}
         controls={controls}
+        chat={chatPanel}
       >
         <Lobby
           code={room.code}
@@ -400,6 +427,7 @@ export default function BattleTV() {
       host={room.host_twitch_login}
       avatar={room.host_avatar_url}
       controls={controls}
+      chat={chatPanel}
       embed={
         liveEmbed ? (
           <EmbedPlayer
@@ -625,6 +653,24 @@ const DEMO = {
   votes: [],
 } as unknown as ReturnType<typeof useBattleRoom> & ReturnType<typeof useBattleRound>;
 
+/** Twitch's own rule for a login, so a bad ?chat= never reaches the socket. */
+const TWITCH_LOGIN = /^[a-z0-9_]{3,25}$/i;
+
+/** What ?demo=1&chat=1 shows in the chat column, since there is no channel to read. */
+const DEMO_CHAT_LINES: ChatLine[] = (
+  [
+  ['yourchannel', '#9147ff', ['broadcaster'], 'first fight of the night, get voting'],
+  ['lofi_lena', '#4dabf7', ['subscriber'], 'Ms. Jackson walkout goes crazy'],
+  ['ko_kaito', '#ff922b', [], '1'],
+  ['hookqueen', '#da77f2', ['moderator', 'subscriber'], 'type 1 or 2 chat'],
+  ['basshead99', '#69db7c', ['subscriber'], '2'],
+  ['vinylvic', '#ffd43b', [], '1'],
+  ['tempo_tay', '#ff6b6b', ['vip'], 'HEY YA ALL DAY'],
+  ['grooveguru', '#3bc9db', ['premium'], '1'],
+  ['snarekid', '#f783ac', [], 'COMBO!!'],
+  ] as [string, string, NonNullable<ChatLine['badges']>, string][]
+).map(([user, color, badges, text], i) => ({ key: `demo-${i}`, user, color, badges, text }));
+
 /** Each demo walkout, in 700 ms ticks. Real rounds use the 30 s preview. */
 const DEMO_WALK_TICKS = 12;
 
@@ -782,10 +828,13 @@ function Board({
   avatar,
   controls,
   embed,
+  chat,
   fight = false,
 }: {
   children: React.ReactNode;
   genre: string | null;
+  /** The channel's chat as a column down the right, when the host turned it on. */
+  chat?: React.ReactNode;
   /** A bout is on screen: the stage gives the ring every pixel it can. */
   fight?: boolean;
   host?: string | null;
@@ -795,8 +844,9 @@ function Board({
   embed?: React.ReactNode;
 }) {
   return (
-    <div className={`tv${fight ? ' tv--fight' : ''}`}>
+    <div className={`tv${fight ? ' tv--fight' : ''}${chat ? ' tv--chat' : ''}`}>
       <GenreScene genre={genre} />
+      {chat && <div className="tv-chat">{chat}</div>}
 
       {host && (
         <div className="tv-host">

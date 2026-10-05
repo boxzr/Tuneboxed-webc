@@ -5,6 +5,7 @@ import '@fontsource-variable/inter/wght.css';
 import '@fontsource/bebas-neue/400.css';
 import './index.css';
 import App from './App';
+import { LanguageProvider } from './i18n/LanguageContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -13,7 +14,9 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <LanguageProvider>
+        <App />
+      </LanguageProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

@@ -1,6 +1,37 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePrivmsg, parseVote } from './twitchChat.ts';
+import { parseChatPost, parseClear, parsePrivmsg, parseVote } from './twitchChat.ts';
+
+test('reads name styling and badges for the board chat', () => {
+  const post = parseChatPost(
+    '@badges=moderator/1,subscriber/12,glhf-pledge/1;color=#1E90FF;display-name=Ash\\sLey;id=abc-1 :ashley!ashley@ashley.tmi.twitch.tv PRIVMSG #s :hello'
+  );
+  assert.deepEqual(post, {
+    id: 'abc-1',
+    user: 'ashley',
+    name: 'Ash Ley',
+    color: '#1E90FF',
+    badges: ['moderator', 'subscriber'],
+    text: 'hello',
+  });
+});
+
+test('a chat line without tags still shows', () => {
+  const post = parseChatPost(':ash!x@x.tmi.twitch.tv PRIVMSG #s :2');
+  assert.deepEqual(post, { id: null, user: 'ash', name: 'ash', color: null, badges: [], text: '2' });
+});
+
+test('unwraps /me messages', () => {
+  const post = parseChatPost(':ash!x@x.tmi.twitch.tv PRIVMSG #s :\u0001ACTION throws a punch\u0001');
+  assert.equal(post?.text, 'throws a punch');
+});
+
+test('reads moderation that should take lines off the board', () => {
+  assert.deepEqual(parseClear('@ban-duration=600 :tmi.twitch.tv CLEARCHAT #s :Troll'), { user: 'troll' });
+  assert.deepEqual(parseClear('@target-msg-id=abc-1 :tmi.twitch.tv CLEARMSG #s :bad words'), { id: 'abc-1' });
+  assert.deepEqual(parseClear(':tmi.twitch.tv CLEARCHAT #s'), { all: true });
+  assert.equal(parseClear(':ash!x@x.tmi.twitch.tv PRIVMSG #s :1'), null);
+});
 
 test('reads the sender and body out of a chat line', () => {
   const msg = parsePrivmsg(':ash!ash@ash.tmi.twitch.tv PRIVMSG #streamer :1');

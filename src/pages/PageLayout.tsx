@@ -3,18 +3,20 @@ import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import logo from '../assets/tuneboxed-battle-logo.png';
 import Reveal, { MOTION } from '../components/Reveal';
+import LanguagePicker from '../i18n/LanguagePicker';
+import { useCopy } from '../i18n/LanguageContext';
 import './pages.css';
 
 export const APP_STORE_URL = 'https://apps.apple.com/us/app/tuneboxed/id6747647968';
 
-/** Every content route, in the order they appear in the footer and sitemap. */
+/** Every content route, in the order they appear in the footer and sitemap. Labels come from `copy.nav`. */
 export const CONTENT_PAGES = [
-  { path: '/battle', label: 'Play' },
-  { path: '/rules', label: 'Game rules' },
-  { path: '/faq', label: 'FAQ' },
-  { path: '/streamers', label: 'For streamers' },
-  { path: '/winners', label: 'Winners' },
-  { path: '/about', label: 'About' },
+  { path: '/battle', key: 'play' },
+  { path: '/rules', key: 'rules' },
+  { path: '/faq', key: 'faq' },
+  { path: '/streamers', key: 'streamers' },
+  { path: '/winners', key: 'winners' },
+  { path: '/about', key: 'about' },
 ] as const;
 
 const headItem = {
@@ -45,6 +47,7 @@ export default function PageLayout({
   children: React.ReactNode;
 }) {
   const reduced = useReducedMotion();
+  const nav = useCopy().nav;
 
   useEffect(() => {
     document.title = title;
@@ -62,12 +65,13 @@ export default function PageLayout({
           <nav className="page-nav-sitelinks" aria-label="TuneBoxed">
             {CONTENT_PAGES.filter((p) => p.path !== '/battle').map((p) => (
               <Link key={p.path} to={p.path}>
-                {p.label}
+                {nav[p.key]}
               </Link>
             ))}
           </nav>
+          <LanguagePicker />
           <Link to="/battle" className="page-nav-cta">
-            Start a battle
+            {nav.startBattle}
           </Link>
         </div>
       </nav>
@@ -103,11 +107,11 @@ export default function PageLayout({
           <nav className="page-footer-links">
             {CONTENT_PAGES.map((p) => (
               <Link key={p.path} to={p.path}>
-                {p.label}
+                {nav[p.key]}
               </Link>
             ))}
             <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
-              iOS app
+              {nav.iosApp}
             </a>
           </nav>
           <p>Aura Brand LLC © {new Date().getFullYear()}</p>

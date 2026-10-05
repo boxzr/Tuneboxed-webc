@@ -190,6 +190,13 @@ html {
   text-align: left;
 }
 
+/* The demo's chat column needs another 212px beside the 620px fight. */
+@media (min-width: 1280px) {
+  .home .home-hero--split {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.6fr);
+  }
+}
+
 .home-pitch {
   min-width: 0;
 }
@@ -259,7 +266,7 @@ html {
 .home .home-hero--split .battle-hero-sub {
   max-width: 50ch;
   margin-top: 12px;
-  color: rgba(255, 255, 255, 0.66);
+  color: rgba(255, 255, 255, 0.86);
   opacity: 1;
 }
 

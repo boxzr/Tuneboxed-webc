@@ -1,0 +1,412 @@
+import type { Copy } from './en';
+
+const pt: Copy = {
+  nav: {
+    play: 'Jogar',
+    rules: 'Regras do jogo',
+    faq: 'FAQ',
+    streamers: 'Para streamers',
+    winners: 'Vencedores',
+    about: 'Sobre',
+    startBattle: 'Começar uma battle',
+    appStore: 'Baixar na App Store',
+    iosApp: 'App iOS',
+    language: 'Idioma',
+    backToSite: 'Voltar ao site',
+  },
+
+  home: {
+    title: 'TuneBoxed | Battles de músicas em lutas de boxe',
+    headline: 'A gente transformou battles de músicas em',
+    headlineEm: 'lutas de boxe',
+    lede: 'Duas músicas sobem no ringue. Você decide quem sai de pé.',
+    sub: 'Cada um escolhe uma faixa. Duas delas se enfrentam cara a cara, e cada voto acerta um soco até uma música beijar a lona. Em volta da mesa, numa call ou ao vivo na live. Sem app, sem conta.',
+    ringTag: 'Ao vivo na tela da stream',
+    howTitle: 'Votos são socos',
+    howSub:
+      'Outros sites de battle de músicas te dão duas barras e um total. Uma enquete diz quem está ganhando. Uma luta faz a galera sentir isso.',
+    points: [
+      {
+        title: 'O chat distribui os socos',
+        body: 'Os viewers digitam 1 ou 2 no seu chat da Twitch. Cada voto sacode a outra música e drena a vida dela, então a galera vê a luta virar em tempo real.',
+      },
+      {
+        title: 'Três seguidos é combo',
+        body: 'Apoie a mesma música três vezes seguidas e ela solta uma sequência de socos. Seis é um combo enorme, nove um mega combo, e chats pequenos batem mais forte para toda stream ter uma luta de verdade.',
+      },
+      {
+        title: 'Zero votos e vai pra lona',
+        body: 'Um duelo apertado vai para a decisão. A música em que ninguém vota beija a lona, e a tela anuncia o nocaute.',
+      },
+      {
+        title: 'Nada para instalar',
+        body: 'Compartilhe um código, compartilhe a tela. Nenhum bot no seu canal, nenhum OAuth na sua conta, nenhum download para os seus viewers.',
+      },
+    ],
+    steps: [
+      'Crie uma sala e compartilhe o código',
+      'Cada um escolhe uma música e veste o seu boxeador',
+      'As músicas entram, o gongo toca e os votos distribuem os socos',
+    ],
+    streamersLink: 'Como colocar na sua stream',
+  },
+
+  entry: {
+    joinTitle: 'Entre na battle',
+    hostTitle: 'O Kahoot das battles de músicas',
+    joinSub: 'Escolha um nome que a sala reconheça e cai dentro. Sem app, sem conta.',
+    hostSub: 'Crie uma sala para a sua galera ou entre com um código.',
+    nameLabel: 'Seu nome',
+    namePlaceholder: 'ex.: ninja',
+    modeLabel: 'Modo de jogo',
+    partyDesc: '3 jogadores ou mais, um juiz que roda, melhor de 3. Igual ao app iOS.',
+    bracketDesc: 'Até 16, cara a cara. Abre no Classic: uma vibe só, músicas escolhidas antes de começar.',
+    codeLabel: 'Código da sala',
+    host: 'Criar uma battle',
+    creating: 'Criando…',
+    join: 'Entrar na battle',
+    joining: 'Entrando…',
+    toJoin: 'Tem um código? Entre numa sala',
+    toHost: 'Prefiro criar uma battle',
+    signOut: 'Sair',
+    twitch: 'Entrar com a Twitch',
+    twitchHint: 'Opcional. Deixa o seu chat votar digitando na Twitch.',
+    finding: 'Procurando o seu lugar…',
+    playTitle: 'Jogar | TuneBoxed',
+    joinPageTitle: 'Entrar numa battle | TuneBoxed',
+  },
+
+  stats: {
+    heading: 'Em números',
+    battles: 'Battles jogadas',
+    songs: 'Músicas na disputa',
+    players: 'Jogadores',
+    champions: 'Campeões',
+  },
+
+  rules: {
+    title: 'Regras do jogo | TuneBoxed',
+    description:
+      'Como o TuneBoxed funciona: as músicas entram como boxeadores, cada voto é um soco, três seguidos é combo. Party é melhor de três; Bracket vai até 16 jogadores.',
+    heading: 'Regras do jogo',
+    intro: 'Dois jeitos de jogar no navegador. Mesmas músicas, mesmo código de sala e o mesmo ringue, com um caminho diferente até o vencedor.',
+    party: {
+      heading: 'Party',
+      sub: 'O mesmo Battle Mode do app iOS. Feito para uma galera em volta da mesa ou numa call.',
+      steps: [
+        {
+          title: 'Crie uma sala Party',
+          body: 'Você recebe um código de cinco letras. Mande no grupo ou fale em voz alta. Todo mundo entra pelo navegador. Sem app, sem conta.',
+        },
+        {
+          title: 'Cada um escolhe uma música',
+          body: 'Três jogadores ou mais. A cada rodada, todo mundo menos o juiz trava uma faixa, com 90 segundos no relógio por padrão. O host pode dar mais tempo ou desligar o relógio. Perdeu o prazo, está fora da rodada. Enquanto espera, vista o seu lutador no vestiário.',
+        },
+        {
+          title: 'As músicas tocam juntas',
+          body: 'Cada escolha toca por 30 segundos por padrão, sincronizada para todo mundo na sala no mesmo momento. O host pode encurtar. Quando entram exatamente duas músicas, a rodada vai para o ringue: cada música é a entrada do seu lutador.',
+        },
+        {
+          title: 'Um juiz rotativo coroa o vencedor',
+          body: 'Um jogador fica de fora da escolha e decide qual música curtiu mais. No ringue, o juiz coroa um corner. O papel de juiz muda a cada rodada.',
+        },
+        {
+          title: 'Melhor de três',
+          body: 'Três rodadas, e quem tiver mais coroas vence.',
+        },
+      ],
+    },
+    bracket: {
+      heading: 'Bracket',
+      sub: 'Cara a cara até sobrar uma música só. O formato que uma stream consegue botar na tela. Classic é o padrão: uma vibe só, músicas escolhidas antes. Mude para o modo TuneBoxed nas configurações do jogo se quiser uma vibe aleatória nova a cada confronto e um relógio de escolha ao vivo.',
+      steps: [
+        {
+          title: 'Crie uma sala Bracket',
+          body: 'Até 16 jogadores. Compartilhe o código do jeito que preferir, inclusive na stream. Bracket abre no Classic.',
+        },
+        {
+          title: 'Escolha uma vibe e trave as músicas',
+          body: 'O host define a vibe do jogo inteiro — pôr do sol, rap de 2016, o que quiser. Os jogadores mandam as músicas antes de qualquer coisa começar. Não tem relógio e nada está ao vivo ainda, então ninguém fica com pressa.',
+        },
+        {
+          title: 'Duas músicas entram no ringue',
+          body: 'Todo confronto é uma luta de boxe. Cada lutador entra ao som da sua música, um corner e depois o outro, por 30 segundos por padrão e sincronizado para todo mundo na sala. O host pode mudar a duração do trecho. São as músicas que a galera travou, não uma escolha nova a cada rodada.',
+        },
+        {
+          title: 'A sala distribui os socos',
+          body: 'Quando as duas músicas tocarem, o gongo soa e a votação abre. Todo mundo na sala escolhe a faixa que curtiu mais, menos os dois do confronto. Se o host estiver na Twitch, o chat também vota digitando 1 ou 2. Cada voto é um soco.',
+        },
+        {
+          title: 'O vencedor avança',
+          body: 'A música com mais votos sobe no bracket, por nocaute ou por decisão dos juízes. Empate, ou nenhum voto, é cara ou coroa. Repete até sobrar uma faixa de pé.',
+        },
+      ],
+    },
+    sections: [
+      {
+        heading: 'A luta',
+        paragraphs: [
+          'Todo cara a cara acontece num ringue 3D entre dois boxeadores em forma de nota musical, um no corner azul e outro no laranja. Cada um entra ao som da sua música com uma entrada sorteada entre cinco, então nenhuma luta começa igual. O resto da sala fica na plateia, e o árbitro comanda.',
+        ],
+        parts: [
+          {
+            title: 'Votos são socos',
+            paragraphs: [
+              'Depois que as duas músicas tocam, o gongo soa e cada voto acerta um soco na outra música. As barras de vida no topo acompanham a votação: quanto mais uma música abre vantagem, mais a barra da outra esvazia.',
+            ],
+          },
+          {
+            title: 'Combos',
+            paragraphs: [
+              'Três votos seguidos na mesma música, sem nenhum na outra, é um combo: uma sequência de socos em vez de um só. Continue a sequência e ela cresce. Seis seguidos é um combo enorme e nove é um mega combo. Um único voto no outro corner quebra a sequência.',
+            ],
+          },
+          {
+            title: 'Salas pequenas batem mais forte',
+            paragraphs: [
+              'Um chat quieto não deveria virar uma luta parada. Quando poucos votos estão chegando, cada um vale mais na tela: com cinco ou menos nos últimos 15 segundos, um voto é um combo inteiro, e até doze ele vale em dobro. Isso só muda a força dos socos. O vencedor é sempre decidido pela contagem real de votos.',
+            ],
+          },
+          {
+            title: 'Nocaute ou decisão',
+            paragraphs: [
+              'Uma música sem nenhum voto, depois de pelo menos cinco votos computados, tem a barra zerada e vai para a lona: isso é nocaute. Qualquer coisa mais apertada vai para a decisão, e leva a música com mais votos.',
+            ],
+          },
+          {
+            title: 'Seu lutador',
+            paragraphs: [
+              'Vista o seu boxeador no vestiário enquanto a sala trava as músicas: cor do corpo, estilo da nota, bandeira, calção, luvas, tênis e físico. Fica salvo com você pelo resto do jogo. Se pular essa parte, você ainda ganha um lutador, estilizado a partir do seu nome.',
+            ],
+          },
+        ],
+      },
+      {
+        heading: 'O que conta como voto no chat da Twitch',
+        paragraphs: [
+          'Só conta a mensagem que for exatamente o número. Digitar **1** vota na primeira música; digitar “1 é melhor” não conta. Durante uma battle, o chat fica cheio de números, e uma leitura mais solta erraria a contagem sem ninguém perceber.',
+          'Os votos são contados enquanto a sua aba de host estiver aberta. Se você fechar no meio da votação, os votos do chat param de ser contados até você reabrir.',
+        ],
+      },
+      {
+        heading: 'Número ímpar de jogadores',
+        paragraphs: [
+          'Um bracket precisa de pares. Quando o número é ímpar, os byes são espalhados pela primeira fase em vez de acumular no final, então no máximo um jogador por confronto fica de fora. Um bye te leva para a próxima fase sem jogar. No modo TuneBoxed você escolhe de novo lá; no Classic você mantém a música que travou.',
+          'Se cair num confronto sem ninguém do outro lado, você leva sem rodada em vez de esperar um adversário que nunca vai aparecer.',
+        ],
+      },
+      {
+        heading: 'Quando o relógio zera',
+        paragraphs: [
+          'Quando o timer de escolha chega a zero, a rodada fecha com o que tiver entrado. Se só uma pessoa mandou música, ela leva a rodada: quem aparece ganha de quem não aparece. Se ninguém mandou, o host pode colocar mais tempo no relógio.',
+        ],
+      },
+      {
+        heading: 'De onde vêm as músicas',
+        paragraphs: [
+          'A busca cobre o catálogo musical público da Apple, e cada resultado toca como um trecho de 30 segundos. Ninguém precisa de assinatura do Spotify ou do Apple Music, porque todo mundo na sala ouve a mesma prévia, e não um streaming que só alguns conseguem acessar.',
+          'Mude a busca para videoclipes para batalhar com o clipe em vez da faixa. Ele roda no mesmo relógio e com a mesma duração de trecho, então a sala assiste junto em vez de só ouvir.',
+          'Você também pode colar um link do SoundCloud ou do YouTube em vez de buscar, que é o jeito de batalhar com uma música que não está no catálogo da Apple. Elas tocam nos players do próprio SoundCloud e YouTube, então ficam na tela durante o confronto. Também começam um pouco menos precisas que uma prévia, já que o player precisa carregar antes e o YouTube pode passar um anúncio, então conte com um ou dois segundos de folga em vez da sincronia exata da busca.',
+        ],
+      },
+    ],
+    footer: '[Comece uma battle](/battle) ou leia o [FAQ](/faq).',
+  },
+
+  faq: {
+    title: 'FAQ | TuneBoxed',
+    description:
+      'Respostas sobre o TuneBoxed: como funcionam a luta de boxe e os combos, entrar pelo navegador, votação no chat, botar a luta na stream e quanto dura um bracket.',
+    heading: 'FAQ',
+    intro: 'Perguntas que aparecem na hora de rodar uma battle.',
+    items: [
+      {
+        q: 'Como funciona a luta de boxe?',
+        a: 'Todo cara a cara é uma luta entre dois boxeadores em forma de nota musical num ringue 3D. Cada um entra ao som da sua música, um corner e depois o outro, com uma entrada sorteada entre cinco. Quando as duas músicas tocam, o gongo soa, e cada voto acerta um soco na outra música e drena a barra de vida dela. Vence a música com mais votos: por nocaute se a outra não teve nenhum, por decisão se foi mais apertado.',
+      },
+      {
+        q: 'O que é um combo?',
+        a: 'Três votos seguidos na mesma música, sem nenhum na outra no meio, é um combo: uma sequência de socos em vez de um só. Seis seguidos é um combo enorme e nove é um mega combo. Um voto no outro corner quebra a sequência.',
+      },
+      {
+        q: 'Meu chat é pequeno. As lutas ainda vão ficar legais?',
+        a: 'Sim. Quando poucos votos estão chegando, cada um bate mais forte na tela. Com cinco votos ou menos nos últimos 15 segundos, um único voto é um combo inteiro, e até doze cada voto vale em dobro. Isso só muda os socos. O vencedor é sempre a música com mais votos reais.',
+      },
+      {
+        q: 'Dá para personalizar o meu boxeador?',
+        a: 'Dá. Enquanto a sala trava as músicas, o vestiário deixa você escolher a cor do corpo, o estilo da nota, a bandeira, o calção, as luvas, o tênis e o físico, e soltar uns jabs para ver como ficou. Seu lutador mantém esse visual pelo resto do jogo. Pulou? Você ganha um estilizado a partir do seu nome.',
+      },
+      {
+        q: 'Em quais navegadores funciona?',
+        a: 'Em qualquer navegador atual no computador ou no celular: Chrome, Edge, Firefox, Safari e navegadores Chromium como Brave e Opera, no Windows, Mac, Linux, iOS e Android. O ringue precisa de WebGL, que todos têm, a não ser que tenha sido desativado. No OBS, deixe a aceleração de hardware da fonte de navegador ligada, que é o padrão.',
+      },
+      {
+        q: 'Meus viewers precisam baixar alguma coisa?',
+        a: 'Não. Eles abrem o link no navegador que já usam, digitam um nome e pronto. Não tem app para instalar nem conta para criar.',
+      },
+      {
+        q: 'Preciso de uma conta na Twitch?',
+        a: 'Só se quiser que o chat vote. Você pode rodar uma battle sem entrar, e aí os jogadores da sala votam no lugar do chat. Entrar com a Twitch é o que diz para a gente de qual canal ler os votos.',
+      },
+      {
+        q: 'Como funciona a votação no chat da Twitch?',
+        a: 'Durante a votação, os seus viewers digitam 1 ou 2 na música que preferem. Cada conta da Twitch tem um voto por confronto, e votar de novo muda esse voto em vez de somar um segundo.',
+      },
+      {
+        q: 'Precisa de um bot no meu chat?',
+        a: 'Não. O chat é lido de forma anônima, então não tem conta de bot para adicionar, nem permissão de moderador para dar, e não existe jeito de o TuneBoxed postar mensagens como você. Ele só lê.',
+      },
+      {
+        q: 'Preciso deixar a aba aberta?',
+        a: 'Sim. Os votos do chat são contados na sua aba de host, então só acumulam enquanto ela estiver aberta. Fechar no meio da votação para a contagem até você reabrir.',
+      },
+      {
+        q: 'Quantas pessoas podem jogar?',
+        a: 'Um bracket comporta até 16 jogadores escolhendo músicas. Não tem limite de quantas pessoas podem votar no chat.',
+      },
+      {
+        q: 'Posso botar a battle na minha stream?',
+        a: 'Pode. Toda sala tem uma tela no seu próprio endereço que mostra tudo: as entradas, a luta, as barras de vida, os combos e a contagem de votos ao vivo. Abra em outra aba e compartilhe como a sua stream — dá para revelar músicas e avançar rodadas por essa tela, e os botões somem quando você para de mexer o mouse. Ou cole a mesma URL no OBS, no Streamlabs ou em qualquer coisa com Browser Source. Não precisa de software de transmissão.',
+      },
+      {
+        q: 'Quanto tempo dura uma battle?',
+        a: 'No modo TuneBoxed, os jogadores têm 90 segundos para escolher por padrão, e cada música toca por 30 segundos. O host pode mudar os dois nas configurações do jogo. O Classic não tem relógio de escolha — as músicas entram antes de o host começar. Um bracket completo de 16 jogadores tem quatro fases, então reserve algo entre 15 e 25 minutos, dependendo de quanto tempo você deixa a votação aberta.',
+      },
+      {
+        q: 'Qual a diferença entre o Classic e o modo TuneBoxed?',
+        a: 'Classic é o preset do bracket. O host escolhe uma vibe para o jogo inteiro, os jogadores travam uma música no lobby sem timer, e são essas músicas que o bracket toca. O modo TuneBoxed é o jogo ao vivo: uma vibe aleatória nova a cada rodada e um relógio de escolha definido pelo host (90 segundos por padrão). Dá para trocar nas configurações do jogo.',
+      },
+      {
+        q: 'De onde vêm as músicas?',
+        a: 'Os jogadores buscam no catálogo musical público da Apple, e cada faixa toca como uma prévia de 30 segundos. Ninguém precisa de assinatura do Spotify ou do Apple Music.',
+      },
+      {
+        q: 'Posso usar SoundCloud ou YouTube?',
+        a: 'Pode. Em vez de buscar, cole um link do SoundCloud ou do YouTube, que é o jeito de batalhar com algo que não está no catálogo da Apple. Essas faixas tocam nos players do próprio SoundCloud e YouTube em vez de como prévia, então o player fica visível durante o confronto e o início é um ou dois segundos menos preciso, principalmente se o YouTube passar um anúncio antes.',
+      },
+      {
+        q: 'É grátis?',
+        a: 'É. Criar e entrar numa battle na web é de graça.',
+      },
+      {
+        q: 'O que acontece se alguém cair?',
+        a: 'A vaga fica guardada e a pessoa pode voltar pelo mesmo link. Se ela não voltar, a battle segue sem ela.',
+      },
+      {
+        q: 'É a mesma coisa que o app iOS?',
+        a: 'Usa os mesmos servidores. O Party na web é o mesmo Battle Mode do app iOS: melhor de três, juiz rotativo. O Bracket é o formato para streamers. O app iOS também tem um feed diário de música que o site não tem.',
+      },
+    ],
+    footer:
+      'Ainda com dúvida? As [regras do jogo](/rules) explicam uma battle passo a passo, e o [guia para streamers](/streamers) mostra como botar na stream.',
+  },
+
+  streamers: {
+    title: 'Para streamers | TuneBoxed',
+    description:
+      'Bote uma battle de músicas do TuneBoxed na Twitch ou no TikTok: as músicas entram como boxeadores e o chat digita 1 ou 2 para socar. Compartilhe a tela ou use Browser Source.',
+    heading: 'Para streamers',
+    intro: 'Tudo o que você precisa para botar uma battle de músicas na stream, e o que ela precisa ou não acessar.',
+    setupHeading: 'Configurando',
+    steps: [
+      {
+        title: 'Entre com a Twitch',
+        paragraphs: [
+          'É isso que diz para a gente de qual canal ler os votos, e coloca o nome e o avatar do seu canal na tela.',
+        ],
+      },
+      {
+        title: 'Crie uma sala',
+        paragraphs: ['Você recebe um código de cinco letras e um link de entrada. Fale o código ou mande o link no chat.'],
+      },
+      {
+        title: 'Bote a tela na stream',
+        paragraphs: [
+          'Toda sala tem uma tela no seu próprio endereço, feita para ser o que o seu público assiste. Cada confronto vira uma luta de boxe completa: as entradas, o gongo, a luta, as barras de vida, os combos e a contagem de votos ao vivo. Abra em outra aba e comande a battle por lá — revele músicas e avance rodadas sem voltar para a sala.',
+          'Sem OBS? Compartilhe essa aba como a sua stream. Os seus botões somem quando você para de mexer o mouse, então ficam fora da câmera. Funciona em qualquer plataforma e não precisa instalar nada.',
+          'Tem OBS, Streamlabs ou qualquer coisa com Browser Source (fonte de navegador)? Cole a mesma URL e configure em 1920 por 1080. Uma Browser Source não tem login, então não consegue mostrar os seus botões. É uma cena completa, não uma faixa transparente, então não precisa de nada atrás.',
+          'As músicas não tocam na tela até você mandar o áudio para lá. Em “Game settings”, ajuste “Sound comes from” para “Stream board” e toque na tela uma vez para o navegador liberar o som. É lá também que ficam o controle de volume e o nivelamento das músicas.',
+        ],
+      },
+      {
+        title: 'Peça para o chat digitar 1 ou 2',
+        paragraphs: [
+          'A tela mostra as duas músicas numeradas, com contagem ao vivo. O chat vota digitando só o número, e cada voto é um soco. A votação abre quando o gongo toca, depois das duas entradas.',
+        ],
+      },
+    ],
+    sections: [
+      {
+        heading: 'Fazendo o chat brigar',
+        paragraphs: [
+          'A luta recompensa um chat que se une. Três votos seguidos numa música é um combo, seis é um combo enorme e nove é um mega combo, e a tela anuncia cada um com a sequência. Um voto na outra música quebra a sequência, então um chat dividido rende uma pancadaria de verdade.',
+          'Canais menores não ficam com uma luta parada. Quando só um punhado de votos está chegando, cada um bate mais forte na tela: com cinco ou menos nos últimos 15 segundos, um voto é um combo inteiro. A tela mostra o multiplicador enquanto ele está ativo. Ele nunca muda o resultado, que sempre vai para a música com mais votos reais.',
+          'Uma música sem nenhum voto, depois de cinco computados, leva nocaute. Qualquer coisa mais apertada é decisão.',
+        ],
+      },
+      {
+        heading: 'Testando a tela antes de entrar ao vivo',
+        paragraphs: [
+          '[tuneboxed.com/tv/DEMO1?demo=1](/tv/DEMO1?demo=1) roda uma luta de exemplo com músicas e chat fictícios, para você ajustar o tamanho e a posição sem precisar de uma battle rolando. Qualquer código de sala funciona com `?demo=1` no final.',
+          'O ringue é 3D e roda em qualquer navegador atual, incluindo as Browser Sources do OBS e do Streamlabs no Windows e no Mac. Se o ringue ficar em branco no OBS, confira se a aceleração de hardware da fonte de navegador está ligada em Configurações, Avançado.',
+        ],
+      },
+      {
+        heading: 'O que isso pode e não pode fazer com o seu canal',
+        paragraphs: [
+          'O chat é lido de forma anônima, do mesmo jeito que o navegador de qualquer viewer lê. Isso significa que nenhuma conta de bot entra no seu chat, você não dá nenhuma permissão de moderador ou de chat, e não existe nenhum mecanismo pelo qual o TuneBoxed poderia postar uma mensagem como você. Ler é a única coisa que ele faz.',
+          'A contrapartida de não rodar um servidor é que a contagem acontece na sua aba de host. Os votos só acumulam enquanto essa aba estiver aberta, então deixe ela aberta durante toda a battle.',
+        ],
+      },
+      {
+        heading: 'Nomes e títulos de músicas',
+        paragraphs: [
+          'Nomes de exibição, e títulos do SoundCloud ou do YouTube, são bloqueados se tiverem ofensas. Palavrão comum é liberado. Faixas do catálogo do Apple Music não passam por filtro de novo, porque esses títulos já estão numa loja.',
+          'Os vencedores só são publicados no [mural público de vencedores](/winners) se você escolher publicar, e dá para publicar a música vencedora sem o nome de quem venceu.',
+        ],
+      },
+      {
+        heading: 'TikTok e outras plataformas',
+        paragraphs: [
+          'A battle em si funciona em qualquer lugar onde você consiga compartilhar um link e a tela de uma aba, então TikTok, Kick, YouTube e Discord funcionam de boa. A votação pelo chat é só na Twitch por enquanto, porque depende de ler o chat da Twitch. Em qualquer outro lugar, os jogadores da sala votam no lugar do chat, que é também como funciona quando ninguém está fazendo live.',
+        ],
+      },
+    ],
+    footer: '[Comece uma battle](/battle) ou leia as [regras do jogo](/rules).',
+  },
+
+  about: {
+    title: 'Sobre | TuneBoxed',
+    description:
+      'TuneBoxed é um jogo musical: battles de músicas disputadas como lutas de boxe 3D no navegador, onde cada voto é um soco, e um feed diário de música no iOS.',
+    heading: 'Sobre o TuneBoxed',
+    intro: 'Um jogo musical sobre a única coisa que toda galera discute: o gosto de quem é melhor.',
+    battlesHeading: 'Battles de músicas, disputadas como lutas de boxe',
+    battles: [
+      'Alguém cria uma sala, o resto entra pelo navegador com um código, e cada jogador escolhe uma música. Aí duas músicas sobem no ringue. Cada uma é um boxeador de desenho em forma de nota musical que entra ao som da sua própria faixa, e quando o gongo toca, cada voto acerta um soco. Três seguidos é combo. Deixe uma música sem votos e ela beija a lona. O bracket segue até sobrar uma única música de pé.',
+      'Uma enquete diz quem está ganhando. Uma luta faz a galera sentir isso. Cada um veste o seu boxeador no vestiário, o resto da sala enche a plateia, e um chat pequeno ainda ganha uma luta de verdade, porque cada voto bate mais forte na tela quando chegam menos votos.',
+      'Foi feito para assistir junto. As músicas tocam sincronizadas para todo mundo ouvir a mesma coisa no mesmo momento, e toda sala tem uma tela que você pode botar numa TV, num projetor ou numa stream. Se você está na Twitch, a votação pode rolar no chat que já está ali, em vez de numa segunda tela.',
+    ],
+    iosHeading: 'O app iOS',
+    ios: 'O TuneBoxed começou no iPhone e continua lá. Todo dia chega um gênero novo, você posta a música que mais combina com ele e a comunidade vota. Também tem battles, incluindo o Bar for Bar, além de ranks e matches com pessoas que postam as mesmas coisas que você.',
+    whoHeading: 'Quem faz',
+    who: 'O TuneBoxed é feito pela Aura Brand LLC.',
+    footer: '[Comece uma battle](/battle), leia as [regras do jogo](/rules) ou veja o [mural de vencedores](/winners).',
+  },
+
+  winners: {
+    title: 'Vencedores | TuneBoxed',
+    description: 'Músicas que venceram um bracket do TuneBoxed. Publicadas pelos hosts que rodaram as battles.',
+    heading: 'Vencedores',
+    intro: 'Músicas que passaram por um bracket inteiro. Os hosts escolhem se uma battle aparece aqui.',
+    failed: 'Não deu para carregar o mural de vencedores agora. Tente de novo daqui a pouco.',
+    loading: 'Carregando o mural…',
+    empty: 'Nenhum vencedor publicado ainda. Vença um bracket e você pode colocar a música aqui. [Comece uma battle](/battle).',
+    pickedBy: 'escolhida por {name}',
+    room: 'Sala de {name}',
+    players: '{count} jogadores',
+    footer: 'Leia as [regras do jogo](/rules) ou [comece uma battle](/battle).',
+  },
+};
+
+export default pt;

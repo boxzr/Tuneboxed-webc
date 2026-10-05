@@ -1,0 +1,214 @@
+.fight-demo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Twitch's dark theme: #18181b panel, #efeff1 text, #9147ff accent. */
+.demo-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #2f2f35;
+  border-radius: 6px;
+  background: #18181b;
+  color: #efeff1;
+  font-family: Inter, Roobert, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.demo-chat__icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: currentColor;
+}
+
+.demo-chat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 10px;
+  border-bottom: 1px solid #2f2f35;
+  color: #adadb8;
+}
+
+.demo-chat__title {
+  color: #efeff1;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.demo-chat__lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+.demo-chat__line {
+  padding: 2px 10px;
+  overflow-wrap: anywhere;
+  animation: demo-chat-in 0.18s ease-out both;
+}
+
+.demo-chat__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 3px;
+  border-radius: 4px;
+  vertical-align: -4px;
+}
+
+.demo-chat__badge svg {
+  width: 14px;
+  height: 14px;
+  fill: #fff;
+}
+
+.demo-chat__badge--broadcaster {
+  background: #e91916;
+}
+
+.demo-chat__badge--moderator {
+  background: #00ad03;
+}
+
+.demo-chat__badge--vip {
+  background: #e005b9;
+}
+
+.demo-chat__badge--subscriber {
+  background: #9147ff;
+}
+
+.demo-chat__badge--premium {
+  background: #0e9bd8;
+}
+
+.demo-chat__user {
+  font-weight: 700;
+}
+
+.demo-chat__vote {
+  font-weight: 700;
+}
+
+.demo-chat__compose {
+  padding: 0 10px 10px;
+}
+
+.demo-chat__input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 8px 0 10px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: #2f2f35;
+  color: #adadb8;
+}
+
+.demo-chat__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.demo-chat__points {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #adadb8;
+  font-weight: 600;
+}
+
+.demo-chat__send {
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: #9147ff;
+  color: #fff;
+  font-weight: 600;
+}
+
+.demo-chat__status {
+  padding: 2px 10px;
+  color: #adadb8;
+}
+
+/* On the board: read from across a room or in a 1080p stream, and nothing to type into. */
+.demo-chat--board {
+  font-size: clamp(14px, 1.05vw, 20px);
+  line-height: 1.5;
+  background: rgba(24, 24, 27, 0.94);
+}
+
+.demo-chat--board .demo-chat__head {
+  height: auto;
+  padding: 0.75em 10px;
+}
+
+.demo-chat--board .demo-chat__title {
+  font-size: 1em;
+}
+
+.demo-chat--board .demo-chat__badge {
+  width: 1.3em;
+  height: 1.3em;
+  vertical-align: -0.25em;
+}
+
+.demo-chat--board .demo-chat__badge svg {
+  width: 1em;
+  height: 1em;
+}
+
+.demo-chat--board .demo-chat__actions {
+  display: none;
+}
+
+@keyframes demo-chat-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-chat__line {
+    animation: none;
+  }
+}
+
+/* Too narrow for a column beside the fight: run it as a short strip underneath. */
+@media (max-width: 1279px) {
+  .fight-demo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fight-demo .demo-chat {
+    height: 230px;
+  }
+
+  .fight-demo .demo-chat__head {
+    height: 40px;
+  }
+
+  .fight-demo .demo-chat__actions {
+    display: none;
+  }
+}

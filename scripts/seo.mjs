@@ -36,21 +36,21 @@ export const ROUTES = [
     name: 'Game rules',
     title: 'Game rules | TuneBoxed',
     description:
-      'How a TuneBoxed song battle works: a bracket of up to 16 players, songs played in sync, and the room voting for the winner.',
+      'How TuneBoxed works: songs walk out as boxers, every vote lands a punch, three in a row is a combo. Party is best of three; Bracket runs up to 16 players.',
   },
   {
     path: '/faq',
     name: 'FAQ',
     title: 'FAQ | TuneBoxed',
     description:
-      'Answers about TuneBoxed song battles: joining from a browser, chat voting, putting the board on stream, and how long a bracket takes.',
+      'Answers about TuneBoxed: how the boxing match and combos work, joining from a browser, chat voting, putting the fight on stream, and how long a bracket takes.',
   },
   {
     path: '/streamers',
     name: 'For streamers',
     title: 'For streamers | TuneBoxed',
     description:
-      'Put a TuneBoxed song battle on Twitch or TikTok. Share the board as a tab or a browser source, and let chat vote by typing 1 or 2.',
+      'Put a TuneBoxed song battle on Twitch or TikTok: songs walk out as boxers and chat types 1 or 2 to throw punches. Share the board as a tab or browser source.',
   },
   {
     path: '/winners',
@@ -64,7 +64,7 @@ export const ROUTES = [
     name: 'About',
     title: 'About | TuneBoxed',
     description:
-      'TuneBoxed is a music game: bracket song battles in the browser, and a daily music feed on iOS where you post the song that fits the genre.',
+      'TuneBoxed is a music game: song battles fought as 3D boxing matches in the browser, where every vote lands a punch, and a daily music feed on iOS.',
   },
 ];
 

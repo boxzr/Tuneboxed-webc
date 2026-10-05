@@ -633,7 +633,7 @@ export default function BattleRoom() {
             )}
           </Card>
 
-          {isHost && isBracket && <StreamCard code={room.code} />}
+          {isHost && isBracket && <StreamCard code={room.code} channel={room.host_twitch_login} />}
 
           {isHost && (
             <>
@@ -1123,7 +1123,7 @@ export default function BattleRoom() {
         />
       )}
 
-      {round && isHost && isBracket && <StreamCard code={room.code} />}
+      {round && isHost && isBracket && <StreamCard code={room.code} channel={room.host_twitch_login} />}
 
       {round && isHost && (
         <>

@@ -19,6 +19,8 @@ import Winners from './pages/Winners';
 import Stats from './components/Stats';
 import Reveal, { MOTION } from './components/Reveal';
 import { CONTENT_PAGES } from './pages/PageLayout';
+import LanguagePicker from './i18n/LanguagePicker';
+import { useCopy } from './i18n/LanguageContext';
 import './battle/battle.css';
 import './pages/pages.css';
 
@@ -34,13 +36,18 @@ const heroTransition = { duration: MOTION.duration, ease: MOTION.easeOut };
 function MainWebsite() {
   const [isAdminVisible, setIsAdminVisible] = useState(false);
   const reduced = useReducedMotion();
+  const copy = useCopy();
+  const { nav, home } = copy;
 
   useEffect(() => {
     void trackPageView('home');
-    // Kept in step with ROUTES in scripts/seo.mjs, which is what the
-    // prerendered HTML and the sitemap are built from.
-    document.title = 'TuneBoxed | Song battles fought as boxing matches';
   }, []);
+
+  useEffect(() => {
+    // English is kept in step with ROUTES in scripts/seo.mjs, which is what
+    // the prerendered HTML and the sitemap are built from.
+    document.title = home.title;
+  }, [home.title]);
 
   // Admin access with Alt+Shift+A+T
   useEffect(() => {
@@ -91,7 +98,7 @@ function MainWebsite() {
           </a>
           <div className="nav-links">
             <button className="nav-link nav-link--plain" onClick={() => setIsAdminVisible(false)}>
-              Back to Site
+              {nav.backToSite}
             </button>
           </div>
         </nav>
@@ -110,17 +117,18 @@ function MainWebsite() {
           <nav className="nav-sitelinks" aria-label="TuneBoxed">
             {CONTENT_PAGES.map((p) => (
               <Link key={p.path} to={p.path} className="nav-link">
-                {p.label}
+                {nav[p.key]}
               </Link>
             ))}
           </nav>
+          <LanguagePicker />
           <a
             href={APP_STORE_URL}
             className="app-store-btn app-store-btn--nav"
             target="_blank"
             rel="noopener noreferrer"
           >
-            Download on the App Store
+            {nav.appStore}
           </a>
         </div>
       </nav>
@@ -156,17 +164,15 @@ function MainWebsite() {
               </motion.span>
 
               <motion.h1 className="battle-hero-title" variants={heroItem} transition={heroTransition}>
-                We turned song battles into <em>boxing fights</em>
+                {home.headline} <em>{home.headlineEm}</em>
               </motion.h1>
 
               <motion.p className="home-lede" variants={heroItem} transition={heroTransition}>
-                Two songs enter the ring. You decide who walks out.
+                {home.lede}
               </motion.p>
 
               <motion.p className="battle-hero-sub" variants={heroItem} transition={heroTransition}>
-                Everyone picks a track. Two of them square up head to head, and every
-                vote lands a punch until one song is on the canvas. Around a table, in a
-                call, or live on stream. No app, no account.
+                {home.sub}
               </motion.p>
 
               <motion.div
@@ -183,7 +189,7 @@ function MainWebsite() {
             <motion.div className="home-ring" variants={heroItem} transition={heroTransition}>
               <span className="home-ring__tag">
                 <span className="home-ring__dot" aria-hidden="true" />
-                Live on the stream board
+                {home.ringTag}
               </span>
               <FightDemo />
             </motion.div>
@@ -191,55 +197,32 @@ function MainWebsite() {
         </section>
 
         <Reveal as="section" className="home-how">
-          <h2 className="home-how__title">Votes are punches</h2>
-          <p className="home-how__sub">
-            Other song battle sites give you two bars and a total. A poll tells you who is
-            winning. A fight makes the room feel it.
-          </p>
+          <h2 className="home-how__title">{home.howTitle}</h2>
+          <p className="home-how__sub">{home.howSub}</p>
 
           <ul className="home-points">
-            <li>
-              <strong>Chat throws the punches</strong>
-              Viewers type 1 or 2 in your Twitch chat. Every vote rocks the other song and
-              drains its health, so the crowd watches the fight turn in real time.
-            </li>
-            <li>
-              <strong>Shut a song out and it goes down</strong>
-              A close call goes to decision. A song nobody votes for hits the canvas, and
-              the board calls the knockout.
-            </li>
-            <li>
-              <strong>You control the clip</strong>
-              Bracket rounds let you set how long each song plays, up to the full preview,
-              instead of being stuck with a fixed few seconds.
-            </li>
-            <li>
-              <strong>Nothing to install</strong>
-              Share a code, share your screen. No bot in your channel, no OAuth on your
-              account, no download for your viewers.
-            </li>
+            {home.points.map((pt) => (
+              <li key={pt.title}>
+                <strong>{pt.title}</strong>
+                {pt.body}
+              </li>
+            ))}
           </ul>
 
           {/* Three lines rather than a section each: the page exists to get
               somebody into a room, so anything longer competes with the form. */}
           <ul className="home-steps">
-            <li>
-              <span className="home-step-num">1</span>
-              Start a room and share the code
-            </li>
-            <li>
-              <span className="home-step-num">2</span>
-              Everyone picks a song, in the browser
-            </li>
-            <li>
-              <span className="home-step-num">3</span>
-              Party plays to three rounds. Bracket fights head to head until one is left.
-            </li>
+            {home.steps.map((step, i) => (
+              <li key={step}>
+                <span className="home-step-num">{i + 1}</span>
+                {step}
+              </li>
+            ))}
           </ul>
 
           <div className="home-how__cta">
             <Link to="/battle" className="app-store-btn">
-              Start a battle
+              {nav.startBattle}
             </Link>
           </div>
         </Reveal>
@@ -254,7 +237,7 @@ function MainWebsite() {
             "start a battle". */}
         <Reveal as="div" className="home-streamers">
           <Link to="/streamers" className="home-how__link">
-            Setting it up on stream
+            {home.streamersLink}
           </Link>
         </Reveal>
       </main>
@@ -266,11 +249,11 @@ function MainWebsite() {
           <nav className="page-footer-links">
             {CONTENT_PAGES.map((p) => (
               <Link key={p.path} to={p.path}>
-                {p.label}
+                {nav[p.key]}
               </Link>
             ))}
             <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
-              iOS app
+              {nav.iosApp}
             </a>
           </nav>
           <p>Aura Brand LLC © {new Date().getFullYear()}</p>

@@ -5,6 +5,7 @@ import * as battle from '../lib/battleClient';
 import { isLocalPreview, liveRoomUrl } from '../lib/publicUrl';
 import type { BattleSession } from '../types/battle';
 import logo from '../assets/tuneboxed-battle-logo.png';
+import { useCopy } from '../i18n/LanguageContext';
 import '../battle/battle.css';
 
 /**
@@ -15,10 +16,11 @@ import '../battle/battle.css';
 export default function BattleHome() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
+  const t = useCopy().entry;
 
   useEffect(() => {
-    document.title = code ? 'Join a battle | TuneBoxed' : 'Play | TuneBoxed';
-  }, [code]);
+    document.title = code ? t.joinPageTitle : t.playTitle;
+  }, [code, t]);
 
   /*
    * Somebody who is already in this room gets taken back to it.
@@ -63,7 +65,7 @@ export default function BattleHome() {
         {checking ? (
           <div className="battle-card">
             <p className="battle-sub" style={{ margin: 0 }}>
-              Looking for your seat…
+              {t.finding}
             </p>
           </div>
         ) : (

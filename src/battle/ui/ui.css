@@ -128,7 +128,7 @@
   color: var(--tb-orange);
 }
 .bt-btn--outline.bt-btn--blue {
-  color: var(--tb-blue-deep);
+  color: var(--tb-blue);
 }
 
 .bt-btn:hover:not(:disabled) {

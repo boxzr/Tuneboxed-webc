@@ -56,7 +56,7 @@
   font-weight: 600;
   padding: 6px 10px;
   border-radius: 8px;
-  opacity: 0.78;
+  opacity: 0.88;
   transition:
     color var(--dur-hover) var(--ease-standard),
     background-color var(--dur-hover) var(--ease-standard),
@@ -64,7 +64,7 @@
 }
 
 .page-nav-sitelinks a:hover {
-  background: rgba(27, 45, 78, 0.04);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--tb-orange);
   opacity: 1;
 }
@@ -110,7 +110,7 @@
   margin: 0 0 40px;
   font-size: 1.05rem;
   line-height: 1.6;
-  opacity: 0.72;
+  color: var(--tb-ink-muted);
 }
 
 .page-section {
@@ -126,21 +126,18 @@
 .page-section p {
   margin: 0 0 12px;
   line-height: 1.65;
-  opacity: 0.82;
+  opacity: 0.92;
 }
 
 .page-section p:last-child {
   margin-bottom: 0;
 }
 
-/* Inline links, which were inheriting the browser's default blue and reading as
-   unstyled next to everything else. Navy text with an orange underline rather
-   than orange text: brand orange on white is only about 2.4:1, well short of
-   the 4.5:1 that body text needs to stay readable. The underline carries the
-   brand colour instead, where contrast does not matter as much.
+/* Inline links: page text colour with an orange underline. The underline
+   carries the brand colour; the text stays at body contrast on the dark page.
    Excludes the App Store button, which sets its own colour. */
 .page-main a:not(.app-store-btn) {
-  color: #1b2d4e;
+  color: var(--tb-ink);
   font-weight: 700;
   text-decoration-color: #ff7a00;
   text-decoration-thickness: 2px;
@@ -149,7 +146,7 @@
 }
 
 .page-main a:not(.app-store-btn):hover {
-  color: #b35400;
+  color: #ffa04d;
 }
 
 /* ---------- Numbered steps ---------- */
@@ -191,7 +188,11 @@
 .page-step-body p {
   margin: 0;
   line-height: 1.6;
-  opacity: 0.78;
+  opacity: 0.9;
+}
+
+.page-step-body p + p {
+  margin-top: 10px;
 }
 
 /* ---------- FAQ ---------- */
@@ -206,7 +207,7 @@
    accessible for free, and the answers stay in the DOM for crawlers even
    while collapsed. */
 .page-faq details {
-  border-bottom: 1px solid rgba(27, 45, 78, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .page-faq summary {
@@ -220,7 +221,7 @@
 }
 
 .page-faq summary:hover {
-  color: #ff7a00;
+  color: #ffa04d;
 }
 
 .page-faq summary::-webkit-details-marker {
@@ -245,7 +246,7 @@
 .page-faq .page-faq-answer {
   padding: 0 0 20px;
   line-height: 1.65;
-  opacity: 0.82;
+  opacity: 0.92;
 }
 
 /* `details` cannot transition its own height, so the answer fades and rises
@@ -261,7 +262,7 @@
     transform: translateY(-4px);
   }
   to {
-    opacity: 0.82;
+    opacity: 0.92;
     transform: translateY(0);
   }
 }
@@ -287,7 +288,7 @@
   align-items: center;
   gap: 16px;
   padding: 14px;
-  border: 1px solid rgba(27, 45, 78, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   transition:
     border-color var(--dur-control) var(--ease-standard),
@@ -296,7 +297,7 @@
 
 .page-winner:hover {
   border-color: rgba(255, 122, 0, 0.45);
-  background: rgba(255, 122, 0, 0.03);
+  background: rgba(255, 122, 0, 0.06);
 }
 
 .page-winner-art {
@@ -305,7 +306,7 @@
   height: 56px;
   border-radius: 8px;
   object-fit: cover;
-  background: rgba(27, 45, 78, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .page-winner-text {
@@ -322,24 +323,24 @@
 
 .page-winner-meta {
   font-size: 0.88rem;
-  opacity: 0.65;
+  color: var(--tb-ink-muted);
   margin-top: 3px;
 }
 
 .page-winner-date {
   flex: none;
   font-size: 0.82rem;
-  opacity: 0.55;
+  color: var(--tb-ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .page-empty {
   padding: 40px 20px;
   text-align: center;
-  border: 1px dashed rgba(27, 45, 78, 0.2);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
   border-radius: 14px;
   line-height: 1.6;
-  opacity: 0.7;
+  color: var(--tb-ink-muted);
 }
 
 /* ---------- Stats ---------- */
@@ -355,7 +356,7 @@
 .stat {
   padding: 16px 12px;
   border-radius: 14px;
-  background: rgba(27, 45, 78, 0.04);
+  background: rgba(255, 255, 255, 0.06);
   text-align: center;
 }
 
@@ -371,13 +372,13 @@
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.6;
+  color: var(--tb-ink-muted);
 }
 
 /* ---------- Footer ---------- */
 
 .page-footer {
-  border-top: 1px solid rgba(27, 45, 78, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 32px 24px 40px;
   text-align: center;
 }
@@ -391,24 +392,22 @@
 }
 
 .page-footer-links a {
-  color: #1b2d4e;
+  color: var(--tb-ink-muted);
   text-decoration: none;
   font-size: 0.9rem;
-  opacity: 0.7;
   transition:
     opacity var(--dur-hover) var(--ease-standard),
     color var(--dur-hover) var(--ease-standard);
 }
 
 .page-footer-links a:hover {
-  opacity: 1;
-  color: #ff7a00;
+  color: #ffa04d;
 }
 
 .page-footer p {
   margin: 0;
   font-size: 0.82rem;
-  opacity: 0.5;
+  color: var(--tb-ink-muted);
 }
 
 @media (max-width: 600px) {

@@ -896,3 +896,36 @@ html.tv-active #root {
   font-weight: 600;
   color: #ffb4a8;
 }
+
+/* ---------- Twitch chat column (?chat=) ----------
+   The game keeps a 16:9-ish area to the left, and every vw-based size is
+   re-based on that area so nothing slides under the chat. */
+.tv--chat {
+  --tv-chat-w: clamp(280px, 22vw, 440px);
+  --tv-chat-gap: calc(1.4 * var(--tvw));
+  --tvw: min(calc((100vw - var(--tv-chat-w)) / 100), 1.7778vh);
+  padding-right: calc(var(--tv-chat-w) + 2 * var(--tv-chat-gap));
+}
+
+.tv-chat {
+  position: absolute;
+  z-index: 3;
+  top: 1.6vh;
+  right: var(--tv-chat-gap);
+  bottom: 1.6vh;
+  display: flex;
+  width: var(--tv-chat-w);
+  text-align: left;
+}
+
+.tv-chat .demo-chat {
+  flex: 1;
+}
+
+.tv--chat .tv-host {
+  right: calc(var(--tv-chat-w) + 2 * var(--tv-chat-gap));
+}
+
+.tv--chat .tv-controls {
+  left: calc((100% - var(--tv-chat-w) - var(--tv-chat-gap)) / 2);
+}

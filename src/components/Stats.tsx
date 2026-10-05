@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import * as battle from '../lib/battleClient';
 import type { PublicStats } from '../types/battle';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { Copy } from '../i18n/content/en';
 
 /** Refresh cadence. Slow on purpose: these are cumulative totals, not a ticker. */
 const REFRESH_MS = 30_000;
 
-const LABELS: [keyof PublicStats, string][] = [
-  ['battles_played', 'Battles played'],
-  ['songs_battled', 'Songs battled'],
-  ['players_joined', 'Players'],
-  ['champions_crowned', 'Champions'],
+const LABELS: [keyof PublicStats, keyof Copy['stats']][] = [
+  ['battles_played', 'battles'],
+  ['songs_battled', 'songs'],
+  ['players_joined', 'players'],
+  ['champions_crowned', 'champions'],
 ];
 
 /**
@@ -25,6 +27,7 @@ const LABELS: [keyof PublicStats, string][] = [
  */
 export default function Stats({ heading }: { heading?: string }) {
   const [stats, setStats] = useState<PublicStats | null>(null);
+  const { copy, locale } = useLanguage();
 
   useEffect(() => {
     let alive = true;
@@ -55,8 +58,8 @@ export default function Stats({ heading }: { heading?: string }) {
       <div className="stats">
         {LABELS.map(([key, label]) => (
           <div className="stat" key={key}>
-            <div className="stat-num">{(stats[key] ?? 0).toLocaleString()}</div>
-            <div className="stat-label">{label}</div>
+            <div className="stat-num">{(stats[key] ?? 0).toLocaleString(locale)}</div>
+            <div className="stat-label">{copy.stats[label]}</div>
           </div>
         ))}
       </div>

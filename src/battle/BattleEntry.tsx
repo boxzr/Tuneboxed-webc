@@ -4,6 +4,7 @@ import * as battle from '../lib/battleClient';
 import { isLocalPreview, liveRoomUrl } from '../lib/publicUrl';
 import { supabaseConfigured } from '../lib/supabase';
 import { signInWithTwitch, signOut, useTwitchIdentity } from '../lib/twitchAuth';
+import { useCopy } from '../i18n/LanguageContext';
 
 type Props = {
   /** Prefilled when a viewer follows a share link that already names the room. */
@@ -31,6 +32,7 @@ export default function BattleEntry({
   showIntro = true,
 }: Props) {
   const navigate = useNavigate();
+  const t = useCopy().entry;
 
   // Prefilled with whatever this browser last played under, because typing
   // the same name is what reclaims a seat in a room already underway.
@@ -112,32 +114,30 @@ export default function BattleEntry({
       {showIntro && (
         <>
           <h1 className="battle-h1">
-            {invited ? 'Join the battle' : 'The Kahoot of song battles'}
+            {invited ? t.joinTitle : t.hostTitle}
           </h1>
           <p className="battle-sub">
-            {invited
-              ? 'Pick a name the room will recognise and jump in. No app, no account.'
-              : 'Start a room for your group, or drop in with a code.'}
+            {invited ? t.joinSub : t.hostSub}
           </p>
         </>
       )}
 
       <div className="battle-field">
         <label className="battle-label" htmlFor="battle-name">
-          Your name
+          {t.nameLabel}
         </label>
         <input
           id="battle-name"
           className="battle-input"
           value={name}
           maxLength={24}
-          placeholder="e.g. ninja"
+          placeholder={t.namePlaceholder}
           onChange={(e) => setName(e.target.value)}
         />
       </div>
 
       {mode === 'host' && (
-        <div className="battle-modes" role="radiogroup" aria-label="Game mode">
+        <div className="battle-modes" role="radiogroup" aria-label={t.modeLabel}>
           <button
             type="button"
             role="radio"
@@ -146,7 +146,7 @@ export default function BattleEntry({
             onClick={() => setPlayKind('party')}
           >
             <strong>Party</strong>
-            <span>3 or more players, a rotating judge, best of 3. Same as the iOS app.</span>
+            <span>{t.partyDesc}</span>
           </button>
           <button
             type="button"
@@ -156,9 +156,7 @@ export default function BattleEntry({
             onClick={() => setPlayKind('bracket')}
           >
             <strong>Bracket</strong>
-            <span>
-              Up to 16, head to head. Opens in Classic: one vibe, songs in before you start.
-            </span>
+            <span>{t.bracketDesc}</span>
           </button>
         </div>
       )}
@@ -166,7 +164,7 @@ export default function BattleEntry({
       {mode === 'join' && (
         <div className="battle-field">
           <label className="battle-label" htmlFor="battle-code">
-            Room code
+            {t.codeLabel}
           </label>
           <input
             id="battle-code"
@@ -188,7 +186,7 @@ export default function BattleEntry({
           disabled={!nameOk || busy !== null}
           onClick={() => void run('create')}
         >
-          {busy === 'create' ? 'Creating…' : 'Host a battle'}
+          {busy === 'create' ? t.creating : t.host}
         </button>
       ) : (
         <button
@@ -196,7 +194,7 @@ export default function BattleEntry({
           disabled={!nameOk || code.trim().length !== 5 || busy !== null}
           onClick={() => void run('join')}
         >
-          {busy === 'join' ? 'Joining…' : 'Join battle'}
+          {busy === 'join' ? t.joining : t.join}
         </button>
       )}
 
@@ -211,7 +209,7 @@ export default function BattleEntry({
             setMode((m) => (m === 'host' ? 'join' : 'host'));
           }}
         >
-          {mode === 'host' ? 'Have a code? Join a room' : 'Host a battle instead'}
+          {mode === 'host' ? t.toJoin : t.toHost}
         </button>
       )}
 
@@ -228,7 +226,7 @@ export default function BattleEntry({
             )}
             <span className="battle-twitch-name">{identity.login}</span>
             <button className="battle-twitch-signout" onClick={() => void signOut()}>
-              Sign out
+              {t.signOut}
             </button>
           </div>
         ) : (
@@ -237,12 +235,12 @@ export default function BattleEntry({
               className="battle-twitch-btn"
               onClick={() => void signInWithTwitch().catch((e) => setError(e.message))}
             >
-              Sign in with Twitch
+              {t.twitch}
             </button>
             {/* Without this the button reads as a requirement, and most people
                 hosting a battle are not streaming it. */}
             <p className="battle-twitch-hint">
-              Optional. Lets your chat vote by typing in Twitch.
+              {t.twitchHint}
             </p>
           </>
         ))}

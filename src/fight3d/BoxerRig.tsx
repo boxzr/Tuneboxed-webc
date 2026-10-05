@@ -233,24 +233,30 @@ function makeArm(s: 1 | -1): ArmSet {
   };
 }
 
-/** Boxing glove built along -Y: cuff, laced wrist, padded fist, knuckle roll, thumb. */
+/**
+ * Boxing glove built along -Y: cuff, laced wrist, padded mitt, curled-finger bulb, thumb.
+ * `orient` points +X outward on both arms, which flips Z: the back of the hand is +Z·s, the palm -Z·s.
+ */
 function Glove({ s, glove, cuff }: { s: 1 | -1; glove: THREE.Material; cuff: THREE.Material }) {
   return (
     <group position={[0, -FORE, 0]}>
-      <mesh position={[0, 0.13, 0]} material={cuff} castShadow>
-        <cylinderGeometry args={[0.078, 0.07, 0.08, 14]} />
+      <mesh position={[0, 0.135, 0]} material={cuff} castShadow>
+        <cylinderGeometry args={[0.074, 0.07, 0.07, 18]} />
       </mesh>
-      <mesh position={[0, 0.075, 0]} material={glove} castShadow>
-        <cylinderGeometry args={[0.088, 0.08, 0.06, 14]} />
+      <mesh position={[0, 0.08, 0]} material={glove} castShadow>
+        <cylinderGeometry args={[0.084, 0.076, 0.06, 18]} />
       </mesh>
-      <mesh scale={[1, 1.18, 1.02]} material={glove} castShadow>
-        <sphereGeometry args={[GLOVE_R, 20, 16]} />
+      <mesh position={[0, 0.085, -0.081 * s]} material={cuff}>
+        <boxGeometry args={[0.03, 0.07, 0.012]} />
       </mesh>
-      <mesh position={[0, -0.06, 0.02]} rotation={[0, 0, Math.PI / 2]} material={glove} castShadow>
-        <capsuleGeometry args={[0.085, 0.07, 8, 14]} />
+      <mesh position={[0, -0.005, 0.012 * s]} scale={[0.96, 1.08, 1]} material={glove} castShadow>
+        <sphereGeometry args={[GLOVE_R, 28, 20]} />
       </mesh>
-      <mesh position={[-0.085 * s, 0.01, 0.06]} rotation={[0.35, 0, 0.5 * s]} material={glove} castShadow>
-        <capsuleGeometry args={[0.042, 0.07, 6, 10]} />
+      <mesh position={[0, -0.07, -0.022 * s]} scale={[0.98, 0.82, 1.02]} material={glove} castShadow>
+        <sphereGeometry args={[0.104, 28, 20]} />
+      </mesh>
+      <mesh position={[-0.078, -0.012, -0.05 * s]} rotation={[0.35 * s, 0, -0.32]} material={glove} castShadow>
+        <capsuleGeometry args={[0.04, 0.075, 8, 14]} />
       </mesh>
     </group>
   );
@@ -741,8 +747,11 @@ export default function BoxerRig({
           <cylinderGeometry args={[0.205, 0.2, 0.08, 18]} />
         </mesh>
         {heavy && (
-          <mesh position={[0, 0.66, 0.05]} material={mats.body} castShadow>
-            <sphereGeometry args={[0.17, 14, 12]} />
+          // Hangs over the waistband rather than through it: where it meets the
+          // band its front is well inside the band's radius, and above the band
+          // it is well outside, so the two never sit close enough to flicker.
+          <mesh position={[0, 0.78, 0.07]} scale={[1, 0.8, 1]} material={mats.body} castShadow>
+            <sphereGeometry args={[0.17, 18, 14]} />
           </mesh>
         )}
 

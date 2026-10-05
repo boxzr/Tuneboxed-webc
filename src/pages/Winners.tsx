@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import PageLayout from './PageLayout';
 import * as battle from '../lib/battleClient';
 import type { BattleChampion } from '../types/battle';
+import { fill, useLanguage } from '../i18n/LanguageContext';
+import Rich from '../i18n/Rich';
 
-function when(iso: string): string {
+function when(iso: string, locale: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 /**
@@ -18,6 +19,8 @@ function when(iso: string): string {
 export default function Winners() {
   const [champions, setChampions] = useState<BattleChampion[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const { copy, locale } = useLanguage();
+  const t = copy.winners;
 
   useEffect(() => {
     let alive = true;
@@ -31,28 +34,15 @@ export default function Winners() {
   }, []);
 
   return (
-    <PageLayout
-      title="Winners | TuneBoxed"
-      description="Songs that won a TuneBoxed bracket. Published by the hosts who ran the battles."
-      heading="Winners"
-      intro="Songs that made it through a whole bracket. Hosts choose whether a battle lands here."
-    >
+    <PageLayout title={t.title} description={t.description} heading={t.heading} intro={t.intro}>
       <section className="page-section">
-        {failed && (
-          <div className="page-empty">
-            The winners board could not be loaded right now. Try again in a
-            moment.
-          </div>
-        )}
+        {failed && <div className="page-empty">{t.failed}</div>}
 
-        {!failed && champions === null && (
-          <div className="page-empty">Loading the board…</div>
-        )}
+        {!failed && champions === null && <div className="page-empty">{t.loading}</div>}
 
         {!failed && champions !== null && champions.length === 0 && (
           <div className="page-empty">
-            No published winners yet. Win a bracket and you can put the song up
-            here. <Link to="/battle">Start a battle</Link>.
+            <Rich text={t.empty} />
           </div>
         )}
 
@@ -69,12 +59,12 @@ export default function Winners() {
                   <div className="page-winner-title">{c.song_title}</div>
                   <div className="page-winner-meta">
                     {c.song_artist}
-                    {c.winner_display_name && ` · picked by ${c.winner_display_name}`}
-                    {c.host_twitch_login && ` · ${c.host_twitch_login}'s room`}
-                    {c.player_count > 0 && ` · ${c.player_count} players`}
+                    {c.winner_display_name && ` · ${fill(t.pickedBy, { name: c.winner_display_name })}`}
+                    {c.host_twitch_login && ` · ${fill(t.room, { name: c.host_twitch_login })}`}
+                    {c.player_count > 0 && ` · ${fill(t.players, { count: c.player_count })}`}
                   </div>
                 </div>
-                <div className="page-winner-date">{when(c.created_at)}</div>
+                <div className="page-winner-date">{when(c.created_at, locale)}</div>
               </div>
             ))}
           </div>
@@ -82,8 +72,7 @@ export default function Winners() {
       </section>
 
       <p>
-        Read the <Link to="/rules">game rules</Link> or{' '}
-        <Link to="/battle">start a battle</Link>.
+        <Rich text={t.footer} />
       </p>
     </PageLayout>
   );

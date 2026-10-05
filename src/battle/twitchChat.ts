@@ -53,6 +53,81 @@ export function parsePrivmsg(line: string): ChatMessage | null {
   return { user, text: rest.slice(colon + 2).trim() };
 }
 
+export type ChatBadge = 'broadcaster' | 'moderator' | 'vip' | 'subscriber' | 'premium';
+
+const KNOWN_BADGES: readonly ChatBadge[] = ['broadcaster', 'moderator', 'vip', 'subscriber', 'premium'];
+
+/** A chat message as the board's chat column shows it. */
+export interface ChatPost {
+  /** Twitch's message id, so a mod deleting it can take it off the board. */
+  id: string | null;
+  /** Lowercase login, for timeouts and bans. */
+  user: string;
+  /** The name as the viewer styled it. */
+  name: string;
+  /** Their chosen name colour, or null for viewers who never set one. */
+  color: string | null;
+  badges: ChatBadge[];
+  text: string;
+}
+
+function parseTags(line: string): Record<string, string> {
+  if (!line.startsWith('@')) return {};
+  const tags: Record<string, string> = {};
+  for (const pair of line.slice(1, line.indexOf(' ')).split(';')) {
+    const eq = pair.indexOf('=');
+    if (eq > 0) tags[pair.slice(0, eq)] = pair.slice(eq + 1);
+  }
+  return tags;
+}
+
+/** IRCv3 escapes in tag values, which is how a display name could carry a space. */
+function unescapeTag(value: string): string {
+  return value.replace(/\\(.)/g, (_, c: string) => (c === 's' ? ' ' : c === ':' ? ';' : c === '\\' ? '\\' : ''));
+}
+
+/**
+ * A chat line with the sender's styling, for showing chat rather than counting it.
+ * Needs the twitch.tv/tags capability for colour, badges and id; without it
+ * those come back empty and the line still shows.
+ */
+export function parseChatPost(line: string): ChatPost | null {
+  const msg = parsePrivmsg(line);
+  if (!msg) return null;
+  const tags = parseTags(line);
+  // /me arrives wrapped in CTCP ACTION markers.
+  const action = /^\u0001ACTION (.*)\u0001?$/.exec(msg.text);
+  const badges = (tags.badges ?? '')
+    .split(',')
+    .map((b) => b.split('/')[0] as ChatBadge)
+    .filter((b) => KNOWN_BADGES.includes(b));
+  return {
+    id: tags.id || null,
+    user: msg.user,
+    name: unescapeTag(tags['display-name'] ?? '') || msg.user,
+    color: /^#[0-9a-f]{6}$/i.test(tags.color ?? '') ? tags.color : null,
+    badges,
+    text: action ? action[1].replace(/\u0001$/, '') : msg.text,
+  };
+}
+
+/**
+ * Moderation that should take lines off a chat display. A ban or timeout
+ * names a user, a single deletion names a message, and a bare CLEARCHAT
+ * (`/clear`) wipes everything.
+ */
+export type ChatClear = { all: true } | { user: string } | { id: string };
+
+export function parseClear(line: string): ChatClear | null {
+  const tags = parseTags(line);
+  const rest = line.startsWith('@') ? line.slice(line.indexOf(' ') + 1) : line;
+  const parts = rest.split(' ');
+  if (parts[1] === 'CLEARMSG') return tags['target-msg-id'] ? { id: tags['target-msg-id'] } : null;
+  if (parts[1] !== 'CLEARCHAT') return null;
+  const colon = rest.indexOf(' :');
+  return colon === -1 ? { all: true } : { user: rest.slice(colon + 2).trim().toLowerCase() };
+}
+
 /**
  * Read a vote out of a chat message.
  *
@@ -82,7 +157,9 @@ export interface ChatConnection {
 export function connectToChat(
   channel: string,
   onMessage: (msg: ChatMessage) => void,
-  onStatus?: (connected: boolean) => void
+  onStatus?: (connected: boolean) => void,
+  /** Every raw line, with tags requested, for a reader that shows chat rather than counts it. */
+  onLine?: (line: string) => void
 ): ChatConnection {
   let socket: WebSocket | null = null;
   let closed = false;
@@ -97,6 +174,7 @@ export function connectToChat(
       attempt = 0;
       // Any justinfan nick is accepted anonymously. The suffix is random so
       // two tabs on the same machine do not collide.
+      if (onLine) socket?.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
       socket?.send(`NICK justinfan${Math.floor(Math.random() * 100000)}`);
       socket?.send(`JOIN #${channel.toLowerCase()}`);
       onStatus?.(true);
@@ -110,6 +188,7 @@ export function connectToChat(
           socket?.send('PONG :tmi.twitch.tv');
           continue;
         }
+        onLine?.(line);
         const msg = parsePrivmsg(line);
         if (msg) onMessage(msg);
       }

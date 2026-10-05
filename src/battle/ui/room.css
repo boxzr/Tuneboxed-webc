@@ -624,6 +624,26 @@
   font-size: 0.84rem;
 }
 
+.bt-stream__opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bt-stream__opt input {
+  width: 18px;
+  height: 18px;
+  accent-color: #9147ff;
+}
+
+.bt-stream__channel {
+  margin-top: 10px;
+}
+
 /* ---------- Game settings ---------- */
 
 .bt-settings-btn {
