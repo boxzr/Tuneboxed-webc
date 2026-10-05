@@ -37,12 +37,15 @@ import {
 } from '../battle/playStyle';
 import BracketTree from '../battle/ui/BracketTree';
 import MatchupCard from '../battle/ui/MatchupCard';
+import BoxingMatch from '../battle/ui/BoxingMatch';
 import NowPlaying from '../battle/ui/NowPlaying';
 import Roster from '../battle/ui/Roster';
+import { bracketFighters, pairFighters, spectators } from '../battle/bout';
+import LockerRoom from '../fight3d/LockerRoom';
+import { encodeLoadout, type FighterLoadout } from '../fight3d/loadout';
 import {
   Card,
   CountdownRing,
-  Gloves,
   PromptLabel,
   SectionLabel,
   StatTile,
@@ -105,6 +108,19 @@ export default function BattleRoom() {
   const me = players.find((p) => p.id === stored?.playerId) ?? null;
   const isHost = Boolean(room && me && room.host_player_id === me.id);
   const token = stored?.token ?? null;
+  const sentLoadout = useRef<string | null>(null);
+  const persistLoadout = useCallback(
+    (loadout: FighterLoadout) => {
+      if (!token || !me) return;
+      const encoded = encodeLoadout(loadout);
+      if (encoded === sentLoadout.current || encoded === me.avatar_seed) return;
+      sentLoadout.current = encoded;
+      void battle.setFighterLoadout(token, encoded, me.id).catch(() => {
+        /* board still gets a hashed default if the write misses */
+      });
+    },
+    [token, me]
+  );
 
   const phase = round?.phase ?? null;
   const pick = usePickSeconds();
@@ -329,6 +345,9 @@ export default function BattleRoom() {
   }
   const voteLeader = uniqueLeader(ballotCounts);
   const ballotTotal = Object.values(ballotCounts).reduce((a, b) => a + b, 0);
+  const fight = isBracket
+    ? bracketFighters(currentMatch, submissions, ballotCounts, players, nameOf)
+    : pairFighters(submissions, ballotCounts, players, nameOf);
 
   /**
    * Which fighter to crown.
@@ -472,7 +491,6 @@ export default function BattleRoom() {
       {!round && !championId && (
         <>
           <Card className="bt-lobby">
-            <Gloves size={132} />
             <p className="bt-lobby__pitch">
               {classic
                 ? 'One vibe for the whole game. Share the code, lock songs in, then start when everyone is here.'
@@ -533,6 +551,16 @@ export default function BattleRoom() {
               />
             )}
           </Card>
+
+          {token && me && (
+            <Card>
+              <SectionLabel>Your fighter</SectionLabel>
+              <p className="bt-sub" style={{ marginTop: 6 }}>
+                Customise while the rest of the room locks songs in.
+              </p>
+              <LockerRoom name={me.display_name} seed={me.avatar_seed} onChange={persistLoadout} />
+            </Card>
+          )}
 
           <Card>
             <SectionLabel>
@@ -620,8 +648,71 @@ export default function BattleRoom() {
         </>
       )}
 
+      {/* ---------- Live fight ---------- */}
+      {fight && phase && phase !== 'picking' && !championId && round && (
+        <BoxingMatch
+          a={fight.a}
+          b={fight.b}
+          phase={phase}
+          winner={
+            submissions.find((s) => s.id === round.winner_submission_id)?.player_id
+              ? ((): 'a' | 'b' | null => {
+                  const id =
+                    submissions.find((s) => s.id === round.winner_submission_id)?.player_id ??
+                    currentMatch?.winner_player_id ??
+                    null;
+                  if (!id) return null;
+                  if (currentMatch) {
+                    if (id === currentMatch.player_a_id) return 'a';
+                    if (id === currentMatch.player_b_id) return 'b';
+                  }
+                  if (submissions[0]?.player_id === id) return 'a';
+                  if (submissions[1]?.player_id === id) return 'b';
+                  return null;
+                })()
+              : null
+          }
+          nowPlaying={
+            phase === 'playing' ? ((): 'a' | 'b' | null => {
+              const id = playback.current?.player_id;
+              if (!id) return null;
+              if (currentMatch) {
+                if (id === currentMatch.player_a_id) return 'a';
+                if (id === currentMatch.player_b_id) return 'b';
+              }
+              if (submissions[0]?.player_id === id) return 'a';
+              if (submissions[1]?.player_id === id) return 'b';
+              return null;
+            })() : null
+          }
+          walkSeconds={playback.perSong}
+          walkOffset={playback.offset}
+          fightKey={round.id}
+          chatChannel={room.host_twitch_login}
+          roundLabel={stageLabel}
+          fans={spectators(players, fight.a.name, fight.b.name)}
+          judgeName={judging ? nameOf(room.host_player_id) : null}
+          onPick={
+            judging && isHost && phase === 'judging'
+              ? (side) => {
+                  const pick = side === 'a' ? fight.a : fight.b;
+                  const sub =
+                    submissions.find(
+                      (s) => s.song_title === pick.songTitle && nameOf(s.player_id) === pick.name
+                    ) ?? submissions[side === 'a' ? 0 : 1];
+                  if (!sub) return;
+                  void guard(async () => {
+                    await battle.castVote(token!, round.id, sub.id);
+                    await battle.setRoundWinner(token!, round.id, sub.id);
+                  });
+                }
+              : undefined
+          }
+        />
+      )}
+
       {/* ---------- Matchup, shown through every phase of a match ---------- */}
-      {isBracket && !championId && currentMatch && matchupSides && phase && (
+      {isBracket && !championId && currentMatch && matchupSides && phase && !fight && (
         <MatchupCard
           title={roundTitle(currentMatch.bracket_round, matches)}
           left={matchupSides.left}

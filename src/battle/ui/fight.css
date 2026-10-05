@@ -22,12 +22,14 @@
   flex-direction: column;
   gap: clamp(10px, 1.8vh, 26px);
   width: 100%;
+  padding: clamp(14px, 2.4vh, 34px) clamp(14px, 2vw, 38px);
   padding: clamp(14px, 2.4vh, 34px) clamp(14px, 2cqw, 38px);
-  background: var(--tb-surface);
+  background: linear-gradient(180deg, #1a1524 0%, #0c0a12 100%);
   border: 1px solid var(--tb-border);
   border-radius: var(--tb-r-card);
   box-shadow: var(--tb-shadow-card);
   container-type: inline-size;
+  color: var(--tb-ink);
 }
 
 /* ---------- Health bars ---------- */
@@ -41,6 +43,7 @@
      the bars have to be. */
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
+  gap: clamp(8px, 1.2vw, 20px);
   gap: clamp(8px, 1.2cqw, 20px);
 }
 
@@ -54,6 +57,7 @@
 .fight__seat-top {
   display: flex;
   align-items: center;
+  gap: clamp(6px, 0.7vw, 12px);
   gap: clamp(6px, 0.7cqw, 12px);
   min-width: 0;
 }
@@ -71,10 +75,13 @@
   flex: none;
   display: grid;
   place-items: center;
+  width: clamp(28px, 3.2vw, 60px);
   width: clamp(28px, 3.2cqw, 60px);
+  height: clamp(28px, 3.2vw, 60px);
   height: clamp(28px, 3.2cqw, 60px);
   border-radius: 14px;
   color: #fff;
+  font-size: clamp(0.95rem, 1.9vw, 2.1rem);
   font-size: clamp(0.95rem, 1.9cqw, 2.1rem);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -91,7 +98,9 @@
 }
 
 .fight__art {
+  width: clamp(42px, 5vw, 92px);
   width: clamp(42px, 5cqw, 92px);
+  height: clamp(42px, 5vw, 92px);
   height: clamp(42px, 5cqw, 92px);
   border-radius: 12px;
   object-fit: cover;
@@ -102,9 +111,11 @@
 .fight__label {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
   width: 100%;
   line-height: 1.15;
+  text-align: left;
 }
 
 /* The name and the artist stay on one line and truncate: both are secondary,
@@ -128,6 +139,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-size: clamp(0.7rem, 1vw, 1.15rem);
   font-size: clamp(0.7rem, 1cqw, 1.15rem);
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -162,6 +174,7 @@
 }
 
 .fight__song {
+  font-size: clamp(1.05rem, 2vw, 2.4rem);
   font-size: clamp(1.05rem, 2cqw, 2.4rem);
   font-weight: 800;
   line-height: 1.1;
@@ -186,6 +199,7 @@
 }
 
 .fight__artist {
+  font-size: clamp(0.78rem, 1.15vw, 1.3rem);
   font-size: clamp(0.78rem, 1.15cqw, 1.3rem);
   color: var(--tb-ink-muted);
   overflow: hidden;
@@ -244,6 +258,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  font-size: clamp(0.7rem, 1.1vw, 1.25rem);
   font-size: clamp(0.7rem, 1.1cqw, 1.25rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -263,8 +278,10 @@
   align-self: center;
   padding: 6px 14px;
   border-radius: 999px;
-  background: var(--tb-ink);
-  color: #fff;
+  background: #1a1020;
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  color: var(--tb-gold);
+  font-size: clamp(0.6rem, 0.8vw, 0.85rem);
   font-size: clamp(0.6rem, 0.8cqw, 0.85rem);
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -276,29 +293,262 @@
 
 .fight__ring {
   position: relative;
-  display: grid;
-  /* Matches the HUD above it, so each fighter's boxer stays under their own
-     name and bar however long the titles are. */
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: end;
-  justify-items: center;
-  gap: clamp(8px, 2cqw, 32px);
-  /* The fight is the point of the screen, so the mat claims real height
-     rather than sitting in a letterbox strip under the genre card. Bounded by
-     the card's width for the same reason the sprites are: the fighters shrink
-     to fit a narrow card, and a mat still sized off the viewport would leave
-     them standing at the bottom of an empty room. */
-  min-height: min(clamp(170px, 38vh, 520px), 46cqw);
-  padding: clamp(14px, 3vh, 44px) clamp(12px, 2cqw, 36px) clamp(10px, 1.6vh, 28px);
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 180px;
+  padding: 0;
   border-radius: var(--tb-r-control);
   overflow: hidden;
-  /* A lit canvas mat: warm at the centre where the fighters are, falling off
-     to the ropes at the edges. */
-  background:
-    radial-gradient(120% 90% at 50% 15%, rgba(255, 255, 255, 0.95), transparent 60%),
-    linear-gradient(180deg, #fffaf2 0%, #ffeed8 55%, #ffe0bd 100%);
+  background: #07050c;
   border: 1px solid var(--tb-border);
   box-shadow: var(--tb-shadow-card);
+}
+
+.fight__ring .ring3d {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.fight__crowns {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.fight__crown-btn {
+  pointer-events: auto;
+  height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--tb-orange);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fight__bell {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 4;
+  background: radial-gradient(ellipse at center, rgba(7, 5, 12, 0.5) 0%, transparent 62%);
+}
+
+.fight__bell-copy {
+  font-family: var(--tb-font-display);
+  font-size: clamp(2.4rem, 8.5vw, 5.4rem);
+  font-size: clamp(2.4rem, 8.5cqw, 5.4rem);
+  letter-spacing: 0.1em;
+  color: #fff8e8;
+  text-align: center;
+  padding: 0.08em 0.42em 0.12em;
+  border-radius: 14px;
+  background: rgba(7, 5, 12, 0.78);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 0 22px rgba(253, 156, 7, 0.45);
+  animation: fight-bell-pop 0.32s ease-out;
+}
+
+.fight__bell-copy--lets,
+.fight__bell-copy--over {
+  color: var(--tb-gold);
+}
+
+@keyframes fight-bell-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---------- Walkout lower third ---------- */
+
+.fight__entrance {
+  --accent: #3b9eff;
+  --accent-glow: rgba(59, 158, 255, 0.55);
+  position: absolute;
+  left: 3%;
+  bottom: 5%;
+  display: flex;
+  align-items: stretch;
+  max-width: 44%;
+  pointer-events: none;
+  z-index: 3;
+  animation: fight-entrance-in 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+.fight__entrance--b {
+  --accent: #fd7a1a;
+  --accent-glow: rgba(253, 122, 26, 0.55);
+  left: auto;
+  right: 3%;
+  flex-direction: row-reverse;
+  text-align: right;
+  animation-name: fight-entrance-in-b;
+}
+
+.fight__entrance-bar {
+  width: 10px;
+  background: var(--accent);
+  box-shadow: 0 0 18px var(--accent);
+}
+
+.fight__entrance-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 18px 12px;
+  background: linear-gradient(90deg, rgba(7, 5, 12, 0.92), rgba(7, 5, 12, 0.7));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.fight__entrance--b .fight__entrance-body {
+  background: linear-gradient(270deg, rgba(7, 5, 12, 0.92), rgba(7, 5, 12, 0.7));
+}
+
+.fight__entrance-kicker {
+  font-size: clamp(0.6rem, 1.6vw, 0.8rem);
+  font-size: clamp(0.6rem, 1.6cqw, 0.8rem);
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+}
+
+.fight__entrance-name {
+  font-family: var(--tb-font-display);
+  font-size: clamp(1.3rem, 4.2vw, 2.4rem);
+  font-size: clamp(1.3rem, 4.2cqw, 2.4rem);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: #fff8e8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fight__entrance-song {
+  font-size: clamp(0.75rem, 2vw, 1rem);
+  font-size: clamp(0.75rem, 2cqw, 1rem);
+  font-weight: 700;
+  color: rgba(255, 248, 232, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fight__entrance-art {
+  width: clamp(56px, 10vw, 92px);
+  width: clamp(56px, 10cqw, 92px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  flex: none;
+  background: #07050c;
+  box-shadow: 0 0 22px var(--accent-glow);
+}
+
+.fight__entrance-art--blank {
+  display: grid;
+  place-items: center;
+  font-size: clamp(1.6rem, 5vw, 2.6rem);
+  font-size: clamp(1.6rem, 5cqw, 2.6rem);
+  color: var(--accent);
+  background: radial-gradient(circle, #1d1a24 0 30%, #07050c 31% 100%);
+}
+
+.fight__entrance-song strong {
+  color: #fff8e8;
+}
+
+.fight__entrance-clock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.fight__entrance--b .fight__entrance-clock {
+  flex-direction: row-reverse;
+}
+
+.fight__entrance-track {
+  position: relative;
+  flex: 1;
+  min-width: 90px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 248, 232, 0.16);
+  overflow: hidden;
+}
+
+.fight__entrance-track > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  transition: width 0.75s linear;
+}
+
+.fight__entrance--b .fight__entrance-track > span {
+  inset: 0 0 0 auto;
+}
+
+.fight__entrance-left {
+  font-size: clamp(0.65rem, 1.7vw, 0.85rem);
+  font-size: clamp(0.65rem, 1.7cqw, 0.85rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: rgba(255, 248, 232, 0.75);
+  white-space: nowrap;
+}
+
+@keyframes fight-entrance-in-b {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fight-entrance-in {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.fight__verdict--over {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  font-family: var(--tb-font-display);
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  font-size: clamp(2rem, 6cqw, 3.4rem);
+  letter-spacing: 0.08em;
+  color: var(--tb-gold);
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
 }
 
 .fight__ropes {
@@ -351,6 +601,7 @@
    stream board exactly as it was on a wide screen, and stops a tall window
    from growing a boxer straight through the ropes on a narrow one. */
 .fight__corner .bt-boxer {
+  height: min(clamp(96px, 28vh, 380px), 34vw) !important;
   height: min(clamp(96px, 28vh, 380px), 34cqw) !important;
 }
 
@@ -496,11 +747,13 @@
   align-self: center;
   display: grid;
   place-items: center;
+  min-width: clamp(56px, 8vw, 150px);
   min-width: clamp(56px, 8cqw, 150px);
 }
 
 .fight__vs {
   font-family: var(--tb-font-display);
+  font-size: clamp(1.6rem, 3.8vw, 4.4rem);
   font-size: clamp(1.6rem, 3.8cqw, 4.4rem);
   font-weight: 900;
   font-style: italic;
@@ -519,6 +772,7 @@
   border-radius: 999px;
   background: var(--tb-ink);
   color: #fff;
+  font-size: clamp(0.7rem, 1.15vw, 1.25rem);
   font-size: clamp(0.7rem, 1.15cqw, 1.25rem);
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -532,7 +786,9 @@
    animation restarts for every punch instead of only the first. */
 .fight__spark {
   position: absolute;
+  width: clamp(40px, 6vw, 110px);
   width: clamp(40px, 6cqw, 110px);
+  height: clamp(40px, 6vw, 110px);
   height: clamp(40px, 6cqw, 110px);
   border-radius: 50%;
   pointer-events: none;
@@ -576,6 +832,7 @@
 .fight__call {
   margin: 0;
   text-align: center;
+  font-size: clamp(0.85rem, 1.4vw, 1.6rem);
   font-size: clamp(0.85rem, 1.4cqw, 1.6rem);
   font-weight: 600;
   color: var(--tb-ink-muted);
@@ -596,6 +853,7 @@
 }
 
 .fight__call--won {
+  font-size: clamp(0.95rem, 1.5vw, 1.7rem);
   font-size: clamp(0.95rem, 1.5cqw, 1.7rem);
   color: var(--tb-ink);
 }
@@ -638,11 +896,6 @@
 /* Narrow cards, which is the room page on a phone. The ring keeps its shape
    but the fighters and the mat give up their padding first. */
 @container (max-width: 460px) {
-  .fight__ring {
-    padding: 12px 8px 8px;
-    gap: 4px;
-  }
-
   .fight__art {
     display: none;
   }
@@ -699,9 +952,7 @@
   }
 
   .fight__ring {
-    gap: clamp(8px, 1.8vw, 32px);
-    min-height: clamp(170px, 38vh, 520px);
-    padding: clamp(14px, 3vh, 44px) clamp(12px, 1.8vw, 36px) clamp(10px, 1.6vh, 28px);
+    min-height: 180px;
   }
 
   .fight__corner .bt-boxer {
@@ -751,4 +1002,85 @@
   .fight__bar-fill {
     transition: none;
   }
+}
+
+.fight__combo {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
+  font-family: var(--tb-font-display);
+  color: #fff8e8;
+  transform: translateX(-50%);
+  animation: fight-combo 1.9s ease-out forwards;
+}
+
+.fight__combo-hits {
+  font-size: clamp(1.1rem, 3.4vw, 2.2rem);
+  font-size: clamp(1.1rem, 3.4cqw, 2.2rem);
+  letter-spacing: 0.3em;
+}
+
+.fight__combo-label {
+  font-size: clamp(2.2rem, 8vw, 5.2rem);
+  font-size: clamp(2.2rem, 8cqw, 5.2rem);
+  letter-spacing: 0.06em;
+  line-height: 0.95;
+  color: var(--tb-blue);
+  -webkit-text-stroke: 2px #1a1020;
+  text-shadow: 0 0 28px rgba(0, 159, 253, 0.8), 0 6px 0 #1a1020;
+}
+
+.fight__combo--b .fight__combo-label {
+  color: var(--tb-orange);
+  text-shadow: 0 0 28px rgba(253, 156, 7, 0.8), 0 6px 0 #1a1020;
+}
+
+.fight__combo-sub {
+  margin-top: 0.3em;
+  padding: 0.15em 0.6em;
+  border-radius: 8px;
+  font-size: clamp(0.7rem, 1.6vw, 1rem);
+  font-size: clamp(0.7rem, 1.6cqw, 1rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: rgba(7, 5, 12, 0.75);
+}
+
+@keyframes fight-combo {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(2.2) rotate(-6deg);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) scale(0.92) rotate(2deg);
+  }
+  20% {
+    transform: translateX(-50%) scale(1.05) rotate(-1deg);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1.1) translateY(-14px);
+  }
+}
+
+.fight__boost {
+  display: inline-block;
+  margin-left: 0.6em;
+  padding: 0.05em 0.55em;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a1020;
+  background: var(--tb-gold);
 }

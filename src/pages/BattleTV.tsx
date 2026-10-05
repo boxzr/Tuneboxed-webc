@@ -27,7 +27,10 @@ import StartPointSlider from '../battle/StartPointSlider';
 import { embedSourceOf, embedStart } from '../battle/embeds';
 import { uniqueLeader } from '../battle/voteLeader';
 import { BoxerSprite, Gloves, Monogram, PromptLabel } from '../battle/ui/primitives';
-import BoxingMatch, { type Fighter } from '../battle/ui/BoxingMatch';
+import BoxingMatch from '../battle/ui/BoxingMatch';
+import { bracketFighters, loadoutFromPlayer, pairFighters, spectators } from '../battle/bout';
+import FightCanvas from '../fight3d/FightCanvas';
+import LockerRoom from '../fight3d/LockerRoom';
 import { CheckIcon, CrownIcon, TrophyIcon } from '../battle/ui/icons';
 import type { BattleMatch, BattlePlayer, BattleRoundPhase, BattleSubmission } from '../types/battle';
 import '../battle/ui/ui.css';
@@ -118,9 +121,10 @@ export default function BattleTV() {
     () => (demo ? demoState(params.get('phase'), params.get('genre')) : null),
     [demo, params]
   );
+  const demoBoard = useDemoBout(sample, params.get('phase'));
   // The demo only lists people, so it doubles as its own entrants.
-  const { room, players, entrants = players, matches } = sample ?? liveRoom;
-  const { round, submissions, votes } = sample ?? liveRound;
+  const { room, players, entrants = players, matches } = demoBoard ?? sample ?? liveRoom;
+  const { round, submissions, votes } = demoBoard ?? sample ?? liveRound;
 
   const isHost = Boolean(room && stored && room.host_player_id === stored.playerId);
   const usedGenres = useUsedGenres(roomId, round?.id ?? null);
@@ -331,6 +335,15 @@ export default function BattleTV() {
   }
 
   if (!round) {
+    if (demo && params.get('phase') === 'locker') {
+      return (
+        <Board genre={null}>
+          <div className="tv-locker">
+            <LockerRoom name="Ashley" seed={null} onChange={() => undefined} />
+          </div>
+        </Board>
+      );
+    }
     return (
       <Board
         genre={classic ? room.theme : null}
@@ -352,25 +365,38 @@ export default function BattleTV() {
 
   const seconds = round.phase_deadline_at ? secondsUntil(round.phase_deadline_at) : null;
 
-  // A bracket matchup is fought rather than polled. Null until both songs are
-  // in, which covers the pick clock and a walkover where only one player
-  // submitted; those still get the plain matchup card below.
-  const fight = isBracket ? bracketFighters(currentMatch, submissions, ballotCounts, nameOf) : null;
+  // A two-song bout is fought rather than polled. Bracket corners follow the
+  // match; Classic party uses submission order when exactly two songs are in.
+  const fight = isBracket
+    ? bracketFighters(currentMatch, submissions, ballotCounts, players, nameOf)
+    : pairFighters(submissions, ballotCounts, players, nameOf);
 
   const decidedBy =
     submissions.find((s) => s.id === round.winner_submission_id)?.player_id ??
     currentMatch?.winner_player_id ??
     null;
+  const demoNowPlaying = (round as { demo_now_playing?: 'a' | 'b' | null }).demo_now_playing ?? null;
+  // The looping demo squeezes each walkout; a frozen ?phase=walkout runs a full preview.
+  const demoWalkTick = (round as { demo_walk_tick?: number }).demo_walk_tick;
+  const demoFight = (round as { demo_fight?: string }).demo_fight;
+  const demoLoop = demoNowPlaying && demoWalkTick !== undefined ? { demo_walk_tick: demoWalkTick } : null;
   const seatOf = (playerId: string | null | undefined): 'a' | 'b' | null => {
-    if (!playerId || !currentMatch) return null;
-    if (playerId === currentMatch.player_a_id) return 'a';
-    if (playerId === currentMatch.player_b_id) return 'b';
+    if (!playerId) return null;
+    if (currentMatch) {
+      if (playerId === currentMatch.player_a_id) return 'a';
+      if (playerId === currentMatch.player_b_id) return 'b';
+      return null;
+    }
+    if (submissions[0]?.player_id === playerId) return 'a';
+    if (submissions[1]?.player_id === playerId) return 'b';
     return null;
   };
+  const bout = Boolean(fight && round.phase !== 'picking');
 
   return (
     <Board
       genre={round.genre}
+      fight={bout}
       host={room.host_twitch_login}
       avatar={room.host_avatar_url}
       controls={controls}
@@ -399,49 +425,91 @@ export default function BattleTV() {
               <span className="tv-code">{room.code}</span>
             </span>
 
-            {seconds !== null ? (
-              <span className={`tv-timer${seconds <= 10 ? ' tv-timer--urgent' : ''}`}>
-                {seconds}
-              </span>
-            ) : (
-              // The fight carries its own round pill between the health bars,
-              // so the header only owns this when there is no bout on screen.
-              !fight && (
-                <span className="tv-round">
-                  {isBracket
-                    ? `Round ${room.round_number}`
-                    : `Round ${room.round_number} of ${PARTY_ROUNDS}`}
-                </span>
-              )
+            {bout && (
+              <div className="tv-prompt-inline">
+                <PromptLabel>{classic ? "This game's vibe" : 'Genre prompt'}</PromptLabel>
+                <h1 className="tv-genre" data-len={lengthClass(round.genre)}>
+                  {round.genre}
+                </h1>
+              </div>
             )}
+            <span className="tv-head__right">
+              {bout && room.host_twitch_login && (
+                <span className="tv-head__cell tv-head__host">
+                  {room.host_avatar_url && <img className="tv-host__avatar" src={room.host_avatar_url} alt="" />}
+                  <span>{room.host_twitch_login}</span>
+                </span>
+              )}
+              {seconds !== null ? (
+                <span className={`tv-timer${seconds <= 10 ? ' tv-timer--urgent' : ''}`}>
+                  {seconds}
+                </span>
+              ) : (
+                // The fight carries its own round pill between the health bars,
+                // so the header only owns this when there is no bout on screen.
+                !fight && (
+                  <span className="tv-round">
+                    {isBracket
+                      ? `Round ${room.round_number}`
+                      : `Round ${room.round_number} of ${PARTY_ROUNDS}`}
+                  </span>
+                )
+              )}
+            </span>
           </div>
         </header>
 
         {/* Compact once there is a bout on screen. The prompt is the headline
             of a lobby, but during a fight it is context and the ring is the
             thing people are watching. */}
-        <div className={`tv-hero${fight ? ' tv-hero--compact' : ''}`}>
-          <PromptLabel>{classic ? "This game's vibe" : 'Genre prompt'}</PromptLabel>
-          <h1 className="tv-genre" data-len={lengthClass(round.genre)}>
-            {round.genre}
-          </h1>
-          {!fight && (
-            <p className="tv-hero__sub">
-              {phaseLine(round.phase, seconds, room.host_twitch_login)}
-            </p>
-          )}
-        </div>
+        {!bout && (
+          <div className={`tv-hero${fight ? ' tv-hero--compact' : ''}`}>
+            <PromptLabel>{classic ? "This game's vibe" : 'Genre prompt'}</PromptLabel>
+            <h1 className="tv-genre" data-len={lengthClass(round.genre)}>
+              {round.genre}
+            </h1>
+            {!fight && (
+              <p className="tv-hero__sub">
+                {phaseLine(round.phase, seconds, room.host_twitch_login)}
+              </p>
+            )}
+          </div>
+        )}
 
-        {fight && round.phase !== 'picking' ? (
+        {bout && fight ? (
           <BoxingMatch
             a={fight.a}
             b={fight.b}
             phase={round.phase}
             winner={seatOf(decidedBy)}
-            nowPlaying={round.phase === 'playing' ? seatOf(playback.current?.player_id) : null}
+            nowPlaying={
+              round.phase === 'playing' ? (demoNowPlaying ?? seatOf(playback.current?.player_id)) : null
+            }
+            walkSeconds={demoLoop ? (DEMO_WALK_TICKS * 700) / 1000 : playback.perSong}
+            walkOffset={demoLoop ? (demoLoop.demo_walk_tick ?? 0) * 0.7 : playback.offset}
+            fightKey={demoFight ?? round.id}
             chatChannel={room.host_twitch_login}
-            roundLabel={`Round ${room.round_number}`}
+            roundLabel={isBracket ? `Round ${room.round_number}` : `Round ${room.round_number} of ${PARTY_ROUNDS}`}
+            fans={spectators(players, fight.a.name, fight.b.name)}
             judgeName={judging ? room.host_twitch_login ?? nameOf(room.host_player_id) : null}
+            onPick={
+              judging && token && round.phase === 'judging'
+                ? (side) => {
+                    const pick = side === 'a' ? fight.a : fight.b;
+                    const sub = submissions.find(
+                      (s) => s.song_title === pick.songTitle && nameOf(s.player_id) === pick.name
+                    ) ?? submissions[side === 'a' ? 0 : 1];
+                    if (!sub) return;
+                    setActionError(null);
+                    setBusy(true);
+                    battle
+                      .castVote(token, round.id, sub.id)
+                      .then(() => battle.setRoundWinner(token, round.id, sub.id))
+                      .catch((e: Error) => setActionError(e.message))
+                      .finally(() => setBusy(false));
+                  }
+                : undefined
+            }
           />
         ) : (
           <>
@@ -507,8 +575,14 @@ const DEMO = {
     host_avatar_url: null,
   },
   players: [
-    { id: '1', display_name: 'Ashley', is_connected: true },
-    { id: '2', display_name: 'Marcus', is_connected: true },
+    { id: '1', display_name: 'Ashley', is_connected: true, avatar_seed: 'tb1.1.5.1.0.0.6.1' },
+    { id: '2', display_name: 'Marcus', is_connected: true, avatar_seed: 'tb1.0.5.0.1.1.6.1' },
+    { id: '3', display_name: 'Jules', is_connected: true },
+    { id: '4', display_name: 'Sam', is_connected: true },
+    { id: '5', display_name: 'Devon', is_connected: true },
+    { id: '6', display_name: 'Priya', is_connected: true },
+    { id: '7', display_name: 'Chris', is_connected: true },
+    { id: '8', display_name: 'Nia', is_connected: true },
   ],
   matches: [
     {
@@ -531,11 +605,71 @@ const DEMO = {
     chat_tally: { s1: 128, s2: 74 },
   },
   submissions: [
-    { id: 's1', player_id: '1', song_title: 'Ms. Jackson', song_artist: 'Outkast', artwork_url: null },
-    { id: 's2', player_id: '2', song_title: 'Hey Ya!', song_artist: 'Outkast', artwork_url: null },
+    {
+      id: 's1',
+      player_id: '1',
+      song_title: 'Ms. Jackson',
+      song_artist: 'Outkast',
+      artwork_url:
+        'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/d6/21/fb/d621fbde-c099-6794-7102-2692f10c4dbb/886448814283.jpg/100x100bb.jpg',
+    },
+    {
+      id: 's2',
+      player_id: '2',
+      song_title: 'Hey Ya!',
+      song_artist: 'Outkast',
+      artwork_url:
+        'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/71/ae/6a/71ae6a46-99a6-e9d8-d7f3-41c0f2df45c4/196872579123.jpg/100x100bb.jpg',
+    },
   ],
   votes: [],
 } as unknown as ReturnType<typeof useBattleRoom> & ReturnType<typeof useBattleRound>;
+
+/** Each demo walkout, in 700 ms ticks. Real rounds use the 30 s preview. */
+const DEMO_WALK_TICKS = 12;
+
+/** Scripted chat, one tick at a time: corner 2 lands a combo, then corner 1 runs off a huge one. */
+const DEMO_CHAT: [number, number][] = [
+  [0, 1], [0, 1], [1, 0], [0, 1], [0, 1], [0, 1],
+  [1, 0], [1, 0], [1, 0], [1, 0], [1, 0], [1, 0],
+  [0, 1], [1, 1], [2, 0], [1, 0], [0, 1], [1, 0], [1, 0], [1, 0],
+];
+
+/** Default ?demo=1 loops a bout: both walkouts, the punches, then the card. */
+function useDemoBout(sample: typeof DEMO | null, freezePhase: string | null): typeof DEMO | null {
+  const [tick, setTick] = useState(0);
+  const live = Boolean(sample?.round) && freezePhase == null;
+  useEffect(() => {
+    if (!live) return;
+    const t = window.setInterval(() => setTick((n) => n + 1), 700);
+    return () => window.clearInterval(t);
+  }, [live]);
+  if (!sample || !live) return sample;
+
+  const introTicks = DEMO_WALK_TICKS * 2;
+  const votingTicks = 20;
+  const resultTicks = 9;
+  const step = tick % (introTicks + votingTicks + resultTicks);
+  const intro = step < introTicks;
+  const voting = step >= introTicks && step < introTicks + votingTicks;
+  const counted = intro ? 0 : Math.min(DEMO_CHAT.length, step - introTicks + 1);
+  const tally = DEMO_CHAT.slice(0, counted).reduce(
+    (t, [va, vb]) => ({ s1: t.s1 + va, s2: t.s2 + vb }),
+    { s1: 0, s2: 0 }
+  );
+  return {
+    ...sample,
+    round: {
+      ...sample.round,
+      phase: intro ? 'playing' : voting ? 'judging' : 'revealed',
+      demo_now_playing: intro ? (step < DEMO_WALK_TICKS ? 'a' : 'b') : null,
+      demo_walk_tick: step % DEMO_WALK_TICKS,
+      demo_fight: `demo-${Math.floor(tick / (introTicks + votingTicks + resultTicks))}`,
+      chat_tally: tally,
+      winner_submission_id: intro || voting ? null : 's1',
+    },
+  } as typeof DEMO;
+}
 
 /**
  * The sample board at any point of a round, via `?demo=1&phase=…`, so the
@@ -558,12 +692,18 @@ function demoState(phase: string | null, genre: string | null): typeof DEMO {
       room: { ...base.room, ...((patch.room as object) ?? {}) },
     }) as typeof DEMO;
   switch (phase) {
+    case 'locker':
     case 'lobby':
       return at({ room: { status: 'lobby', current_match_id: null }, round: null, submissions: [] });
     case 'picking':
       return at({ round: { ...base.round, phase: 'picking' }, submissions: [] });
     case 'playing':
       return at({ round: { ...base.round, phase: 'playing' } });
+    case 'walkout':
+    case 'walkout-b':
+      return at({
+        round: { ...base.round, phase: 'playing', demo_now_playing: phase === 'walkout-b' ? 'b' : 'a' },
+      });
     case 'revealed':
       return at({ round: { ...base.round, phase: 'revealed', winner_submission_id: 's1' } });
     case 'champion':
@@ -574,43 +714,6 @@ function demoState(phase: string | null, genre: string | null): typeof DEMO {
     default:
       return base;
   }
-}
-
-/**
- * The two corners of a bracket matchup, or nothing.
- *
- * Both sides have to have a song in for there to be a fight, so a bye and a
- * round where one player never picked both fall through to the plain matchup
- * card rather than staging a bout against an empty corner.
- */
-function bracketFighters(
-  match: BattleMatch | null,
-  submissions: BattleSubmission[],
-  counts: Record<string, number>,
-  nameOf: (id: string | null) => string
-): { a: Fighter; b: Fighter } | null {
-  if (!match) return null;
-
-  const corner = (playerId: string | null): Fighter | null => {
-    if (!playerId) return null;
-    const at = submissions.findIndex((s) => s.player_id === playerId);
-    if (at === -1) return null;
-    const pick = submissions[at];
-    return {
-      name: nameOf(playerId),
-      songTitle: pick.song_title,
-      songArtist: pick.song_artist,
-      artworkUrl: pick.artwork_url,
-      votes: counts[pick.id] ?? 0,
-      // Chat votes resolve against submission order, so the digit has to come
-      // from there rather than from which corner this song ended up in.
-      ballotNumber: at + 1,
-    };
-  };
-
-  const a = corner(match.player_a_id);
-  const b = corner(match.player_b_id);
-  return a && b ? { a, b } : null;
 }
 
 /**
@@ -679,9 +782,12 @@ function Board({
   avatar,
   controls,
   embed,
+  fight = false,
 }: {
   children: React.ReactNode;
   genre: string | null;
+  /** A bout is on screen: the stage gives the ring every pixel it can. */
+  fight?: boolean;
   host?: string | null;
   avatar?: string | null;
   controls?: React.ReactNode;
@@ -689,7 +795,7 @@ function Board({
   embed?: React.ReactNode;
 }) {
   return (
-    <div className="tv">
+    <div className={`tv${fight ? ' tv--fight' : ''}`}>
       <GenreScene genre={genre} />
 
       {host && (
@@ -799,7 +905,16 @@ function Lobby({
 
   return (
     <div className="tv-lobby">
-      <Gloves size={180} />
+      <FightCanvas
+        mode="parade"
+        parade={players
+          .filter((p) => !p.owner_player_id)
+          .map((p) => ({
+            name: p.display_name,
+            loadout: loadoutFromPlayer(p),
+            pose: 'idle' as const,
+          }))}
+      />
       <span className="tv-eyebrow">Join at tuneboxed.com</span>
       <div className="tv-lobby__code">{code}</div>
       {theme ? (

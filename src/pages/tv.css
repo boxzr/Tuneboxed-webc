@@ -33,8 +33,9 @@ html.tv-active #root {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
+  height: 100dvh;
   padding: 3vh calc(4 * var(--tvw));
   background: var(--tb-canvas-tv);
   color: var(--tb-ink);
@@ -43,10 +44,19 @@ html.tv-active #root {
   overflow: hidden;
 }
 
+.tv::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(80% 70% at 50% 42%, transparent 58%, rgba(0, 0, 0, 0.28) 100%);
+}
+
 /* Everything the audience reads, held above the genre scene. */
 .tv-stage {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -56,6 +66,7 @@ html.tv-active #root {
      itself in cqw, so bounding the stage is what keeps the ring in
      proportion on a wide, short window too. */
   max-width: calc(92 * var(--tvw));
+  min-height: 0;
 }
 
 .tv-eyebrow {
@@ -108,6 +119,10 @@ html.tv-active #root {
   box-shadow: var(--tb-shadow-card);
   font-size: clamp(0.8rem, calc(1.1 * var(--tvw)), 1.2rem);
   font-weight: 600;
+}
+
+.tv--fight .tv-host {
+  display: none;
 }
 
 .tv-host__avatar {
@@ -163,12 +178,33 @@ html.tv-active #root {
   }
 }
 
+.tv-locker {
+  position: relative;
+  z-index: 3;
+  width: min(920px, 94vw);
+}
+
+.tv-locker .ring3d--locker {
+  height: min(46vh, 440px);
+  border-radius: 18px;
+}
+
 /* ---------- Lobby ---------- */
 
 .tv-lobby {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+}
+
+.tv-lobby .ring3d--parade {
+  width: min(100%, calc(88 * var(--tvw)));
+  aspect-ratio: 16 / 9;
+  max-height: 42vh;
+  height: auto;
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .tv-lobby .tv-hero {
@@ -243,10 +279,56 @@ html.tv-active #root {
 .tv-live {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2vh;
+  align-items: stretch;
+  gap: 1vh;
   width: 100%;
   max-width: 1500px;
+  min-height: 0;
+}
+
+/* Set from React rather than with :has(), which Firefox before 121 and the
+   Chromium in older OBS builds don't run; there the ring never stretched. */
+.tv--fight {
+  justify-content: flex-start;
+  padding: 1.2vh calc(1.4 * var(--tvw));
+}
+
+.tv--fight .tv-stage {
+  flex: 1 1 auto;
+  height: 100%;
+  max-width: none;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+.tv--fight .tv-live {
+  flex: 1 1 auto;
+  height: 100%;
+  max-width: none;
+}
+
+.tv-live .fight {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  gap: 1vh;
+  padding: clamp(10px, 1.5vh, 20px) clamp(12px, 1.4vw, 28px);
+}
+
+.tv-live .fight__hud,
+.tv-live .fight__call {
+  flex: none;
+}
+
+.tv-live .fight__ring {
+  flex: 1 1 auto;
+  aspect-ratio: unset;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
 }
 
 /* Two rows, not three columns.
@@ -257,6 +339,10 @@ html.tv-active #root {
 .tv-head {
   width: 100%;
   margin-bottom: 2vh;
+}
+
+.tv-live .tv-head {
+  margin-bottom: 0;
 }
 
 .tv-head__bar {
@@ -353,6 +439,65 @@ html.tv-active #root {
 
 .tv-hero--compact .tv-genre[data-len='long'] {
   font-size: clamp(1.1rem, calc(2.2 * var(--tvw)), 2.3rem);
+}
+
+.tv-head__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(1.2 * var(--tvw));
+  min-width: 0;
+}
+
+/* Room code, prompt, channel: the prompt sits dead centre whatever the
+   widths of the cells either side of it. */
+.tv--fight .tv-head__bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+.tv--fight .tv-head__bar > :first-child {
+  justify-self: start;
+}
+
+.tv-prompt-inline {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+.tv-prompt-inline .bt-prompt-label {
+  font-size: clamp(0.65rem, calc(0.9 * var(--tvw)), 0.95rem);
+  letter-spacing: 0.18em;
+}
+
+.tv-prompt-inline .tv-genre {
+  max-width: 100%;
+  margin: 0.2vh auto 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(1.2rem, calc(2.4 * var(--tvw)), 2.6rem);
+  line-height: 1.1;
+}
+
+.tv-head__host {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: clamp(0.85rem, calc(1.2 * var(--tvw)), 1.3rem);
+  font-weight: 700;
+  color: var(--tb-ink);
+}
+
+.tv-head__host > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tv-hero--compact .bt-prompt-label {
@@ -658,6 +803,7 @@ html.tv-active #root {
   padding: 10px 14px 10px 22px;
   border-radius: 999px;
   background: rgba(31, 41, 51, 0.9);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
   color: #fff;

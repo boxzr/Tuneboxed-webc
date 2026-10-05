@@ -26,3 +26,6 @@ credentials.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Unused Meshy models, kept locally but never deployed
+/.unused-assets

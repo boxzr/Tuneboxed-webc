@@ -24,21 +24,19 @@
   --tb-judge: #8c59f2;
   --tb-red: #e0504a;
 
-  /* Ink. Three weights is enough: body, supporting, and the barely-there
-     tier used for chevrons and placeholder glyphs. */
-  --tb-ink: #1f2933;
-  --tb-ink-muted: #6b7785;
-  --tb-ink-faint: #9ea8b5;
+  /* Ink. Light on a dark arena so the HUD reads like a PS2 fight card. */
+  --tb-ink: #f4efe6;
+  --tb-ink-muted: #b7aa98;
+  --tb-ink-faint: #7d7266;
+  --tb-gold: #d4af37;
 
-  /* Surfaces. A near-white canvas with white cards floating on it, which is
-     what makes the hairline border read rather than the shadow doing all the
-     work. */
-  --tb-canvas: #f6f6f7;
-  --tb-canvas-tv: #f7f7f8;
-  --tb-surface: #ffffff;
-  --tb-surface-sunken: #f2f2f7;
-  --tb-border: #ececec;
-  --tb-hairline: rgba(31, 41, 51, 0.08);
+  /* Surfaces. A dark arena canvas with lifted cards, gold hairlines. */
+  --tb-canvas: #0c0a12;
+  --tb-canvas-tv: #08060c;
+  --tb-surface: #16121c;
+  --tb-surface-sunken: #100e16;
+  --tb-border: rgba(212, 175, 55, 0.2);
+  --tb-hairline: rgba(255, 236, 200, 0.08);
 
   /* Radii. The card radius is deliberately large; it is the single strongest
      signal that this is the same design language as the app. */
@@ -50,7 +48,7 @@
 
   /* Elevation. Shadows are soft and low-contrast, and the coloured ones are
      tinted with their own button so the glow belongs to the control. */
-  --tb-shadow-card: 0 6px 16px rgba(0, 0, 0, 0.06);
+  --tb-shadow-card: 0 16px 40px rgba(0, 0, 0, 0.45);
   --tb-shadow-orange: 0 4px 8px rgba(253, 156, 7, 0.35);
   --tb-shadow-blue: 0 4px 8px rgba(0, 159, 253, 0.3);
   --tb-shadow-lift: 0 8px 14px rgba(0, 0, 0, 0.14);
@@ -76,8 +74,7 @@
      came out soft and toy-like in iOS Safari, so a headline here gets its
      presence from size and tracking instead of from another typeface.
      A condensed webfont was tried before that and read as signage. */
-  --tb-font-display: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
+  --tb-font-display: 'Bebas Neue', Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
 
   /* ---------- Motion ----------
      The short durations are the point: hovers land in around a tenth of a

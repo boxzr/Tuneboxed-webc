@@ -23,7 +23,7 @@
 }
 
 body {
-  background: white !important;
+  background: var(--tb-canvas) !important;
 }
 
 html {
@@ -53,6 +53,7 @@ html {
      Dark reads as deliberate over both the arena and the white content
      pages. */
   background: rgba(10, 16, 32, 0.72);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
   backdrop-filter: saturate(160%) blur(14px);
   z-index: 1000;
   /* Hairline rather than a shadow, so the bar reads as an edge and not a

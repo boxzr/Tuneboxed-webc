@@ -1,0 +1,174 @@
+/* The 3D ring and locker sit on the same dark arena language as the rest of
+   the site after the restyle. HUD chrome for the bout still lives in fight.css. */
+
+.ring3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #07050c;
+}
+
+.ring3d--locker,
+.ring3d--parade,
+.ring3d--bout {
+  height: 100%;
+}
+
+.ring3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.locker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.locker .ring3d--locker {
+  height: clamp(240px, 42vh, 420px);
+  border-radius: 14px;
+}
+
+.locker__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.locker__row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.locker__label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tb-ink-muted);
+}
+
+.locker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.locker__chip {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: var(--chip, var(--tb-surface-sunken));
+  color: var(--tb-ink);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.locker__chip.is-on {
+  border-color: var(--tb-orange);
+  box-shadow: 0 0 0 2px rgba(253, 156, 7, 0.35);
+}
+
+.locker__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.locker__jab {
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--tb-orange);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.locker__code {
+  font-size: 0.7rem;
+  font-family: var(--tb-font-mono);
+  color: var(--tb-ink-faint);
+}
+
+.heat {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  letter-spacing: 0.18em;
+  font-size: clamp(0.7rem, 1.4vw, 1.05rem);
+  font-size: clamp(0.7rem, 1.4cqw, 1.05rem);
+  font-weight: 900;
+  font-family: var(--tb-font-display);
+}
+
+.heat span {
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.heat span.is-on {
+  color: var(--tb-blue);
+  text-shadow: 0 0 12px rgba(0, 159, 253, 0.7);
+}
+
+.heat--b span.is-on {
+  color: var(--tb-orange);
+  text-shadow: 0 0 12px rgba(253, 156, 7, 0.7);
+}
+
+.streak {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 3px;
+  font-family: var(--tb-font-display);
+  font-size: clamp(0.6rem, 1.15vw, 0.9rem);
+  font-size: clamp(0.6rem, 1.15cqw, 0.9rem);
+  font-weight: 900;
+}
+
+.streak span {
+  min-width: 1.4em;
+  padding: 0 0.2em;
+  border-radius: 5px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  transition: background 0.15s, color 0.15s;
+}
+
+.streak span.is-on {
+  color: #1a1020;
+  background: var(--tb-blue);
+}
+
+.streak--b span.is-on {
+  background: var(--tb-orange);
+}
+
+.streak em {
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 4px;
+}
+
+.streak--hot em {
+  color: var(--tb-gold);
+}

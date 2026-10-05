@@ -79,7 +79,8 @@ export default function BattleEntry({
               twitchAvatarUrl: playKind === 'bracket' ? identity?.avatarUrl ?? null : null,
             })
           : await battle.joinRoom(code.trim(), name.trim());
-      if (isLocalPreview()) {
+      const stayLocal = new URLSearchParams(window.location.search).has('stay');
+      if (isLocalPreview() && !stayLocal) {
         window.location.replace(liveRoomUrl(session.room.code) + battle.handoffHash(session));
         return;
       }

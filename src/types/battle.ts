@@ -73,6 +73,7 @@ export interface BattlePlayer {
   id: string;
   room_id: string;
   display_name: string;
+  /** Encoded 3D fighter kit (`tb1.…`), or null for a hashed default. */
   avatar_seed: string | null;
   is_guest: boolean;
   is_connected: boolean;

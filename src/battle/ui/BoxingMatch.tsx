@@ -1,23 +1,20 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { BoxerSprite } from './primitives';
-import { CrownIcon } from './icons';
-import { type FightScore, fightScore, fightVerdict } from '../fight';
-import type { BattleRoundPhase } from '../../types/battle';
-import './fight.css';
-
-/**
- * A bracket matchup, fought.
- *
- * Both competitors' songs get a corner, a health bar and a boxer, and the
- * vote tally drives all three. Every vote that lands throws a punch, so a
- * stream watching the board can see the fight turning without reading a
- * single number, and a chat that piles onto one song knocks the other out.
- *
- * The same component covers playback, voting and the reveal rather than
- * three screens swapping in and out, because the fight is the continuity: the
- * boxers are already squared up while the songs play, they trade while chat
- * votes, and one of them goes down at the reveal.
- */
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { CrownIcon } from "./icons";
+import { type FightScore, fightScore } from "../fight";
+import type { BattleRoundPhase } from "../../types/battle";
+import FightCanvas from "../../fight3d/FightCanvas";
+import { COMBO_EVERY, HEAT_MAX } from "../../fight3d/punchDirector";
+import { usePunchDirector } from "../../fight3d/usePunchDirector";
+import { pickWalkStyles } from "../../fight3d/walkStyles";
+import { defaultLoadout, type FighterLoadout } from "../../fight3d/loadout";
+import type { RefCall } from "../../fight3d/Referee";
+import "./fight.css";
 
 export interface Fighter {
   name: string;
@@ -34,6 +31,49 @@ export interface Fighter {
    * the other song.
    */
   ballotNumber: number;
+  loadout?: FighterLoadout;
+}
+
+type BellCall = "round" | "lets" | "over" | null;
+
+function bellRoundText(label: string) {
+  const trimmed = label.trim();
+  if (/^round\b/i.test(trimmed)) return trimmed.toUpperCase();
+  return trimmed.toUpperCase();
+}
+
+function useFightBell(
+  phase: BattleRoundPhase,
+  decided: boolean,
+  walking: boolean,
+): BellCall {
+  const [bell, setBell] = useState<BellCall>(null);
+  const boutKey = decided
+    ? "over"
+    : walking
+      ? "walk"
+      : phase === "playing" || phase === "judging"
+        ? "fight"
+        : "idle";
+
+  useEffect(() => {
+    if (boutKey === "over") {
+      setBell("over");
+      return;
+    }
+    if (boutKey === "fight") {
+      setBell("round");
+      const t1 = window.setTimeout(() => setBell("lets"), 1500);
+      const t2 = window.setTimeout(() => setBell(null), 3200);
+      return () => {
+        window.clearTimeout(t1);
+        window.clearTimeout(t2);
+      };
+    }
+    setBell(null);
+  }, [boutKey]);
+
+  return bell;
 }
 
 export default function BoxingMatch({
@@ -45,104 +85,247 @@ export default function BoxingMatch({
   chatChannel,
   roundLabel,
   judgeName = null,
+  onPick,
+  fans = [],
+  walkSeconds = 30,
+  walkOffset = 0,
+  fightKey = "",
 }: {
   a: Fighter;
   b: Fighter;
   phase: BattleRoundPhase;
-  /** Set once the round is decided. Null while it is still being fought. */
-  winner: 'a' | 'b' | null;
-  /** Whose song is sounding, so a viewer knows what they are hearing. */
-  nowPlaying: 'a' | 'b' | null;
-  /** Twitch channel taking votes, when the room is tied to one. */
+  winner: "a" | "b" | null;
+  nowPlaying: "a" | "b" | null;
   chatChannel: string | null;
   roundLabel: string;
-  /**
-   * The host, when they judge instead of the room voting. Nobody types a
-   * number and there is nothing to tally, so the badges, counts and chat
-   * instructions give way to their name.
-   */
   judgeName?: string | null;
+  /** Host-judge: tap a corner to crown it. */
+  onPick?: (side: "a" | "b") => void;
+  /** People in the room who are not in a corner. */
+  fans?: { name: string; loadout: FighterLoadout }[];
+  /** Length of each song preview, which is how long each walkout lasts. */
+  walkSeconds?: number;
+  /** Seconds into the song that is playing now, off the room's clock. */
+  walkOffset?: number;
+  /** Changes every fight; picks each corner's walkout. */
+  fightKey?: string;
 }) {
   const judged = judgeName !== null;
   const score = fightScore(a.votes, b.votes);
-  const swinging = useSwing(a.votes, b.votes);
   const decided = winner !== null;
-
-  // A decision leaves the loser standing. Only a shutout puts them on the
-  // canvas, which is what keeps a knockout worth seeing.
   const floored = decided && score.knockout;
-  const loser = winner === 'a' ? 'b' : winner === 'b' ? 'a' : null;
-
-  const stateFor = (side: 'a' | 'b') => {
-    if (decided) {
-      if (side === winner) return 'won';
-      return floored ? 'down' : 'lost';
-    }
-    if (swinging === side) return 'punch';
-    if (swinging !== null) return 'hurt';
-    return 'idle';
-  };
-
+  const loser = winner === "a" ? "b" : winner === "b" ? "a" : null;
+  const lastWalker = useRef<"a" | "b">("a");
+  if (nowPlaying) lastWalker.current = nowPlaying;
+  const walkoutSide =
+    !decided && phase === "playing" ? (nowPlaying ?? lastWalker.current) : null;
+  const firstWalker = useRef<"a" | "b" | null>(null);
+  if (!walkoutSide) firstWalker.current = null;
+  else if (!firstWalker.current) firstWalker.current = walkoutSide;
+  const bell = useFightBell(phase, decided, walkoutSide !== null);
+  const intro = bell === "round" || bell === "lets";
+  const {
+    poseA: rawA,
+    poseB: rawB,
+    heatA,
+    heatB,
+    beat,
+    hits,
+    combo,
+    streakA,
+    streakB,
+    runA,
+    runB,
+    boost,
+  } = usePunchDirector(a.votes, b.votes, winner, score.knockout);
+  const poseA = bell === "round" ? "idle" : rawA;
+  const poseB = bell === "round" ? "idle" : rawB;
   const total = a.votes + b.votes;
+  const loadA = a.loadout ?? defaultLoadout(a.name);
+  const loadB = b.loadout ?? defaultLoadout(b.name);
+  const walker = walkoutSide === "b" ? b : a;
+  const styles = useMemo(
+    () =>
+      pickWalkStyles(
+        `${fightKey}|${a.name}|${a.songTitle ?? ""}|${b.name}|${b.songTitle ?? ""}`,
+      ),
+    [fightKey, a.name, a.songTitle, b.name, b.songTitle],
+  );
+  const call: RefCall = intro ? "intro" : bell === "over" ? "over" : "fight";
+  const bellCopy =
+    bell === "round"
+      ? bellRoundText(roundLabel)
+      : bell === "lets"
+        ? "LET'S FIGHT!"
+        : bell === "over"
+          ? score.knockout
+            ? "KNOCKOUT"
+            : "ROUND OVER"
+          : null;
 
   return (
-    <div className={`fight${decided ? ' fight--decided' : ''}`}>
+    <div
+      className={`fight${decided ? " fight--decided" : ""}`}
+    >
       <FightHud
-        a={a}
-        b={b}
-        score={score}
-        roundLabel={roundLabel}
-        winner={winner}
-        nowPlaying={nowPlaying}
-        judged={judged}
-      />
+          a={a}
+          b={b}
+          score={score}
+          roundLabel={roundLabel}
+          winner={winner}
+          nowPlaying={nowPlaying}
+          judged={judged}
+          heatA={heatA}
+          heatB={heatB}
+          streakA={phase === "judging" && !decided ? streakA : null}
+          streakB={phase === "judging" && !decided ? streakB : null}
+          runA={runA}
+          runB={runB}
+        />
 
       <div className="fight__ring">
-        <div className="fight__ropes" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-
-        <Corner side="a" fighter={a} state={stateFor('a')} />
-
-        <div className="fight__centre" aria-hidden="true">
-          {decided ? (
-            <span className="fight__verdict">{fightVerdict(score)}</span>
-          ) : (
-            <span className="fight__vs">VS</span>
-          )}
-          {swinging !== null && !decided && (
-            <span key={total} className={`fight__spark fight__spark--${swinging}`} />
-          )}
-        </div>
-
-        <Corner side="b" fighter={b} state={stateFor('b')} />
+        <FightCanvas
+          mode={walkoutSide ? "walkout" : "bout"}
+          walkSeconds={walkSeconds}
+          walkOffset={walkOffset}
+          walker={
+            walkoutSide
+              ? {
+                  side: walkoutSide,
+                  name: walker.name,
+                  loadout: walkoutSide === "a" ? loadA : loadB,
+                  songTitle: walker.songTitle,
+                  songArtist: walker.songArtist,
+                  artworkUrl: walker.artworkUrl,
+                  style: styles[walkoutSide],
+                }
+              : undefined
+          }
+          call={call}
+          fans={fans}
+          board={{
+            roundLabel,
+            aName: a.name,
+            bName: b.name,
+            aSong: a.songTitle,
+            bSong: b.songTitle,
+            votesA: a.votes,
+            votesB: b.votes,
+            healthA: score.healthA,
+            healthB: score.healthB,
+          }}
+          a={{
+            name: a.name,
+            loadout: loadA,
+            pose: poseA,
+            beat,
+            hits,
+            songTitle: a.songTitle,
+            votes: a.votes,
+          }}
+          b={{
+            name: b.name,
+            loadout: loadB,
+            pose: poseB,
+            beat,
+            hits,
+            songTitle: b.songTitle,
+            votes: b.votes,
+          }}
+        />
+        {walkoutSide && (
+          <Entrance
+            key={walkoutSide}
+            side={walkoutSide}
+            fighter={walker}
+            seconds={walkSeconds}
+            offset={walkOffset}
+            second={walkoutSide !== firstWalker.current}
+          />
+        )}
+        {combo && !walkoutSide && !decided && !bellCopy && (
+          <div
+            key={combo.key}
+            className={`fight__combo fight__combo--${combo.side}`}
+            aria-live="polite"
+          >
+            <span className="fight__combo-hits">{combo.hits} HIT</span>
+            <span className="fight__combo-label">{combo.label}!</span>
+            <span className="fight__combo-sub">
+              {combo.boost > 1
+                ? `${combo.run} ${combo.run === 1 ? "vote" : "votes"} ×${combo.boost} for ${(combo.side === "a" ? a : b).name}`
+                : `${combo.streak} in a row for ${(combo.side === "a" ? a : b).name}`}
+            </span>
+          </div>
+        )}
+        {bellCopy && (
+          <div className="fight__bell" aria-live="polite">
+            <span
+              className={`fight__bell-copy${
+                bell === "lets"
+                  ? " fight__bell-copy--lets"
+                  : bell === "over"
+                    ? " fight__bell-copy--over"
+                    : ""
+              }`}
+            >
+              {bellCopy}
+            </span>
+          </div>
+        )}
+        {onPick && !decided && !walkoutSide && (
+          <div className="fight__crowns">
+            <button
+              type="button"
+              className="fight__crown-btn"
+              onClick={() => onPick("a")}
+            >
+              Crown {a.name}
+            </button>
+            <button
+              type="button"
+              className="fight__crown-btn"
+              onClick={() => onPick("b")}
+            >
+              Crown {b.name}
+            </button>
+          </div>
+        )}
       </div>
 
       <FightCall
-        phase={phase}
-        chatChannel={chatChannel}
-        total={total}
-        decided={decided}
-        winnerName={winner ? (winner === 'a' ? a : b).name : null}
-        winnerVotes={winner ? (winner === 'a' ? a : b).votes : 0}
-        loserFloored={floored}
-        loserName={loser ? (loser === 'a' ? a : b).name : null}
-        loserVotes={loser ? (loser === 'a' ? a : b).votes : 0}
-        judgeName={judgeName}
-      />
+          phase={phase}
+          chatChannel={chatChannel}
+          total={total}
+          boost={boost}
+          decided={decided}
+          winnerName={winner ? (winner === "a" ? a : b).name : null}
+          winnerVotes={winner ? (winner === "a" ? a : b).votes : 0}
+          loserFloored={floored}
+          loserName={loser ? (loser === "a" ? a : b).name : null}
+          loserVotes={loser ? (loser === "a" ? a : b).votes : 0}
+          judgeName={judgeName}
+        />
     </div>
   );
 }
 
-/**
- * Names, artwork and the two health bars.
- *
- * Laid out like a fighting game rather than a poll, so the bars read as damage
- * taken instead of progress made: they start full and drain inward toward the
- * middle of the screen.
- */
+function Heat({ side, value }: { side: "a" | "b"; value: number }) {
+  const letters = ["H", "E", "A", "T", "!", "!"];
+  return (
+    <div
+      className={`heat heat--${side}`}
+      aria-label={`${side === "a" ? "Blue" : "Orange"} corner heat`}
+    >
+      {letters.slice(0, HEAT_MAX).map((ch, i) => (
+        <span key={i} className={i < value ? "is-on" : ""}>
+          {ch}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function FightHud({
   a,
   b,
@@ -151,14 +334,26 @@ function FightHud({
   winner,
   nowPlaying,
   judged,
+  heatA,
+  heatB,
+  streakA,
+  streakB,
+  runA,
+  runB,
 }: {
   a: Fighter;
   b: Fighter;
   score: FightScore;
   roundLabel: string;
-  winner: 'a' | 'b' | null;
-  nowPlaying: 'a' | 'b' | null;
+  winner: "a" | "b" | null;
+  nowPlaying: "a" | "b" | null;
   judged: boolean;
+  heatA: number;
+  heatB: number;
+  streakA: number | null;
+  streakB: number | null;
+  runA: number;
+  runB: number;
 }) {
   return (
     <div className="fight__hud">
@@ -166,18 +361,24 @@ function FightHud({
         side="a"
         fighter={a}
         health={score.healthA}
-        won={winner === 'a'}
-        playing={nowPlaying === 'a'}
+        won={winner === "a"}
+        playing={nowPlaying === "a"}
         judged={judged}
+        heat={heatA}
+        streak={streakA}
+        run={runA}
       />
       <span className="fight__round">{roundLabel}</span>
       <HealthBar
         side="b"
         fighter={b}
         health={score.healthB}
-        won={winner === 'b'}
-        playing={nowPlaying === 'b'}
+        won={winner === "b"}
+        playing={nowPlaying === "b"}
         judged={judged}
+        heat={heatB}
+        streak={streakB}
+        run={runB}
       />
     </div>
   );
@@ -190,22 +391,27 @@ function HealthBar({
   won,
   playing,
   judged,
+  heat,
+  streak,
+  run,
 }: {
-  side: 'a' | 'b';
+  side: "a" | "b";
   fighter: Fighter;
   health: number;
   won: boolean;
   playing: boolean;
   judged: boolean;
+  heat: number;
+  streak: number | null;
+  run: number;
 }) {
   return (
     <div
-      className={`fight__seat fight__seat--${side}${won ? ' fight__seat--won' : ''}${
-        playing ? ' fight__seat--playing' : ''
+      className={`fight__seat fight__seat--${side}${won ? " fight__seat--won" : ""}${
+        playing ? " fight__seat--playing" : ""
       }`}
     >
       <div className="fight__seat-top">
-        {/* The digit chat types, on the corner it actually belongs to. */}
         {!judged && (
           <span className="fight__num" aria-hidden="true">
             {fighter.ballotNumber}
@@ -217,7 +423,7 @@ function HealthBar({
         <div className="fight__label">
           <span className="fight__player">
             {won && <CrownIcon size={18} />}
-            {playing ? 'Now playing' : fighter.name}
+            {playing ? "Now playing" : fighter.name}
           </span>
           <strong className="fight__song">{fighter.songTitle}</strong>
           <span className="fight__artist">{fighter.songArtist}</span>
@@ -231,40 +437,30 @@ function HealthBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${fighter.name} health`}
-        style={{ '--health': health } as CSSProperties}
+        style={{ "--health": health } as CSSProperties}
       >
-        {/* Width is a scale on a full-size layer, not `right` plus a
-            percentage. iOS Safari draws that second pair wrong: the orange
-            fill starts from the left, overflows the pill, or disappears. */}
         <span className="fight__bar-hurt" />
         <span className="fight__bar-fill" />
         {!judged && <span className="fight__bar-votes">{fighter.votes}</span>}
       </div>
+      <Heat side={side} value={heat} />
+      {streak != null && (
+        <Streak
+          side={side}
+          ballot={fighter.ballotNumber}
+          streak={streak}
+          run={run}
+        />
+      )}
     </div>
   );
 }
 
-function Corner({
-  side,
-  fighter,
-  state,
-}: {
-  side: 'a' | 'b';
-  fighter: Fighter;
-  state: string;
-}) {
-  return (
-    <div className={`fight__corner fight__corner--${side} is-${state}`}>
-      <BoxerSprite side={side === 'a' ? 'blue' : 'orange'} size={200} />
-    </div>
-  );
-}
-
-/** The line under the ring, in the register of a ringside announcer. */
 function FightCall({
   phase,
   chatChannel,
   total,
+  boost,
   decided,
   winnerName,
   winnerVotes,
@@ -276,6 +472,8 @@ function FightCall({
   phase: BattleRoundPhase;
   chatChannel: string | null;
   total: number;
+  /** What each vote is worth right now. */
+  boost: number;
   decided: boolean;
   winnerName: string | null;
   winnerVotes: number;
@@ -292,10 +490,14 @@ function FightCall({
         </p>
       );
     }
-    if (phase === 'playing') {
-      return <p className="fight__call">Both songs are playing. {judgeName} is listening.</p>;
+    if (phase === "playing") {
+      return (
+        <p className="fight__call">
+          Both songs are playing. {judgeName} is listening.
+        </p>
+      );
     }
-    if (phase === 'judging') {
+    if (phase === "judging") {
       return (
         <p className="fight__call">
           <strong>{judgeName}</strong> is judging this one
@@ -310,38 +512,49 @@ function FightCall({
       <p className="fight__call fight__call--won">
         {loserFloored && loserName ? (
           <>
-            <strong>{winnerName}</strong> knocks <strong>{loserName}</strong> out
+            <strong>{winnerName}</strong> knocks <strong>{loserName}</strong>{" "}
+            out
           </>
         ) : (
-          // Votes rather than health. Health is a reading of the vote gap and
-          // the two rarely match, so quoting it here contradicts the counts
-          // sitting on the bars a few pixels above.
           <>
-            <strong>{winnerName}</strong> takes it {winnerVotes}&ndash;{loserVotes} on votes
+            <strong>{winnerName}</strong> takes it {winnerVotes}&ndash;
+            {loserVotes} on votes
           </>
         )}
       </p>
     );
   }
 
-  if (phase === 'playing') {
-    return <p className="fight__call">Both songs are playing. Judge them back to back.</p>;
+  if (phase === "playing") {
+    return (
+      <p className="fight__call">
+        Walkouts. The fight starts when both songs finish
+        {chatChannel ? " — then type 1 or 2 in chat to throw punches" : ""}
+      </p>
+    );
   }
 
-  if (phase === 'judging') {
+  if (phase === "judging") {
     return (
-      <p className={`fight__call${chatChannel ? ' fight__call--vote' : ''}`}>
+      <p className={`fight__call${chatChannel ? " fight__call--vote" : ""}`}>
         {chatChannel ? (
           <>
-            Type <strong>1</strong> or <strong>2</strong> in chat to throw a punch
+            Type <strong>1</strong> or <strong>2</strong> in chat to throw a
+            punch
           </>
         ) : (
           <>Vote for the song that should win</>
         )}
         {total > 0 && (
           <span className="fight__tally">
-            {' · '}
-            {total} {total === 1 ? 'punch' : 'punches'} thrown
+            {" · "}
+            {total} {total === 1 ? "punch" : "punches"} thrown
+          </span>
+        )}
+        {chatChannel && boost > 1 && (
+          <span className="fight__boost">
+            {boost >= 3 ? "Quiet chat" : "Small chat"} · every vote hits ×
+            {boost}
           </span>
         )}
       </p>
@@ -351,33 +564,82 @@ function FightCall({
   return <p className="fight__call">Squaring up…</p>;
 }
 
-/**
- * Which side just landed one.
- *
- * Votes arrive as a whole tally rather than as events, so a punch is inferred
- * from the count going up. Only the most recent side is reported: when a busy
- * chat votes for both songs inside the same poll the board should show the
- * last hit rather than trying to animate both at once.
- */
-function useSwing(votesA: number, votesB: number, holdMs = 420): 'a' | 'b' | null {
-  const [swinging, setSwinging] = useState<'a' | 'b' | null>(null);
-  const previous = useRef<{ a: number; b: number } | null>(null);
+/** Chat's run for this corner: three in a row is a combo, six is huge, nine is mega. */
+function Streak({
+  side,
+  ballot,
+  streak,
+  run,
+}: {
+  side: "a" | "b";
+  ballot: number;
+  streak: number;
+  run: number;
+}) {
+  const into = streak % COMBO_EVERY;
+  const pips = streak > 0 && into === 0 ? COMBO_EVERY : into;
+  return (
+    <div
+      className={`streak streak--${side}${streak >= COMBO_EVERY ? " streak--hot" : ""}`}
+    >
+      {Array.from({ length: COMBO_EVERY }, (_, i) => (
+        <span key={i} className={i < pips ? "is-on" : ""}>
+          {ballot}
+        </span>
+      ))}
+      <em>{run >= 2 ? `${run} in a row` : "combo"}</em>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    const before = previous.current;
-    previous.current = { a: votesA, b: votesB };
-
-    // First tally through is the starting position, not a flurry of punches.
-    if (!before) return;
-
-    const gainedA = votesA - before.a;
-    const gainedB = votesB - before.b;
-    if (gainedA <= 0 && gainedB <= 0) return;
-
-    setSwinging(gainedA >= gainedB ? 'a' : 'b');
-    const timer = setTimeout(() => setSwinging(null), holdMs);
-    return () => clearTimeout(timer);
-  }, [votesA, votesB, holdMs]);
-
-  return swinging;
+/** TV-style entrance card: cover art, song, and how long until the bell. */
+function Entrance({
+  side,
+  fighter,
+  seconds,
+  offset,
+  second,
+}: {
+  side: "a" | "b";
+  fighter: Fighter;
+  seconds: number;
+  offset: number;
+  second: boolean;
+}) {
+  const left = Math.max(0, Math.ceil(seconds - offset));
+  const progress = Math.min(1, Math.max(0, offset / Math.max(1, seconds)));
+  return (
+    <div className={`fight__entrance fight__entrance--${side}`}>
+      <span className="fight__entrance-bar" />
+      {fighter.artworkUrl ? (
+        <img className="fight__entrance-art" src={fighter.artworkUrl} alt="" />
+      ) : (
+        <span
+          className="fight__entrance-art fight__entrance-art--blank"
+          aria-hidden="true"
+        >
+          ♪
+        </span>
+      )}
+      <div className="fight__entrance-body">
+        <span className="fight__entrance-kicker">
+          NOW ENTERING · {side === "a" ? "BLUE" : "ORANGE"} CORNER
+        </span>
+        <span className="fight__entrance-name">
+          {fighter.name.toUpperCase()}
+        </span>
+        <span className="fight__entrance-song">
+          <strong>{fighter.songTitle}</strong> — {fighter.songArtist}
+        </span>
+        <span className="fight__entrance-clock">
+          <span className="fight__entrance-track">
+            <span style={{ width: `${progress * 100}%` }} />
+          </span>
+          <span className="fight__entrance-left">
+            {second ? `Fight in ${left}s` : `${left}s · then the other corner`}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
 }

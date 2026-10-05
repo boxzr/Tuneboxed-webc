@@ -2,7 +2,7 @@
 
 .page {
   min-height: 100vh;
-  background: var(--tb-surface);
+  background: var(--tb-canvas);
   color: var(--tb-ink);
 }
 
@@ -16,9 +16,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 32px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: saturate(180%) blur(12px);
-  border-bottom: 1px solid rgba(27, 45, 78, 0.1);
+  background: rgba(10, 16, 32, 0.72);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .page-nav-logo {

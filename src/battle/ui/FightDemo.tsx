@@ -66,11 +66,12 @@ const BOUTS: readonly Bout[] = [
   },
 ];
 
-const TICK_MS = 420;
-/** Ticks spent taking votes, then holding the result, then the whole loop. */
+const TICK_MS = 700;
+/** Stare-down, then votes, then the card. */
+const INTRO_TICKS = 5;
 const VOTING_TICKS = 20;
 const RESULT_TICKS = 9;
-const BOUT_TICKS = VOTING_TICKS + RESULT_TICKS;
+const BOUT_TICKS = INTRO_TICKS + VOTING_TICKS + RESULT_TICKS;
 
 export default function FightDemo() {
   const [tick, setTick] = useState(0);
@@ -85,11 +86,12 @@ export default function FightDemo() {
 
   const bout = BOUTS[Math.floor(tick / BOUT_TICKS) % BOUTS.length];
   const step = tick % BOUT_TICKS;
-  const voting = step < VOTING_TICKS;
+  const intro = step < INTRO_TICKS;
+  const voting = step >= INTRO_TICKS && step < INTRO_TICKS + VOTING_TICKS;
 
   // Eased so the flurry is heaviest early and the last few votes trickle,
   // which is how a real poll behaves and stops the bars moving like a loader.
-  const through = Math.min(1, step / VOTING_TICKS);
+  const through = intro ? 0 : Math.min(1, (step - INTRO_TICKS) / VOTING_TICKS);
   const eased = 1 - Math.pow(1 - through, 2);
 
   const votesFor = (final: number) => Math.round(final * eased);
@@ -112,8 +114,8 @@ export default function FightDemo() {
         votes: votesFor(bout.bVotes),
         ballotNumber: 2,
       }}
-      phase={voting ? 'judging' : 'revealed'}
-      winner={voting ? null : bout.aVotes >= bout.bVotes ? 'a' : 'b'}
+      phase={intro ? 'playing' : voting ? 'judging' : 'revealed'}
+      winner={voting || intro ? null : bout.aVotes >= bout.bVotes ? 'a' : 'b'}
       nowPlaying={null}
       chatChannel="yourchannel"
       roundLabel="Quarter final"

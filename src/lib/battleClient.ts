@@ -664,3 +664,26 @@ export const tallyVotes = (roundId: string) =>
   rpc<string | null>('tally_battle_round_votes', { p_round_id: roundId });
 
 export const serverNow = () => rpc<string>('battle_server_now', {});
+
+/**
+ * Saves a fighter look onto the player's row.
+ *
+ * Prefers the token RPC. Falls back to a direct write on `avatar_seed` so a
+ * site that ships before the migration still syncs through the existing
+ * column (RLS on battle_players is still open for the iOS clients).
+ */
+export async function setFighterLoadout(
+  token: string,
+  loadout: string,
+  playerId: string
+): Promise<void> {
+  try {
+    await rpc<void>('battle_set_loadout', { p_token: token, p_loadout: loadout });
+  } catch {
+    const { error } = await supabase
+      .from('battle_players')
+      .update({ avatar_seed: loadout })
+      .eq('id', playerId);
+    if (error) throw toBattleError(error.message);
+  }
+}
