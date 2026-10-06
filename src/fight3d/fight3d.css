@@ -367,6 +367,14 @@
     border-color var(--dur-control) var(--ease-standard);
 }
 
+.create-boxer-slot {
+  margin-bottom: 16px;
+}
+
+.create-boxer-slot .create-boxer {
+  margin-top: 0;
+}
+
 .create-boxer:hover {
   transform: translateY(-1px);
   border-color: var(--tb-orange);

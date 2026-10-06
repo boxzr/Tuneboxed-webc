@@ -551,7 +551,7 @@ export default function BattleRoom() {
               />
             )}
 
-            {token && me && (!classic || mySongs.length > 0 || (isHost && judging)) && (
+            {token && me && (
               <CreateBoxerButton name={me.display_name} seed={me.avatar_seed} onChange={persistLoadout} />
             )}
           </Card>
@@ -1138,6 +1138,11 @@ export default function BattleRoom() {
             twice on the same screen. */}
         {round ? (
           <>
+            {token && me && !championId && (
+              <div className="create-boxer-slot">
+                <CreateBoxerButton name={me.display_name} seed={me.avatar_seed} onChange={persistLoadout} />
+              </div>
+            )}
             <SectionLabel>In the room</SectionLabel>
             <div style={{ marginTop: 12 }}>
               <Roster
