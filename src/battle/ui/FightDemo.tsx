@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import BoxingMatch from './BoxingMatch';
+import { defaultLoadout } from '../../fight3d/loadout';
+import type { Dance } from '../../fight3d/dances';
 import DemoChat, { NAME_COLORS, type ChatLine } from './DemoChat';
 
 /**
@@ -17,10 +19,12 @@ import DemoChat, { NAME_COLORS, type ChatLine } from './DemoChat';
 
 interface Bout {
   aName: string;
+  aDance: Dance;
   aTitle: string;
   aArtist: string;
   aArt: string;
   bName: string;
+  bDance: Dance;
   bTitle: string;
   bArtist: string;
   bArt: string;
@@ -41,10 +45,12 @@ const ART = 'https://is1-ssl.mzstatic.com/image/thumb/';
 const BOUTS: readonly Bout[] = [
   {
     aName: 'Ashley',
+    aDance: 'folks',
     aTitle: 'Mr. Brightside',
     aArtist: 'The Killers',
     aArt: `${ART}Music126/v4/11/64/9c/11649c80-2066-dba8-77a9-df7eecae26c1/17UM1IM06937.rgb.jpg/300x300bb.jpg`,
     bName: 'Marcus',
+    bDance: 'whip',
     bTitle: 'Dancing Queen',
     bArtist: 'ABBA',
     bArt: `${ART}Music115/v4/60/f8/a6/60f8a6bc-e875-238d-f2f8-f34a6034e6d2/14UMGIM07615.rgb.jpg/300x300bb.jpg`,
@@ -53,10 +59,12 @@ const BOUTS: readonly Bout[] = [
   },
   {
     aName: 'Devon',
+    aDance: 'shoot',
     aTitle: "Sweet Child O' Mine",
     aArtist: "Guns N' Roses",
     aArt: `${ART}Music125/v4/56/47/b7/5647b700-6b9d-9e72-ec9f-51140b6d4492/00602567673781.rgb.jpg/300x300bb.jpg`,
     bName: 'Priya',
+    bDance: 'dougie',
     bTitle: 'Baby Shark',
     bArtist: 'Pinkfong',
     bArt: `${ART}Music125/v4/e0/4d/1f/e04d1f27-c8f5-bc8e-e936-294ad15a77cb/859721673396_cover.jpg/300x300bb.jpg`,
@@ -65,10 +73,12 @@ const BOUTS: readonly Bout[] = [
   },
   {
     aName: 'Jules',
+    aDance: 'stanky',
     aTitle: 'Blinding Lights',
     aArtist: 'The Weeknd',
     aArt: `${ART}Music125/v4/6f/bc/e6/6fbce6c4-c38c-72d8-4fd0-66cfff32f679/20UMGIM12176.rgb.jpg/300x300bb.jpg`,
     bName: 'Sam',
+    bDance: 'sprinkler',
     bTitle: 'Uptown Funk',
     bArtist: 'Mark Ronson',
     bArt: `${ART}Music115/v4/7e/30/c5/7e30c572-aa47-5f7b-c6fd-42d50cd2c56d/886444959797.jpg/300x300bb.jpg`,
@@ -80,7 +90,8 @@ const BOUTS: readonly Bout[] = [
 const TICK_MS = 700;
 /** Each corner's walkout, then the bell, then votes, then the card. */
 const WALK_TICKS = 11;
-const BELL_TICKS = 5;
+/** Through "ROUND 1"; the first punches land on "LET'S FIGHT!". */
+const BELL_TICKS = 2;
 const INTRO_TICKS = WALK_TICKS * 2 + BELL_TICKS;
 const VOTING_TICKS = 20;
 const RESULT_TICKS = 9;
@@ -125,7 +136,7 @@ function noise(...seed: number[]): number {
 }
 
 function votesAt(final: number, step: number): number {
-  const through = Math.min(1, Math.max(0, (step - INTRO_TICKS) / VOTING_TICKS));
+  const through = step < INTRO_TICKS ? 0 : Math.min(1, (step - INTRO_TICKS + 1) / VOTING_TICKS);
   return Math.round(final * (1 - Math.pow(1 - through, 2)));
 }
 
@@ -241,7 +252,7 @@ export default function FightDemo() {
 
   // Eased so the flurry is heaviest early and the last few votes trickle,
   // which is how a real poll behaves and stops the bars moving like a loader.
-  const through = intro ? 0 : Math.min(1, (step - INTRO_TICKS) / VOTING_TICKS);
+  const through = intro ? 0 : Math.min(1, (step - INTRO_TICKS + 1) / VOTING_TICKS);
   const eased = 1 - Math.pow(1 - through, 2);
 
   const votesFor = (final: number) => Math.round(final * eased);
@@ -251,6 +262,7 @@ export default function FightDemo() {
     <BoxingMatch
       a={{
         name: bout.aName,
+        loadout: { ...defaultLoadout(bout.aName), dance: bout.aDance },
         songTitle: bout.aTitle,
         songArtist: bout.aArtist,
         artworkUrl: bout.aArt,
@@ -259,6 +271,7 @@ export default function FightDemo() {
       }}
       b={{
         name: bout.bName,
+        loadout: { ...defaultLoadout(bout.bName), dance: bout.bDance },
         songTitle: bout.bTitle,
         songArtist: bout.bArtist,
         artworkUrl: bout.bArt,

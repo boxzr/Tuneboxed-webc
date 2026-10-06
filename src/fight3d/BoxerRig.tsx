@@ -1,14 +1,18 @@
-import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CLOTH_HEX, HAIR_HEX, SKIN_HEX, hexOf, type FighterLoadout } from './loadout';
 import type { BoxerPose } from './punchDirector';
 import { GAIT, type WalkStyle } from './walkStyles';
+import { ANKLE, HIP, blankFrame, danceFrame, type Dance } from './dances';
+import { SHIN, THIGH, solveLeg } from './legIK';
+import { studioEnv, withRim } from './studio';
 import {
   COMBO_SEG,
   comboMove,
   hitReaction,
   idleMotion,
+  knockdownTilt,
   knockdownY,
   punchOut,
   punchPhaseAt,
@@ -27,6 +31,11 @@ const UPPER = 0.22;
 const FORE = 0.28;
 const GLOVE_R = 0.12;
 /**
+ * Closest two boxers' roots may come on a step-in: both heads (the widest
+ * part, a heavyweight's included) plus the forward lean of a body shot.
+ */
+const BODY_GAP = 0.74;
+/**
  * Head yaw toward the TV camera so faces read in profile. Only the head:
  * turning the body put the other boxer out of arm's reach.
  */
@@ -43,18 +52,34 @@ export function headWorldY(loadout: FighterLoadout): number {
   return (TORSO_Y + HEAD[1]) * bodyScale(loadout).y;
 }
 
-function gloss(color: string, opts?: { rough?: number; coat?: number }) {
-  return new THREE.MeshPhysicalMaterial({
-    color,
-    roughness: opts?.rough ?? 0.34,
-    metalness: 0.02,
-    clearcoat: opts?.coat ?? 0.65,
-    clearcoatRoughness: 0.22,
-  });
+/** Lacquered vinyl, like a collectible figure: clearcoat over a soft base, with a rim. */
+function gloss(color: string, opts?: { rough?: number; coat?: number; rim?: number }) {
+  return withRim(
+    new THREE.MeshPhysicalMaterial({
+      color,
+      roughness: opts?.rough ?? 0.3,
+      metalness: 0.02,
+      clearcoat: opts?.coat ?? 0.8,
+      clearcoatRoughness: 0.12,
+      sheen: 0.1,
+      sheenColor: new THREE.Color('#ffffff'),
+    }),
+    '#ffe9c7',
+    opts?.rim ?? 0.32
+  );
 }
 
 function matte(color: string, rough = 0.6) {
-  return new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 });
+  return withRim(new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 }), '#ffe9c7', 0.18);
+}
+
+function metal(color: string) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.22, metalness: 0.95 });
+}
+
+/** A darker, richer version of a paint, for trim that has to read against it. */
+function shade(hex: string, k: number) {
+  return `#${new THREE.Color(hex).multiplyScalar(k).getHexString()}`;
 }
 
 function asPunch(pose: BoxerPose): MotionPunch | null {
@@ -84,6 +109,11 @@ const _basis = new THREE.Matrix4();
 const _foe = new THREE.Vector3();
 const _hit = new THREE.Vector3();
 const _tmp = new THREE.Vector3();
+const _ankle = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1, 0);
+const _rootInv = new THREE.Matrix4();
+const { x: HIP_X, y: HIP_Y } = HIP;
+const { x: ANKLE_X, y: ANKLE_Y } = ANKLE;
 
 /** Point a bone (mesh built along -Y) down `dir`, keeping its +X toward `side`. */
 function orient(obj: THREE.Object3D, dir: THREE.Vector3, side: THREE.Vector3) {
@@ -250,13 +280,21 @@ function Glove({ s, glove, cuff }: { s: 1 | -1; glove: THREE.Material; cuff: THR
         <boxGeometry args={[0.03, 0.07, 0.012]} />
       </mesh>
       <mesh position={[0, -0.005, 0.012 * s]} scale={[0.96, 1.08, 1]} material={glove} castShadow>
-        <sphereGeometry args={[GLOVE_R, 28, 20]} />
+        <sphereGeometry args={[GLOVE_R, 36, 26]} />
       </mesh>
       <mesh position={[0, -0.07, -0.022 * s]} scale={[0.98, 0.82, 1.02]} material={glove} castShadow>
-        <sphereGeometry args={[0.104, 28, 20]} />
+        <sphereGeometry args={[0.104, 36, 26]} />
       </mesh>
       <mesh position={[-0.078, -0.012, -0.05 * s]} rotation={[0.35 * s, 0, -0.32]} material={glove} castShadow>
         <capsuleGeometry args={[0.04, 0.075, 8, 14]} />
+      </mesh>
+      {[0.03, 0.0, -0.03].map((y) => (
+        <mesh key={y} position={[0, y, 0.124 * s]} rotation={[0, 0, 0]} material={cuff}>
+          <boxGeometry args={[0.06, 0.008, 0.01]} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.0, 0.122 * s]} material={cuff}>
+        <boxGeometry args={[0.008, 0.075, 0.008]} />
       </mesh>
     </group>
   );
@@ -283,11 +321,38 @@ function NoteFlag({ style, mat }: { style: FighterLoadout['hair']; mat: THREE.Ma
   );
 }
 
+/**
+ * The high-top's shaft, laces and cuff. Worn on the shin, not the foot, so it
+ * leans with a bent knee while the sole below stays flat.
+ */
+function BootShaft({ shoe, sole, stripe }: { shoe: THREE.Material; sole: THREE.Material; stripe: THREE.Material }) {
+  return (
+    <group position={[0, 0, 0.005]}>
+      <mesh position={[0, 0.1, 0]} material={shoe} castShadow>
+        <cylinderGeometry args={[0.07, 0.074, 0.15, 20]} />
+      </mesh>
+      {/* Fills the ankle as the shaft and the flat foot angle apart. */}
+      <mesh position={[0, 0.03, 0.01]} scale={[1, 0.9, 1.05]} material={shoe} castShadow>
+        <sphereGeometry args={[0.074, 18, 14]} />
+      </mesh>
+      <mesh position={[0, 0.182, 0]} material={sole}>
+        <torusGeometry args={[0.068, 0.012, 8, 24]} />
+      </mesh>
+      {[0.05, 0.085, 0.12].map((y) => (
+        <mesh key={y} position={[0, y, 0.071]} material={stripe}>
+          <boxGeometry args={[0.07, 0.008, 0.008]} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** High-top boxing boot's foot: coloured upper, white sole, side stripes. */
 function Sneaker({ shoe, sole, stripe }: { shoe: THREE.Material; sole: THREE.Material; stripe: THREE.Material }) {
   return (
-    <group position={[0, -0.33, 0.04]}>
+    <group position={[0, 0, 0.04]}>
       <mesh position={[0, 0.02, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.78]} material={shoe} castShadow>
-        <capsuleGeometry args={[0.075, 0.13, 8, 14]} />
+        <capsuleGeometry args={[0.075, 0.13, 10, 18]} />
       </mesh>
       <mesh position={[0, -0.035, 0.005]} rotation={[Math.PI / 2, 0, 0]} scale={[1.08, 1, 0.3]} material={sole} castShadow>
         <capsuleGeometry args={[0.078, 0.14, 6, 14]} />
@@ -320,6 +385,7 @@ export default function BoxerRig({
   foe,
   wear = 0,
   walkStyle = 'swagger',
+  dance = null,
 }: {
   loadout: FighterLoadout;
   pose: BoxerPose;
@@ -339,6 +405,8 @@ export default function BoxerRig({
   wear?: number;
   /** How they carry themselves on the walkout. */
   walkStyle?: WalkStyle;
+  /** Danced instead of the walk style's pose whenever the pose is `taunt`. */
+  dance?: Dance | null;
 }) {
   const root = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
@@ -347,13 +415,22 @@ export default function BoxerRig({
   const upR = useRef<THREE.Group>(null);
   const foreL = useRef<THREE.Group>(null);
   const foreR = useRef<THREE.Group>(null);
+  const hipL = useRef<THREE.Group>(null);
+  const hipR = useRef<THREE.Group>(null);
   const legL = useRef<THREE.Group>(null);
   const legR = useRef<THREE.Group>(null);
+  const shinL = useRef<THREE.Group>(null);
+  const shinR = useRef<THREE.Group>(null);
+  const footL = useRef<THREE.Group>(null);
+  const footR = useRef<THREE.Group>(null);
+  const legAngles = useMemo(() => ({ splay: 0, pitch: 0, knee: 0, reached: true }), []);
   const mouth = useRef<THREE.Group>(null);
   const eyes = useRef<THREE.Group>(null);
   const poseAt = useRef(-1);
   const lastPose = useRef<BoxerPose>(pose);
   const lastBeat = useRef(beat);
+  const lastDance = useRef(dance);
+  const moves = useMemo(blankFrame, []);
   const landedHits = useRef(0);
   const spring = useRef({ z: 0, y: 0, vz: 0, vy: 0 });
   const arms = useMemo(() => ({ l: makeArm(-1), r: makeArm(1) }), []);
@@ -369,29 +446,46 @@ export default function BoxerRig({
     () => ({
       body: gloss(body),
       flag: gloss(flag),
-      trunks: gloss(trunks, { rough: 0.3, coat: 0.9 }),
+      trunks: Object.assign(gloss(trunks, { rough: 0.3, coat: 0.9 }), { side: THREE.DoubleSide }),
       gloves: gloss(gloves, { rough: 0.28, coat: 0.9 }),
       cuff: matte('#f4f1ea', 0.75),
-      shoe: gloss('#f8fafc', { rough: 0.4, coat: 0.3 }),
-      sole: matte('#e5e7eb', 0.5),
-      stripe: gloss(shoes),
+      shoe: gloss(shoes, { rough: 0.32, coat: 0.6 }),
+      sole: matte('#f1f1ee', 0.5),
+      stripe: gloss('#ffffff', { rough: 0.4, coat: 0.3 }),
+      band: Object.assign(gloss(shade(trunks, 0.55), { rough: 0.35, coat: 0.9 }), { side: THREE.DoubleSide }),
+      gold: metal('#e2b443'),
+      lid: gloss(shade(body, 0.82)),
+      guard: gloss(trunks, { rough: 0.2, coat: 1 }),
       wrap: matte('#f8fafc', 0.82),
       eyeWhite: gloss('#ffffff', { rough: 0.15, coat: 1 }),
       ink: matte('#0f0d14', 0.5),
       mouth: matte('#4a0d16', 0.6),
-      teeth: matte('#ffffff', 0.4),
+      teeth: gloss('#ffffff', { rough: 0.2, coat: 1, rim: 0.1 }),
       bruise: matte('#5b2436', 0.8),
     }),
     [body, flag, trunks, gloves, shoes]
   );
 
+  const { gl } = useThree();
+  useEffect(() => {
+    const env = studioEnv(gl);
+    const list = Object.values(mats) as THREE.MeshStandardMaterial[];
+    for (const m of list) {
+      m.envMap = env;
+      m.envMapIntensity = m.metalness > 0.5 ? 1.35 : 0.55;
+      m.needsUpdate = true;
+    }
+    return () => list.forEach((m) => m.dispose());
+  }, [gl, mats]);
+
   useFrame(({ clock }, dt) => {
     const step = Math.min(0.05, Math.max(0.001, dt || 0.016));
     const t = clock.elapsedTime;
     if (poseAt.current < 0) poseAt.current = t;
-    if (lastPose.current !== pose || lastBeat.current !== beat) {
+    if (lastPose.current !== pose || lastBeat.current !== beat || lastDance.current !== dance) {
       lastPose.current = pose;
       lastBeat.current = beat;
+      lastDance.current = dance;
       poseAt.current = t;
       landedHits.current = 0;
       if (pose === 'down') {
@@ -430,7 +524,11 @@ export default function BoxerRig({
         ? idleMotion(t, wt.bounce)
         : { y: 0, x: 0, weave: 0 };
     const walking = pose === 'walk';
-    const posing = pose === 'taunt';
+    const celebrating = pose === 'won' && dance != null;
+    const dancing = (pose === 'taunt' || celebrating) && dance ? danceFrame(dance, age, moves) : null;
+    // In the ring they stand side-on to the camera; a victory dance turns to face it.
+    const toCrowd = celebrating && !faceCamera ? -facing * (Math.PI / 2) : 0;
+    const posing = pose === 'taunt' && !dancing;
     const gait = GAIT[walkStyle];
     const stride = walking ? Math.sin(t * gait.cadence) : 0;
     const spin = walkStyle === 'showboat' && (walking || posing) ? showboatSpin(t) : 0;
@@ -469,11 +567,17 @@ export default function BoxerRig({
         pose === 'combo'
           ? Math.min(1, age * wt.speed * 6) * THREE.MathUtils.clamp((comboEnd + 0.3 - age * wt.speed) / 0.3, 0, 1)
           : 0;
-      const lunge =
+      const advance =
         pose === 'combo' ? press * 0.34 * wt.lunge * 1.2 : punch ? stepIn(pAge, punch) * wt.lunge * 1.2 : 0;
+      let room = Infinity;
+      if (foe && root.current.parent) {
+        root.current.parent.getWorldPosition(_tmp);
+        room = Math.hypot(foe[0] - _tmp.x, foe[2] - _tmp.z) - BODY_GAP;
+      }
+      const lunge = Math.min(advance, Math.max(0, room));
       const hop = pose === 'won' ? Math.abs(Math.sin(t * 8)) * 0.1 : poseHop;
       const walkBob = walking ? Math.abs(stride) * (gait.bob + gait.hop) : 0;
-      root.current.position.y = pose === 'down' ? knockdownY(age) : idle.y * 0.55 + s.y + hop + walkBob;
+      root.current.position.y = pose === 'down' ? knockdownY(age) : Math.max(0, idle.y) * 0.55 + s.y + hop + walkBob;
       root.current.position.z = lunge + s.z;
       root.current.position.x = pose === 'idle' ? idle.x * 0.6 : THREE.MathUtils.lerp(root.current.position.x, shimmy, 0.25);
       root.current.rotation.z = THREE.MathUtils.lerp(
@@ -487,11 +591,10 @@ export default function BoxerRig({
                 : idle.weave * 0.12,
         0.18
       );
-      root.current.rotation.x = THREE.MathUtils.lerp(
-        root.current.rotation.x,
-        pose === 'down' ? 1.05 : hr ? 0.1 + hr.lift * 0.16 : pose === 'lost' ? 0.14 : 0,
-        pose === 'down' ? 0.14 : 0.18
-      );
+      root.current.rotation.x =
+        pose === 'down'
+          ? knockdownTilt(age)
+          : THREE.MathUtils.lerp(root.current.rotation.x, hr ? -0.1 - hr.lift * 0.16 : pose === 'lost' ? 0.14 : 0, 0.18);
       if (spin > 0) {
         root.current.rotation.y = spin;
       } else {
@@ -501,6 +604,12 @@ export default function BoxerRig({
           hr ? hr.twist * 0.28 : walking ? stride * 0.1 : 0,
           0.22
         );
+      }
+      if (dancing) {
+        root.current.position.y = dancing.y;
+        root.current.position.x = THREE.MathUtils.lerp(root.current.position.x, dancing.x, 0.35);
+        root.current.rotation.z = THREE.MathUtils.lerp(root.current.rotation.z, dancing.roll, 0.4);
+        root.current.rotation.y = THREE.MathUtils.lerp(root.current.rotation.y, dancing.turn + toCrowd, celebrating ? 0.12 : 0.4);
       }
     }
 
@@ -552,6 +661,11 @@ export default function BoxerRig({
       );
       torso.current.position.y =
         TORSO_Y + (move === 'uppercut' ? -0.06 * wind : move === 'body' ? -0.07 * Math.max(wind, ext) : 0);
+      if (dancing) {
+        torso.current.rotation.x = THREE.MathUtils.lerp(torso.current.rotation.x, dancing.pitch, 0.4);
+        torso.current.rotation.y = THREE.MathUtils.lerp(torso.current.rotation.y, dancing.yaw, 0.4);
+      }
+      torso.current.rotation.z = THREE.MathUtils.lerp(torso.current.rotation.z, dancing ? dancing.tilt : 0, 0.3);
     }
 
     if (head.current) {
@@ -578,10 +692,15 @@ export default function BoxerRig({
       head.current.rotation.z = THREE.MathUtils.lerp(head.current.rotation.z, hr ? -0.28 * hr.twist : 0, 0.3);
       const toCamera = faceCamera ? 0 : -facing * FACE_CHEAT * (punch ? 0.4 : 1);
       head.current.rotation.y = THREE.MathUtils.lerp(head.current.rotation.y, toCamera, 0.2);
+      if (dancing) {
+        head.current.rotation.x = THREE.MathUtils.lerp(head.current.rotation.x, dancing.nod, 0.35);
+        head.current.rotation.y = THREE.MathUtils.lerp(head.current.rotation.y, dancing.look, 0.35);
+        head.current.rotation.z = THREE.MathUtils.lerp(head.current.rotation.z, dancing.cock, 0.35);
+      }
     }
     if (mouth.current) {
       const shout = posing && (walkStyle === 'hype' || walkStyle === 'stomp');
-      const open = hr || shout ? 1.9 : pose === 'won' || posing ? 1.5 : punch ? 1.25 : 1;
+      const open = dancing ? dancing.mouth : hr || shout ? 1.9 : pose === 'won' || posing ? 1.5 : punch ? 1.25 : 1;
       mouth.current.scale.y = THREE.MathUtils.lerp(mouth.current.scale.y, open, 0.35);
     }
     if (eyes.current) {
@@ -656,19 +775,24 @@ export default function BoxerRig({
       } else if (pose === 'hurt') {
         if (struck) arm.target.set(0.1 * s, 0.42, 0.3);
         else arm.target.set(0.2 * s, 0.2, 0.28);
-      } else if (pose === 'won') {
-        arm.target.set(0.3 * s, 0.98 + Math.sin(t * 8 + s) * 0.05, 0.04);
+      } else if (pose === 'won' && !dancing) {
+        // A V the arm can actually reach; past full extension the solver locks it into a rod.
+        arm.target.set(0.34 * s, 0.56 + Math.sin(t * 8 + s) * 0.04, 0.14);
+        keepClear(arm.target, arm.shoulder);
       } else if (pose === 'lost') {
         arm.target.set(0.27 * s, -0.14, 0.08);
       } else if (pose === 'down') {
         arm.target.set(0.4 * s, 0.05, -0.04);
+      } else if (dancing) {
+        const hand = key === 'l' ? dancing.l : dancing.r;
+        keepClear(arm.target.set(hand[0], hand[1], hand[2]), arm.shoulder);
       } else if (walking || posing) {
         strutArm(walkStyle, s, t, walking, shadow, arm.target);
         if (!shadow) keepClear(arm.target, arm.shoulder);
       }
-      const follow = punch || struck || shadow ? 0.55 : 0.25;
+      const follow = punch || struck || shadow ? 0.55 : dancing ? 0.42 : 0.25;
       arm.smooth.lerp(arm.target, follow);
-      if ((walking || posing) && !shadow) keepClear(arm.smooth, arm.shoulder);
+      if ((walking || posing || dancing || pose === 'won') && !shadow) keepClear(arm.smooth, arm.shoulder);
       solveArm(
         arm.shoulder,
         arm.smooth,
@@ -679,18 +803,59 @@ export default function BoxerRig({
       );
     }
 
-    if (legL.current && legR.current) {
-      const bounce = pose === 'idle' ? Math.sin(t * 6.1) * 0.08 * wt.bounce : 0;
-      const wide = posing && walkStyle === 'stomp' ? 0.12 : 0;
-      const l = walking ? stride * gait.stride : punch ? 0.18 : pose === 'down' ? 0.55 : bounce + 0.12 + wide;
-      const r = walking ? -stride * gait.stride : punch ? -0.22 : pose === 'down' ? 0.3 : -bounce - 0.14 - wide;
-      legL.current.rotation.x = THREE.MathUtils.lerp(legL.current.rotation.x, -l, 0.22);
-      legR.current.rotation.x = THREE.MathUtils.lerp(legR.current.rotation.x, -r, 0.22);
+    const bounce = pose === 'idle' ? Math.sin(t * 6.1) * 0.08 * wt.bounce : 0;
+    const wide = posing && walkStyle === 'stomp' ? 0.12 : 0;
+    if (dancing && root.current) {
+      root.current.updateMatrix();
+      _rootInv.copy(root.current.matrix).invert();
     }
+    for (const s of [-1, 1] as const) {
+      const hip = (s < 0 ? hipL : hipR).current;
+      const leg = (s < 0 ? legL : legR).current;
+      const shin = (s < 0 ? shinL : shinR).current;
+      const foot = (s < 0 ? footL : footR).current;
+      if (!hip || !leg || !shin || !foot) continue;
+      const lerp = THREE.MathUtils.lerp;
+      if (dancing && root.current) {
+        const f = s < 0 ? dancing.footL : dancing.footR;
+        // Feet are placed on the floor under the rig, turning with the body but
+        // not riding its sway or crouch, so the knees take up the difference.
+        _ankle
+          .set(s * (ANKLE_X + f[0]), ANKLE_Y + f[1], f[2])
+          .applyAxisAngle(_up, root.current.rotation.y)
+          .applyMatrix4(_rootInv)
+          .sub(hip.position);
+        const twist = -s * (s < 0 ? dancing.kneeL : dancing.kneeR);
+        _ankle.applyAxisAngle(_up, -twist);
+        solveLeg([0, 0, 0], [_ankle.x, _ankle.y, _ankle.z], legAngles);
+        const k = 0.5;
+        hip.rotation.y = lerp(hip.rotation.y, twist, k);
+        leg.rotation.z = lerp(leg.rotation.z, legAngles.splay, k);
+        leg.rotation.x = lerp(leg.rotation.x, legAngles.pitch, k);
+        shin.rotation.x = lerp(shin.rotation.x, legAngles.knee, k);
+        const toe = s < 0 ? dancing.toeL : dancing.toeR;
+        foot.rotation.x = lerp(foot.rotation.x, -(legAngles.pitch + legAngles.knee) - toe, k);
+        foot.rotation.z = lerp(foot.rotation.z, -legAngles.splay, k);
+        foot.rotation.y = lerp(foot.rotation.y, -twist * 0.6, k);
+      } else {
+        const swing =
+          s < 0
+            ? walking ? stride * gait.stride : punch ? 0.18 : pose === 'down' ? 0.55 : bounce + 0.12 + wide
+            : walking ? -stride * gait.stride : punch ? -0.22 : pose === 'down' ? 0.3 : -bounce - 0.14 - wide;
+        hip.rotation.y = lerp(hip.rotation.y, 0, 0.3);
+        leg.rotation.x = lerp(leg.rotation.x, -swing, 0.22);
+        leg.rotation.z = lerp(leg.rotation.z, -0.1 * s, 0.35);
+        shin.rotation.x = lerp(shin.rotation.x, 0, 0.3);
+        foot.rotation.set(lerp(foot.rotation.x, 0, 0.3), lerp(foot.rotation.y, 0, 0.3), lerp(foot.rotation.z, 0, 0.3));
+      }    }
   });
 
   const bruise = Math.min(1, Math.max(0, wear));
   const heavy = loadout.body === 'heavy';
+  // A heavyweight wears them higher and wider, so the gut sits in the waistband.
+  const waist = heavy
+    ? { r: 0.24, flare: -0.02, trunksY: 0.485, trunksH: 0.31, bandY: 0.665 }
+    : { r: 0.2, flare: 0.024, trunksY: 0.465, trunksH: 0.27, bandY: 0.63 };
 
   const arm = (side: 1 | -1, up: React.RefObject<THREE.Group>, fore: React.RefObject<THREE.Group>) => (
     <>
@@ -721,81 +886,129 @@ export default function BoxerRig({
     >
       <group ref={root}>
         {([-1, 1] as const).map((s) => (
-          <group key={s} ref={s < 0 ? legL : legR} position={[0.12 * s, 0.4, s < 0 ? 0.05 : -0.05]} rotation={[0, 0, -0.1 * s]}>
-            <mesh position={[0, -0.02, 0]} material={mats.trunks} castShadow>
-              <cylinderGeometry args={[0.1, 0.105, 0.1, 14]} />
-            </mesh>
-            <mesh position={[0, -0.075, 0]} material={mats.wrap}>
-              <cylinderGeometry args={[0.107, 0.107, 0.02, 14]} />
-            </mesh>
-            <mesh position={[0, -0.19, 0]} material={mats.body} castShadow>
-              <capsuleGeometry args={[0.062, 0.18, 6, 12]} />
-            </mesh>
-            <Sneaker shoe={mats.shoe} sole={mats.sole} stripe={mats.stripe} />
+          <group key={s} ref={s < 0 ? hipL : hipR} position={[HIP_X * s, HIP_Y, s < 0 ? HIP.z : -HIP.z]}>
+            <group ref={s < 0 ? legL : legR} rotation={[0, 0, -0.1 * s, 'ZXY']}>
+              <mesh position={[0, -0.1, 0]} material={mats.body} castShadow>
+                <capsuleGeometry args={[0.066, THIGH - 0.1, 6, 12]} />
+              </mesh>
+              <group ref={s < 0 ? shinL : shinR} position={[0, -THIGH, 0]}>
+                <mesh material={mats.body} castShadow>
+                  <sphereGeometry args={[0.064, 14, 10]} />
+                </mesh>
+                <mesh position={[0, -SHIN / 2, 0]} material={mats.body} castShadow>
+                  <capsuleGeometry args={[0.06, SHIN - 0.08, 6, 12]} />
+                </mesh>
+                <group position={[0, -SHIN, 0]}>
+                  <BootShaft shoe={mats.shoe} sole={mats.sole} stripe={mats.stripe} />
+                </group>
+                <group ref={s < 0 ? footL : footR} position={[0, -SHIN, 0]} rotation={[0, 0, 0, 'XZY']}>
+                  <Sneaker shoe={mats.shoe} sole={mats.sole} stripe={mats.stripe} />
+                </group>
+              </group>
+            </group>
           </group>
         ))}
 
-        <mesh position={[0, 0.5, 0]} material={mats.trunks} castShadow>
-          <cylinderGeometry args={[0.2, 0.215, 0.2, 18]} />
+        {/* One loose piece, open at the hem, so a lifted knee comes out from under it. */}
+        <mesh position={[0, waist.trunksY, 0]} material={mats.trunks} castShadow>
+          <cylinderGeometry args={[waist.r, waist.r + waist.flare, waist.trunksH, 40, 1, true]} />
+        </mesh>
+        <mesh position={[0, waist.trunksY - waist.trunksH / 2 + 0.012, 0]} material={mats.band}>
+          <cylinderGeometry args={[waist.r + waist.flare + 0.004, waist.r + waist.flare + 0.006, 0.024, 40, 1, true]} />
         </mesh>
         {([-1, 1] as const).map((s) => (
-          <mesh key={s} position={[0.205 * s, 0.49, 0]} rotation={[0, 0, 0.06 * s]} material={mats.wrap}>
-            <boxGeometry args={[0.018, 0.2, 0.05]} />
+          <mesh
+            key={s}
+            position={[(waist.r + waist.flare / 2 + 0.002) * s, waist.trunksY + 0.005, 0]}
+            rotation={[0, 0, Math.atan2(waist.flare, waist.trunksH) * s]}
+            material={mats.wrap}
+          >
+            <boxGeometry args={[0.014, waist.trunksH - 0.035, 0.05]} />
           </mesh>
         ))}
-        <mesh position={[0, 0.63, 0]} material={mats.wrap} castShadow>
-          <cylinderGeometry args={[0.205, 0.2, 0.08, 18]} />
+        <mesh position={[0, waist.bandY, 0]} material={mats.band} castShadow>
+          <cylinderGeometry args={[waist.r + 0.008, waist.r + 0.003, 0.085, 32]} />
         </mesh>
+        {[-0.03, 0.03].map((dy) => (
+          <mesh key={dy} position={[0, waist.bandY + dy, 0]} material={mats.gold}>
+            <torusGeometry args={[waist.r + 0.007, 0.006, 6, 40]} />
+          </mesh>
+        ))}
+        <group position={[0, waist.bandY, waist.r + 0.005]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh material={mats.gold} castShadow>
+            <cylinderGeometry args={[0.052, 0.052, 0.02, 28]} />
+          </mesh>
+          <mesh position={[0, -0.011, 0]} material={mats.band}>
+            <cylinderGeometry args={[0.034, 0.034, 0.004, 24]} />
+          </mesh>
+        </group>
         {heavy && (
-          // Hangs over the waistband rather than through it: where it meets the
-          // band its front is well inside the band's radius, and above the band
-          // it is well outside, so the two never sit close enough to flicker.
-          <mesh position={[0, 0.78, 0.07]} scale={[1, 0.8, 1]} material={mats.body} castShadow>
-            <sphereGeometry args={[0.17, 18, 14]} />
+          // One round gut that runs into the chest and tucks into the waistband.
+          // At the band its front stays inside the band; just above, it rolls
+          // out past it, so the overhang reads without the surfaces flickering.
+          <mesh position={[0, 0.8, 0.05]} scale={[1.05, 0.9, 1]} material={mats.body} castShadow>
+            <sphereGeometry args={[0.22, 40, 30]} />
           </mesh>
         )}
 
         <group ref={torso} position={[0, TORSO_Y, 0]}>
           <mesh position={[0, 0.08, 0]} scale={[1, 0.82, 0.82]} material={mats.body} castShadow>
-            <sphereGeometry args={[0.21, 18, 14]} />
+            <sphereGeometry args={[0.21, 36, 26]} />
           </mesh>
-          <mesh position={[0, -0.03, 0]} material={mats.wrap}>
-            <cylinderGeometry args={[0.2, 0.205, 0.06, 18]} />
-          </mesh>
+          {!heavy && (
+            <mesh position={[0, -0.03, 0]} material={mats.wrap}>
+              <cylinderGeometry args={[0.2, 0.205, 0.06, 18]} />
+            </mesh>
+          )}
 
           {arm(-1, upL, foreL)}
           {arm(1, upR, foreR)}
 
           <group ref={head} position={HEAD}>
             <mesh material={mats.body} castShadow>
-              <sphereGeometry args={[HEAD_R, 28, 22]} />
+              <sphereGeometry args={[HEAD_R, 48, 36]} />
             </mesh>
             <group ref={eyes} position={[0, 0.04, 0]}>
               {([-1, 1] as const).map((s) => (
                 <group key={s} position={[0.085 * s, 0, 0.235]} rotation={[0, 0.3 * s, 0]}>
                   <mesh scale={[0.9, 1.15, 0.5]} material={mats.eyeWhite}>
-                    <sphereGeometry args={[0.055, 14, 12]} />
+                    <sphereGeometry args={[0.056, 24, 18]} />
                   </mesh>
-                  <mesh position={[-0.01 * s, -0.005, 0.024]} scale={[1, 1.2, 0.6]} material={mats.ink}>
-                    <sphereGeometry args={[0.03, 12, 10]} />
+                  <mesh position={[-0.01 * s, -0.006, 0.022]} scale={[1, 1.2, 0.6]} material={mats.ink}>
+                    <sphereGeometry args={[0.034, 20, 16]} />
                   </mesh>
-                  <mesh position={[-0.018 * s, 0.012, 0.042]} material={mats.eyeWhite}>
-                    <sphereGeometry args={[0.009, 6, 6]} />
+                  <mesh position={[-0.02 * s, 0.014, 0.043]} material={mats.eyeWhite}>
+                    <sphereGeometry args={[0.011, 10, 8]} />
+                  </mesh>
+                  <mesh position={[0.002 * s, -0.018, 0.04]} material={mats.eyeWhite}>
+                    <sphereGeometry args={[0.005, 8, 6]} />
+                  </mesh>
+                  {/* Upper lid, tipped in toward the nose: the fighter's scowl. */}
+                  <mesh
+                    position={[0, 0.012, 0.004]}
+                    rotation={[-0.2, 0, 0.32 * s]}
+                    scale={[0.98, 1.2, 0.56]}
+                    material={mats.lid}
+                  >
+                    <sphereGeometry args={[0.059, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.36]} />
                   </mesh>
                 </group>
               ))}
             </group>
             {([-1, 1] as const).map((s) => (
-              <mesh key={s} position={[0.085 * s, 0.13, 0.225]} rotation={[0.3, 0.3 * s, 0.35 * s]} material={mats.ink}>
-                <capsuleGeometry args={[0.016, 0.07, 4, 8]} />
+              <mesh key={s} position={[0.088 * s, 0.128, 0.228]} rotation={[0.3, 0.3 * s, 0.42 * s]} scale={[1, 1, 0.7]} material={mats.ink}>
+                <capsuleGeometry args={[0.02, 0.08, 6, 12]} />
               </mesh>
             ))}
             <group ref={mouth} position={[0, -0.085, 0.245]} rotation={[0.35, 0, 0]}>
               <mesh scale={[1, 0.45, 0.4]} material={mats.mouth}>
                 <sphereGeometry args={[0.06, 14, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2]} />
               </mesh>
-              <mesh position={[0, -0.002, 0.004]} material={mats.teeth}>
-                <boxGeometry args={[0.09, 0.012, 0.02]} />
+              <mesh position={[0, -0.002, 0.004]} rotation={[0, 0, Math.PI / 2]} scale={[1, 1, 0.5]} material={mats.guard}>
+                <capsuleGeometry args={[0.011, 0.075, 6, 12]} />
+              </mesh>
+              <mesh position={[0, 0.004, 0.01]} scale={[1, 1, 0.5]} material={mats.teeth}>
+                <boxGeometry args={[0.05, 0.006, 0.01]} />
               </mesh>
             </group>
             {bruise > 0.15 && (

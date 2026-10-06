@@ -41,7 +41,7 @@ import BoxingMatch from '../battle/ui/BoxingMatch';
 import NowPlaying from '../battle/ui/NowPlaying';
 import Roster from '../battle/ui/Roster';
 import { bracketFighters, pairFighters, spectators } from '../battle/bout';
-import LockerRoom from '../fight3d/LockerRoom';
+import { CreateBoxerButton } from '../fight3d/LockerRoom';
 import { encodeLoadout, type FighterLoadout } from '../fight3d/loadout';
 import {
   Card,
@@ -550,17 +550,11 @@ export default function BattleRoom() {
                 }
               />
             )}
-          </Card>
 
-          {token && me && (
-            <Card>
-              <SectionLabel>Your fighter</SectionLabel>
-              <p className="bt-sub" style={{ marginTop: 6 }}>
-                Customise while the rest of the room locks songs in.
-              </p>
-              <LockerRoom name={me.display_name} seed={me.avatar_seed} onChange={persistLoadout} />
-            </Card>
-          )}
+            {token && me && (!classic || mySongs.length > 0 || (isHost && judging)) && (
+              <CreateBoxerButton name={me.display_name} seed={me.avatar_seed} onChange={persistLoadout} />
+            )}
+          </Card>
 
           <Card>
             <SectionLabel>

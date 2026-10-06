@@ -168,10 +168,29 @@ function bounceOut(t: number): number {
   return n1 * x * x + 0.984375;
 }
 
-/** Canvas bounce after a knockdown — they hit, pop, settle. */
+/** How long a knocked-out boxer takes to tip from standing onto the canvas. */
+export const KNOCKDOWN_FALL = 0.55;
+
+/**
+ * Backward lean during a knockdown, in radians (negative tips them away from
+ * the foe). Gravity-eased so the drop accelerates, then a small rebound off
+ * the canvas that dies out.
+ */
+export function knockdownTilt(age: number): number {
+  const lie = -1.08;
+  if (age < KNOCKDOWN_FALL) {
+    const u = age / KNOCKDOWN_FALL;
+    return lie * u * u;
+  }
+  const after = age - KNOCKDOWN_FALL;
+  return lie + Math.abs(Math.sin(after * 11)) * 0.12 * Math.exp(-after * 6);
+}
+
+/** Canvas bounce after a knockdown: flat while they fall, a small pop on landing, then still. */
 export function knockdownY(age: number): number {
-  const fall = Math.min(1, age / 0.62);
-  return 0.7 * (1 - bounceOut(fall));
+  if (age < KNOCKDOWN_FALL) return 0;
+  const after = age - KNOCKDOWN_FALL;
+  return 0.03 + Math.abs(Math.sin(after * 11)) * 0.06 * Math.exp(-after * 6);
 }
 
 export function idleMotion(t: number, bounce: number): { y: number; x: number; weave: number } {

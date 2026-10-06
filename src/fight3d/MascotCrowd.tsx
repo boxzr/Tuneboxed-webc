@@ -19,16 +19,21 @@ interface Part {
   rot?: [number, number, number];
   scale?: [number, number, number];
   hand?: 1 | -1;
+  extra?: 'hat' | 'foam';
 }
 
 const GEO = {
-  head: new THREE.SphereGeometry(0.2, 12, 9),
-  shirt: new THREE.CylinderGeometry(0.15, 0.19, 0.42, 10),
+  head: new THREE.SphereGeometry(0.2, 14, 10),
+  shirt: new THREE.CylinderGeometry(0.15, 0.19, 0.42, 12),
   stem: new THREE.CapsuleGeometry(0.03, 0.12, 3, 6),
   flag: new THREE.CapsuleGeometry(0.038, 0.12, 3, 6),
   eye: new THREE.SphereGeometry(0.032, 8, 6),
   pupil: new THREE.SphereGeometry(0.018, 6, 5),
   hand: new THREE.SphereGeometry(0.055, 8, 6),
+  thigh: new THREE.CapsuleGeometry(0.055, 0.16, 3, 6),
+  hat: new THREE.CylinderGeometry(0.16, 0.18, 0.08, 10),
+  brim: new THREE.CylinderGeometry(0.22, 0.22, 0.02, 12),
+  foam: new THREE.BoxGeometry(0.05, 0.22, 0.08),
 };
 
 const PARTS: Part[] = [
@@ -42,6 +47,11 @@ const PARTS: Part[] = [
   { geo: GEO.pupil, tint: 'ink', pos: [0.058, 0.905, 0.198], scale: [1, 1.2, 0.6] },
   { geo: GEO.hand, tint: 'body', pos: [-0.17, 0.42, 0.1], hand: -1 },
   { geo: GEO.hand, tint: 'body', pos: [0.17, 0.42, 0.1], hand: 1 },
+  { geo: GEO.thigh, tint: 'shirt', pos: [-0.07, 0.18, 0.02], rot: [0.4, 0, 0.08] },
+  { geo: GEO.thigh, tint: 'shirt', pos: [0.07, 0.18, 0.02], rot: [0.4, 0, -0.08] },
+  { geo: GEO.hat, tint: 'shirt', pos: [0, 1.08, 0.02], extra: 'hat' },
+  { geo: GEO.brim, tint: 'shirt', pos: [0, 1.04, 0.02], extra: 'hat' },
+  { geo: GEO.foam, tint: 'eye', pos: [0.22, 0.72, 0.12], extra: 'foam' },
 ];
 
 /** Muted note paints. A crowd reads as a mass, not as confetti. */
@@ -87,6 +97,8 @@ export default function MascotCrowd({ seats, hype = 0 }: { seats: Seat[]; hype?:
         phase: hash(i) * Math.PI * 2,
         tempo: 3.4 + hash(i + 3) * 1.6,
         eager: hash(i + 11),
+        hat: hash(i + 17) < 0.28,
+        foam: hash(i + 19) < 0.16,
         colors: {
           body: BODY[Math.floor(hash(i + 1) * BODY.length)],
           shirt: team
@@ -141,6 +153,17 @@ export default function MascotCrowd({ seats, hype = 0 }: { seats: Seat[]; hype?:
           const raise = up ? 0.55 + Math.max(0, Math.sin(t * f.tempo + f.phase + p.hand)) * 0.12 : 0;
           _local.makeTranslation(p.hand * (0.17 + raise * 0.08), 0.42 + raise, 0.1 + raise * 0.05);
           mesh.setMatrixAt(i, _out.multiplyMatrices(_fan, _local));
+        } else if (p.extra === 'hat') {
+          _s.setScalar(f.hat ? 1 : 0.001);
+          _e.set(...(p.rot ?? [0, 0, 0]));
+          _q.setFromEuler(_e);
+          _local.compose(_p.set(...p.pos), _q, _s);
+          mesh.setMatrixAt(i, _out.multiplyMatrices(_fan, _local));
+        } else if (p.extra === 'foam') {
+          const raise = up && f.foam ? 0.7 + Math.max(0, Math.sin(t * f.tempo + f.phase)) * 0.15 : 0;
+          _s.setScalar(f.foam && up ? 1 : 0.001);
+          _local.compose(_p.set(0.22, 0.42 + raise, 0.1 + raise * 0.04), _q.identity(), _s);
+          mesh.setMatrixAt(i, _out.multiplyMatrices(_fan, _local));
         } else {
           mesh.setMatrixAt(i, _out.multiplyMatrices(_fan, restLocals[pi]));
         }
@@ -175,7 +198,7 @@ export function standSeats({
   rows,
   rowDepth = 0.62,
   rise = 0.34,
-  spacing = 0.46,
+  spacing = 0.4,
   sides = ['back', 'left', 'right'],
   look = [0, 0],
 }: {

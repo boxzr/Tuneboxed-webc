@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import BoxerRig from './BoxerRig';
-import type { WalkStyle } from './walkStyles';
+import { PLAN, walkPlan, type WalkStyle } from './walkStyles';
+import type { Dance } from './dances';
 import { CANVAS_FONT, useCanvasFonts } from './canvasFont';
 import MascotCrowd, { Risers, standSeats, type Seat } from './MascotCrowd';
 import RingScene, { RING_HALF } from './RingScene';
@@ -17,6 +18,10 @@ export interface Walker {
   songArtist?: string;
   artworkUrl?: string | null;
   style?: WalkStyle;
+  /** Signature dance, on stage and at the apron. */
+  dance?: Dance;
+  /** The second dance, mid-aisle. */
+  encore?: Dance;
 }
 
 export const SIDE_ACCENT = { a: '#3b9eff', b: '#fd7a1a' } as const;
@@ -27,21 +32,14 @@ const APRON_Z = -(RING_HALF + 2.3);
 const CAM_MAX_Z = -(RING_HALF + 0.2);
 const AISLE_HALF = 1.0;
 const RAMP_Y = 0.32;
-/** Share of the song spent posing on stage, and when they reach the apron. */
-const STAGE_END = 0.14;
-const ARRIVE = 0.82;
-
-function smooth(t: number) {
-  const x = Math.min(1, Math.max(0, t));
-  return x * x * (3 - 2 * x);
-}
+const { stageEnd: STAGE_END, pauseStart: PAUSE_START, pauseEnd: PAUSE_END, arrive: ARRIVE } = PLAN;
 
 function aisleSeats(): Seat[] {
   const out: Seat[] = [];
   for (const s of [-1, 1]) {
     for (let r = 0; r < 5; r++) {
-      const x = s * (AISLE_HALF + 0.65 + r * 0.55);
-      for (let z = STAGE_Z + 1.8 + (r % 2) * 0.23; z < -(RING_HALF + 0.8); z += 0.46) {
+      const x = s * (AISLE_HALF + 0.72 + r * 0.5);
+      for (let z = STAGE_Z + 1.8 + (r % 2) * 0.2; z < -(RING_HALF + 0.8); z += 0.4) {
         out.push({ x, y: r * 0.3 + 0.12, z, yaw: Math.atan2(-x, 0.6) });
       }
     }
@@ -274,20 +272,21 @@ function Spot({
   );
 }
 
-type Shot = 'stage' | 'lead' | 'side' | 'apron';
+type Shot = 'stage' | 'lead' | 'crowd' | 'side' | 'apron';
 
 function shotFor(p: number): Shot {
   if (p < STAGE_END) return 'stage';
-  if (p < 0.48) return 'lead';
+  if (p < PAUSE_START) return 'lead';
+  if (p < PAUSE_END) return 'crowd';
   if (p < ARRIVE) return 'side';
   return 'apron';
 }
 
 /**
- * Entrance in the spirit of the WWE 2K14 walkouts: the fighter hits a pose
- * on stage under the titantron (their cover art and song), walks the ramp
- * through the crowd while the director cuts between angles, and squares up
- * at the apron as the clip runs out.
+ * Entrance in the spirit of the WWE 2K14 walkouts: the fighter dances on
+ * stage under the titantron (their cover art and song), walks the ramp,
+ * stops halfway to break into a second dance for the crowd, and dances again
+ * at the apron as the clip runs out, while the director cuts between angles.
  *
  * Driven by the song's clock: `offset` is seconds into the preview and
  * `duration` its length, so a board that joins late lands mid-walk.
@@ -312,7 +311,9 @@ export default function Walkout({
   const camPos = useRef(new THREE.Vector3(0, 3, STAGE_Z + 9));
   const camLook = useRef(new THREE.Vector3(0, 2, STAGE_Z));
   const [pose, setPose] = useState<BoxerPose>('taunt');
-  const [pyro, setPyro] = useState<'stage' | 'ring' | null>('stage');
+  const danceRef = useRef<'main' | 'encore'>('main');
+  const [move, setMove] = useState<'main' | 'encore'>('main');
+  const [pyro, setPyro] = useState<'stage' | 'aisle' | 'ring' | null>('stage');
 
   useEffect(() => {
     const now = performance.now();
@@ -321,23 +322,34 @@ export default function Walkout({
   }, [offset]);
 
   const aisle = useMemo(aisleSeats, []);
-  const stands = useMemo(() => standSeats({ inner: RING_HALF + 1.7, rows: 8, sides: ['left', 'right', 'front'] }), []);
+  const stands = useMemo(() => standSeats({ inner: RING_HALF + 1.7, rows: 10, sides: ['left', 'right', 'front'] }), []);
   const tron = useTitantron(walker, accent);
 
   useFrame(({ clock: three }) => {
     const t = three.elapsedTime;
     const elapsed = clock.current.offset + (performance.now() - clock.current.at) / 1000;
     const p = Math.min(1.05, Math.max(0, elapsed / Math.max(1, duration)));
-    const walk = smooth((p - STAGE_END) / (ARRIVE - STAGE_END));
-    const z = THREE.MathUtils.lerp(STAGE_Z + 0.2, APRON_Z, walk);
+    const plan = walkPlan(p);
+    const z = THREE.MathUtils.lerp(STAGE_Z + 0.2, APRON_Z, plan.along);
     const onRamp = z > APRON_Z - 0.6 ? 0 : RAMP_Y;
 
-    const nextPose: BoxerPose = p < STAGE_END || p >= ARRIVE ? 'taunt' : 'walk';
+    const nextPose: BoxerPose = plan.move === 'dance' ? 'taunt' : 'walk';
     if (nextPose !== poseRef.current) {
       poseRef.current = nextPose;
       setPose(nextPose);
     }
-    const nextPyro = p < STAGE_END * 0.85 ? 'stage' : p > ARRIVE && p < ARRIVE + 0.08 ? 'ring' : null;
+    if (plan.dance !== danceRef.current) {
+      danceRef.current = plan.dance;
+      setMove(plan.dance);
+    }
+    const nextPyro =
+      p < STAGE_END * 0.85
+        ? 'stage'
+        : p > PAUSE_START && p < PAUSE_START + 0.05
+          ? 'aisle'
+          : p > ARRIVE && p < ARRIVE + 0.08
+            ? 'ring'
+            : null;
     setPyro((cur) => (cur === nextPyro ? cur : nextPyro));
 
     if (body.current) {
@@ -362,6 +374,11 @@ export default function Walkout({
     } else if (shot === 'lead') {
       want.set(0.25 * Math.sin(t * 0.4), 0.85 + onRamp, z + 3.6);
       look.y = 1.15 + onRamp;
+    } else if (shot === 'crowd') {
+      // Low and in front, drifting across, so the dance reads full-length with fans behind.
+      const k = (p - PAUSE_START) / (PAUSE_END - PAUSE_START);
+      want.set(THREE.MathUtils.lerp(-1.6, 1.6, k), 0.75 + onRamp, z + 2.7);
+      look.y = 0.95 + onRamp;
     } else if (shot === 'side') {
       want.set(0.85, 1.25 + onRamp, Math.min(z + 2.4, CAM_MAX_Z));
     } else {
@@ -398,21 +415,66 @@ export default function Walkout({
 
       <mesh position={[0, RAMP_Y / 2, rampMid]} receiveShadow castShadow>
         <boxGeometry args={[AISLE_HALF * 2, RAMP_Y, rampLen]} />
-        <meshStandardMaterial color="#14101c" roughness={0.55} />
+        <meshStandardMaterial color="#1a1524" roughness={0.42} metalness={0.18} />
       </mesh>
+      {Array.from({ length: 14 }, (_, i) => {
+        const z = STAGE_Z + 1.2 + ((i + 0.5) / 14) * (rampLen - 1.6);
+        return (
+          <mesh key={`led${i}`} position={[0, RAMP_Y + 0.012, z]}>
+            <boxGeometry args={[AISLE_HALF * 1.7, 0.01, 0.08]} />
+            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.6} toneMapped={false} />
+          </mesh>
+        );
+      })}
+      {Array.from({ length: 4 }, (_, i) => {
+        const h = RAMP_Y - (i + 1) * 0.07;
+        return (
+          <mesh key={`step${i}`} position={[0, h / 2, APRON_Z - 0.54 + i * 0.13]} receiveShadow>
+            <boxGeometry args={[AISLE_HALF * 2, h, 0.13]} />
+            <meshStandardMaterial color="#221a2e" roughness={0.5} metalness={0.12} />
+          </mesh>
+        );
+      })}
+      <mesh position={[0, 7.2, rampMid]}>
+        <boxGeometry args={[6.4, 0.12, rampLen + 1.4]} />
+        <meshStandardMaterial color="#121018" metalness={0.55} roughness={0.4} />
+      </mesh>
+      {([-2.8, -1.4, 0, 1.4, 2.8] as const).map((x) => (
+        <mesh key={`truss${x}`} position={[x, 6.4, rampMid]}>
+          <boxGeometry args={[0.08, 1.5, 0.08]} />
+          <meshStandardMaterial color="#2a2433" metalness={0.6} roughness={0.35} />
+        </mesh>
+      ))}
       {([-1, 1] as const).map((s) => (
         <group key={s}>
           <mesh position={[s * (AISLE_HALF - 0.02), RAMP_Y + 0.01, rampMid]}>
             <boxGeometry args={[0.05, 0.02, rampLen]} />
-            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2} toneMapped={false} />
+            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2.4} toneMapped={false} />
           </mesh>
           <mesh position={[s * (AISLE_HALF + 0.01), RAMP_Y / 2, rampMid]}>
             <boxGeometry args={[0.02, RAMP_Y * 0.4, rampLen]} />
-            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.2} toneMapped={false} />
+            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.4} toneMapped={false} />
           </mesh>
-          <mesh position={[s * (AISLE_HALF + 0.3), 0.45, rampMid + 0.6]} castShadow>
-            <boxGeometry args={[0.08, 0.9, rampLen - 2]} />
-            <meshStandardMaterial color="#1c1726" roughness={0.5} metalness={0.4} />
+          {Array.from({ length: 8 }, (_, i) => {
+            const z = STAGE_Z + 1.4 + (i / 7) * (rampLen - 2);
+            return (
+              <mesh key={i} position={[s * (AISLE_HALF + 0.28), 0.55, z]} castShadow>
+                <boxGeometry args={[0.07, 1.1, 0.07]} />
+                <meshStandardMaterial color="#2a2436" metalness={0.45} roughness={0.4} />
+              </mesh>
+            );
+          })}
+          <mesh position={[s * (AISLE_HALF + 0.28), 1.12, rampMid]} castShadow>
+            <boxGeometry args={[0.05, 0.05, rampLen - 1.6]} />
+            <meshStandardMaterial color="#d4af37" metalness={0.7} roughness={0.3} />
+          </mesh>
+          <mesh position={[s * (AISLE_HALF + 0.42), 0.7, rampMid]} rotation={[0, 0, s * 0.08]} castShadow>
+            <boxGeometry args={[0.04, 0.9, rampLen - 1.8]} />
+            <meshStandardMaterial color="#14101c" roughness={0.55} transparent opacity={0.55} />
+          </mesh>
+          <mesh position={[s * (AISLE_HALF + 0.55), 0.85, rampMid]} rotation={[0, -s * 0.12, 0]}>
+            <planeGeometry args={[0.7, 1.4]} />
+            <meshStandardMaterial color={s < 0 ? '#1d4ed8' : '#ea580c'} emissive={s < 0 ? '#1d4ed8' : '#ea580c'} emissiveIntensity={0.35} toneMapped={false} />
           </mesh>
         </group>
       ))}
@@ -455,15 +517,24 @@ export default function Walkout({
 
       <Sparks at={[3.4, RAMP_Y, STAGE_Z - 0.2]} color={accent} active={pyro === 'stage'} />
       <Sparks at={[-3.4, RAMP_Y, STAGE_Z - 0.2]} color={accent} active={pyro === 'stage'} />
+      <Sparks at={[AISLE_HALF + 0.3, 0.9, (STAGE_Z + APRON_Z) / 2]} color="#ffffff" active={pyro === 'aisle'} />
+      <Sparks at={[-AISLE_HALF - 0.3, 0.9, (STAGE_Z + APRON_Z) / 2]} color="#ffffff" active={pyro === 'aisle'} />
       <Sparks at={[RING_HALF, 1.85, -RING_HALF]} color="#ffd36b" active={pyro === 'ring'} />
       <Sparks at={[-RING_HALF, 1.85, -RING_HALF]} color="#ffd36b" active={pyro === 'ring'} />
 
       <MascotCrowd seats={aisle} hype={0.8} />
-      <Risers inner={RING_HALF + 1.7} rows={8} sides={['left', 'right', 'front']} accent={accent} />
+      <Risers inner={RING_HALF + 1.7} rows={10} sides={['left', 'right', 'front']} accent={accent} />
       <MascotCrowd seats={stands} hype={0.5} />
 
       <group ref={body} position={[0, RAMP_Y, STAGE_Z + 0.2]}>
-        <BoxerRig loadout={walker.loadout} pose={pose} facing={1} faceCamera walkStyle={walker.style} />
+        <BoxerRig
+          loadout={walker.loadout}
+          pose={pose}
+          facing={1}
+          faceCamera
+          walkStyle={walker.style}
+          dance={(move === 'encore' ? walker.encore : walker.dance) ?? walker.loadout.dance}
+        />
       </group>
     </>
   );

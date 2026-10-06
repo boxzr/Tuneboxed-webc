@@ -12,6 +12,7 @@ import { usePickSeconds } from '../battle/usePickSeconds';
 import { useAudioSettings } from '../battle/useAudioSettings';
 import { BRACKET_CAP, PARTY_ROUNDS } from '../battle/rules';
 import { type HostContext, nextHostAction } from '../battle/hostActions';
+import { resolvedVoting } from '../battle/GameSettings';
 import {
   bracketEntrants,
   classicReady,
@@ -248,6 +249,52 @@ export default function BattleTV() {
   const needsAiJudge =
     isBracket && !chatTally && connected.length > 0 && connected.every(isCompetitor);
 
+  // Whoever is making the call this round can make it from the board, so a
+  // streamer judging on stream never has to leave the captured tab. A host's
+  // tap crowns straight away; a rotating judge's tap is their vote, which the
+  // host then reveals.
+  const voting = resolvedVoting(room);
+  const deciderId = chatTally
+    ? null
+    : judging || voting === 'host'
+      ? room.host_player_id
+      : voting === 'judge'
+        ? round?.judge_player_id ?? null
+        : null;
+  const canCrown = Boolean(
+    token && stored && round?.phase === 'judging' && deciderId && deciderId === stored.playerId
+  );
+  const me = players.find((p) => p.id === stored?.playerId) ?? null;
+  // "Everyone votes": anyone with a seat can vote from the board too, except
+  // the two in a bracket matchup.
+  const roomVoter = Boolean(
+    token &&
+      me &&
+      round?.phase === 'judging' &&
+      !chatTally &&
+      !judging &&
+      !needsAiJudge &&
+      voting === 'everyone' &&
+      !(isBracket && isCompetitor(me))
+  );
+  const crown = (submissionId: string) => {
+    if (!token || !round) return;
+    const sub = submissions.find((s) => s.id === submissionId);
+    if (roomVoter && !canCrown && me && sub && ownerOf(sub.player_id) === me.id) {
+      setActionError('You cannot vote for your own song.');
+      return;
+    }
+    setActionError(null);
+    setBusy(true);
+    battle
+      .castVote(token, round.id, submissionId)
+      .then(() => (isHost && canCrown ? battle.setRoundWinner(token, round.id, submissionId) : undefined))
+      .catch((e: Error) => setActionError(e.message))
+      .finally(() => setBusy(false));
+  };
+  const myVote = votes.find((v) => v.voter_player_id === stored?.playerId) ?? null;
+  const pickOpen = (canCrown && !(myVote && !isHost)) || (roomVoter && !myVote);
+
   const ballotCounts: Record<string, number> = {};
   for (const s of submissions) {
     ballotCounts[s.id] = chatTally
@@ -290,7 +337,7 @@ export default function BattleTV() {
   }
 
   const controls =
-    isHost && controlsAllowed ? (
+    (isHost || canCrown || roomVoter) && controlsAllowed ? (
       <HostBar
         action={action}
         busy={busy}
@@ -301,20 +348,19 @@ export default function BattleTV() {
           setEmbedBlocked(false);
         }}
         crownChoices={
-          judging && token && round?.phase === 'judging'
-            ? submissions.map((s) => ({
-                id: s.id,
-                label: s.song_title,
-                onCrown: () => {
-                  setActionError(null);
-                  setBusy(true);
-                  battle
-                    .castVote(token, round.id, s.id)
-                    .then(() => battle.setRoundWinner(token, round.id, s.id))
-                    .catch((e: Error) => setActionError(e.message))
-                    .finally(() => setBusy(false));
-                },
-              }))
+          (canCrown && !(myVote && !isHost)) || (roomVoter && !isHost && !myVote)
+            ? submissions
+                .filter((s) => canCrown || !me || ownerOf(s.player_id) !== me.id)
+                .map((s) => ({
+                  id: s.id,
+                  label: s.song_title,
+                  onCrown: () => crown(s.id),
+                }))
+            : null
+        }
+        waiting={
+          (canCrown || roomVoter) && myVote && !isHost
+            ? `You ${canCrown ? 'crowned' : 'voted for'} ${submissions.find((s) => s.id === myVote.submission_id)?.song_title ?? 'a song'}. ${nameOf(room.host_player_id)} reveals it.`
             : null
         }
         startSlider={
@@ -519,22 +565,21 @@ export default function BattleTV() {
             chatChannel={room.host_twitch_login}
             roundLabel={isBracket ? `Round ${room.round_number}` : `Round ${room.round_number} of ${PARTY_ROUNDS}`}
             fans={spectators(players, fight.a.name, fight.b.name)}
-            judgeName={judging ? room.host_twitch_login ?? nameOf(room.host_player_id) : null}
+            judgeName={
+              deciderId
+                ? deciderId === room.host_player_id
+                  ? room.host_twitch_login ?? nameOf(deciderId)
+                  : nameOf(deciderId)
+                : null
+            }
             onPick={
-              judging && token && round.phase === 'judging'
+              pickOpen && !busy
                 ? (side) => {
                     const pick = side === 'a' ? fight.a : fight.b;
                     const sub = submissions.find(
                       (s) => s.song_title === pick.songTitle && nameOf(s.player_id) === pick.name
                     ) ?? submissions[side === 'a' ? 0 : 1];
-                    if (!sub) return;
-                    setActionError(null);
-                    setBusy(true);
-                    battle
-                      .castVote(token, round.id, sub.id)
-                      .then(() => battle.setRoundWinner(token, round.id, sub.id))
-                      .catch((e: Error) => setActionError(e.message))
-                      .finally(() => setBusy(false));
+                    if (sub) crown(sub.id);
                   }
                 : undefined
             }
@@ -563,6 +608,7 @@ export default function BattleTV() {
                 submissions={submissions}
                 counts={ballotCounts}
                 chatChannel={room.host_twitch_login}
+                onCrown={pickOpen && !busy ? crown : undefined}
               />
             )}
 
@@ -603,8 +649,8 @@ const DEMO = {
     host_avatar_url: null,
   },
   players: [
-    { id: '1', display_name: 'Ashley', is_connected: true, avatar_seed: 'tb1.1.5.1.0.0.6.1' },
-    { id: '2', display_name: 'Marcus', is_connected: true, avatar_seed: 'tb1.0.5.0.1.1.6.1' },
+    { id: '1', display_name: 'Ashley', is_connected: true, avatar_seed: 'tb1.1.5.1.0.0.6.1.0' },
+    { id: '2', display_name: 'Marcus', is_connected: true, avatar_seed: 'tb1.0.5.0.1.1.6.1.6' },
     { id: '3', display_name: 'Jules', is_connected: true },
     { id: '4', display_name: 'Sam', is_connected: true },
     { id: '5', display_name: 'Devon', is_connected: true },
@@ -694,7 +740,7 @@ function useDemoBout(sample: typeof DEMO | null, freezePhase: string | null): ty
 
   const introTicks = DEMO_WALK_TICKS * 2;
   const votingTicks = 20;
-  const resultTicks = 9;
+  const resultTicks = 13;
   const step = tick % (introTicks + votingTicks + resultTicks);
   const intro = step < introTicks;
   const voting = step >= introTicks && step < introTicks + votingTicks;
@@ -752,6 +798,10 @@ function demoState(phase: string | null, genre: string | null): typeof DEMO {
       });
     case 'revealed':
       return at({ round: { ...base.round, phase: 'revealed', winner_submission_id: 's1' } });
+    case 'ko':
+      return at({
+        round: { ...base.round, phase: 'revealed', winner_submission_id: 's1', chat_tally: { s1: 24, s2: 0 } },
+      });
     case 'champion':
       return at({
         room: { status: 'complete', current_match_id: null },
@@ -880,6 +930,7 @@ function HostBar({
   onRun,
   startSlider,
   crownChoices,
+  waiting,
 }: {
   action: { label: string; disabled: boolean } | null;
   busy: boolean;
@@ -892,6 +943,8 @@ function HostBar({
   startSlider?: React.ReactNode;
   /** A judging host's verdict: one button per song, and a tap crowns it. */
   crownChoices?: { id: string; label: string; onCrown: () => void }[] | null;
+  /** Shown in place of the buttons once a judge who is not the host has voted. */
+  waiting?: string | null;
 }) {
   return (
     <div className={`tv-controls${visible ? ' tv-controls--on' : ''}`}>
@@ -905,7 +958,9 @@ function HostBar({
         </button>
       )}
 
-      {crownChoices ? (
+      {waiting ? (
+        <span className="tv-controls__idle">{waiting}</span>
+      ) : crownChoices ? (
         crownChoices.map((c) => (
           <button
             key={c.id}
@@ -1133,10 +1188,13 @@ function Ballot({
   submissions,
   counts,
   chatChannel,
+  onCrown,
 }: {
   submissions: BattleSubmission[];
   counts: Record<string, number>;
   chatChannel: string | null;
+  /** Set for whoever is judging, and turns each row into their verdict. */
+  onCrown?: (submissionId: string) => void;
 }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
@@ -1145,15 +1203,36 @@ function Ballot({
       {submissions.map((s, i) => {
         const count = counts[s.id] ?? 0;
         const share = total > 0 ? (count / total) * 100 : 0;
-        return (
-          <div key={s.id} className="tv-option">
+        const body = (
+          <>
             <div className="tv-option__bar" style={{ width: `${share}%` }} />
             <span className="tv-option__num">{i + 1}</span>
             <span className="tv-option__text">
               <strong>{s.song_title}</strong>
               <span>{s.song_artist}</span>
             </span>
-            <span className="tv-option__count">{count}</span>
+            {onCrown ? (
+              <span className="tv-option__crown">
+                <CrownIcon size={18} />
+                Crown
+              </span>
+            ) : (
+              <span className="tv-option__count">{count}</span>
+            )}
+          </>
+        );
+        return onCrown ? (
+          <button
+            key={s.id}
+            type="button"
+            className="tv-option tv-option--crown"
+            onClick={() => onCrown(s.id)}
+          >
+            {body}
+          </button>
+        ) : (
+          <div key={s.id} className="tv-option">
+            {body}
           </div>
         );
       })}

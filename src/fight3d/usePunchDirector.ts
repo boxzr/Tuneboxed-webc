@@ -72,6 +72,7 @@ export function usePunchDirector(
 } {
   const prev = useRef<DirectorState | null>(null);
   const busy = useRef(false);
+  const decidedRef = useRef(false);
   const queue = useRef<PunchEvent[]>([]);
   const timer = useRef(0);
   const comboTimer = useRef(0);
@@ -119,6 +120,7 @@ export function usePunchDirector(
     };
 
     if (winner) {
+      decidedRef.current = true;
       window.clearTimeout(timer.current);
       busy.current = false;
       queue.current = [];
@@ -126,8 +128,22 @@ export function usePunchDirector(
       return;
     }
 
-    const before = prev.current;
+    // A new fight: the last one's result poses and meters must not carry into it.
+    const before =
+      decidedRef.current || (prev.current && (votesA < prev.current.votesA || votesB < prev.current.votesB))
+        ? null
+        : prev.current;
     if (!before) {
+      decidedRef.current = false;
+      window.clearTimeout(timer.current);
+      window.clearTimeout(comboTimer.current);
+      busy.current = false;
+      queue.current = [];
+      setLive((cur) => ({ a: 'idle', b: 'idle', beat: cur.beat + 1, hits: 0 }));
+      setHeatA(0);
+      setHeatB(0);
+      setStreaks({ a: 0, b: 0, runA: 0, runB: 0 });
+      setCombo(null);
       prev.current = { ...emptyDirector(), votesA, votesB };
       return;
     }

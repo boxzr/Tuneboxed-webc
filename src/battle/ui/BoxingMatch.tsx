@@ -12,6 +12,7 @@ import FightCanvas from "../../fight3d/FightCanvas";
 import { COMBO_EVERY, HEAT_MAX } from "../../fight3d/punchDirector";
 import { usePunchDirector } from "../../fight3d/usePunchDirector";
 import { pickWalkStyles } from "../../fight3d/walkStyles";
+import { encoreFor } from "../../fight3d/dances";
 import { defaultLoadout, type FighterLoadout } from "../../fight3d/loadout";
 import type { RefCall } from "../../fight3d/Referee";
 import "./fight.css";
@@ -42,6 +43,11 @@ function bellRoundText(label: string) {
   return trimmed.toUpperCase();
 }
 
+/** "ROUND 1" holds this long, then "LET'S FIGHT!" until the total. */
+const BELL_ROUND_MS = 1000;
+const BELL_TOTAL_MS = 2000;
+const BELL_OVER_MS = 1600;
+
 function useFightBell(
   phase: BattleRoundPhase,
   decided: boolean,
@@ -58,13 +64,15 @@ function useFightBell(
 
   useEffect(() => {
     if (boutKey === "over") {
+      // A beat to land the call, then out of the way of the knockdown and the winner's dance.
       setBell("over");
-      return;
+      const t = window.setTimeout(() => setBell(null), BELL_OVER_MS);
+      return () => window.clearTimeout(t);
     }
     if (boutKey === "fight") {
       setBell("round");
-      const t1 = window.setTimeout(() => setBell("lets"), 1500);
-      const t2 = window.setTimeout(() => setBell(null), 3200);
+      const t1 = window.setTimeout(() => setBell("lets"), BELL_ROUND_MS);
+      const t2 = window.setTimeout(() => setBell(null), BELL_TOTAL_MS);
       return () => {
         window.clearTimeout(t1);
         window.clearTimeout(t2);
@@ -117,8 +125,16 @@ export default function BoxingMatch({
   const loser = winner === "a" ? "b" : winner === "b" ? "a" : null;
   const lastWalker = useRef<"a" | "b">("a");
   if (nowPlaying) lastWalker.current = nowPlaying;
+  // Once somebody has walked out and nothing is playing, the walkouts are over:
+  // ring the bell now instead of holding the last walkout until the server
+  // round-trips the switch to voting.
+  const walked = useRef(false);
+  if (phase !== "playing" || decided) walked.current = false;
+  else if (nowPlaying) walked.current = true;
   const walkoutSide =
-    !decided && phase === "playing" ? (nowPlaying ?? lastWalker.current) : null;
+    !decided && phase === "playing"
+      ? (nowPlaying ?? (walked.current ? null : lastWalker.current))
+      : null;
   const firstWalker = useRef<"a" | "b" | null>(null);
   if (!walkoutSide) firstWalker.current = null;
   else if (!firstWalker.current) firstWalker.current = walkoutSide;
@@ -151,7 +167,7 @@ export default function BoxingMatch({
       ),
     [fightKey, a.name, a.songTitle, b.name, b.songTitle],
   );
-  const call: RefCall = intro ? "intro" : bell === "over" ? "over" : "fight";
+  const call: RefCall = intro ? "intro" : decided ? "over" : "fight";
   const bellCopy =
     bell === "round"
       ? bellRoundText(roundLabel)
@@ -198,6 +214,11 @@ export default function BoxingMatch({
                   songArtist: walker.songArtist,
                   artworkUrl: walker.artworkUrl,
                   style: styles[walkoutSide],
+                  dance: (walkoutSide === "a" ? loadA : loadB).dance,
+                  encore: encoreFor(
+                    (walkoutSide === "a" ? loadA : loadB).dance,
+                    `${fightKey}|${walkoutSide}|${walker.name}`,
+                  ),
                 }
               : undefined
           }
@@ -217,6 +238,7 @@ export default function BoxingMatch({
           a={{
             name: a.name,
             loadout: loadA,
+            dance: loadA.dance,
             pose: poseA,
             beat,
             hits,
@@ -226,6 +248,7 @@ export default function BoxingMatch({
           b={{
             name: b.name,
             loadout: loadB,
+            dance: loadB.dance,
             pose: poseB,
             beat,
             hits,
@@ -277,17 +300,25 @@ export default function BoxingMatch({
           <div className="fight__crowns">
             <button
               type="button"
-              className="fight__crown-btn"
+              className="fight__crown-btn fight__crown-btn--a"
               onClick={() => onPick("a")}
             >
-              Crown {a.name}
+              <CrownIcon size={18} />
+              <span>
+                Crown {a.name}
+                {a.songTitle && <small>{a.songTitle}</small>}
+              </span>
             </button>
             <button
               type="button"
-              className="fight__crown-btn"
+              className="fight__crown-btn fight__crown-btn--b"
               onClick={() => onPick("b")}
             >
-              Crown {b.name}
+              <CrownIcon size={18} />
+              <span>
+                Crown {b.name}
+                {b.songTitle && <small>{b.songTitle}</small>}
+              </span>
             </button>
           </div>
         )}

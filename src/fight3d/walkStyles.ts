@@ -28,6 +28,49 @@ export const GAIT: Record<WalkStyle, Gait> = {
   showboat: { cadence: 5.4, stride: 0.5, bob: 0.04, roll: 0.14, twist: 0.1, lean: 0, hop: 0 },
 };
 
+/** Song progress where each part of the entrance starts. */
+export const PLAN = {
+  /** Dancing on stage under the titantron until here. */
+  stageEnd: 0.2,
+  /** Stops halfway down the aisle to dance for the crowd. */
+  pauseStart: 0.48,
+  pauseEnd: 0.6,
+  /** Reaches the apron and dances again until the song ends. */
+  arrive: 0.8,
+} as const;
+
+export interface WalkBeat {
+  /** Dancing in place, or walking. */
+  move: 'dance' | 'walk';
+  /** Which dance: the signature on stage and at the apron, the encore mid-aisle. */
+  dance: 'main' | 'encore';
+  /** How far down the aisle, 0 at the stage and 1 at the apron. */
+  along: number;
+  /** Seconds-free progress through this part, 0..1. */
+  part: number;
+}
+
+const ease = (x: number) => {
+  const u = Math.min(1, Math.max(0, x));
+  return u * u * (3 - 2 * u);
+};
+
+/** Where the fighter is and what they are doing at song progress `p` (0..1). */
+export function walkPlan(p: number): WalkBeat {
+  const { stageEnd, pauseStart, pauseEnd, arrive } = PLAN;
+  if (p < stageEnd) return { move: 'dance', dance: 'main', along: 0, part: p / stageEnd };
+  if (p < pauseStart) {
+    const part = (p - stageEnd) / (pauseStart - stageEnd);
+    return { move: 'walk', dance: 'main', along: ease(part) * 0.5, part };
+  }
+  if (p < pauseEnd) return { move: 'dance', dance: 'encore', along: 0.5, part: (p - pauseStart) / (pauseEnd - pauseStart) };
+  if (p < arrive) {
+    const part = (p - pauseEnd) / (arrive - pauseEnd);
+    return { move: 'walk', dance: 'main', along: 0.5 + ease(part) * 0.5, part };
+  }
+  return { move: 'dance', dance: 'main', along: 1, part: Math.min(1, (p - arrive) / (1 - arrive)) };
+}
+
 function hash(seed: string): number {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {

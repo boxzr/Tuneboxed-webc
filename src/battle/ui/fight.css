@@ -314,6 +314,7 @@
 
 .fight__crowns {
   position: absolute;
+  z-index: 6;
   left: 12px;
   right: 12px;
   bottom: 12px;
@@ -325,15 +326,54 @@
 
 .fight__crown-btn {
   pointer-events: auto;
-  height: 40px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 12px;
-  background: var(--tb-orange);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 48%;
+  min-height: 52px;
+  padding: 8px 18px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--tb-orange), var(--tb-orange-deep));
   color: #fff;
   font-family: inherit;
+  font-size: 1rem;
   font-weight: 800;
+  text-align: left;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
   cursor: pointer;
+  transition: transform var(--dur-control) var(--ease-standard);
+}
+
+.fight__crown-btn--a {
+  background: linear-gradient(180deg, #3bb0ff, var(--tb-blue-deep));
+}
+
+.fight__crown-btn:hover,
+.fight__crown-btn:focus-visible {
+  transform: translateY(-2px) scale(1.02);
+  outline: none;
+}
+
+.fight__crown-btn svg {
+  flex-shrink: 0;
+  color: #ffe58a;
+}
+
+.fight__crown-btn span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fight__crown-btn small {
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.85;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fight__bell {

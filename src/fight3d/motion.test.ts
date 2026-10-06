@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  KNOCKDOWN_FALL,
   hitReaction,
+  knockdownTilt,
+  knockdownY,
   punchDuration,
   punchOut,
   punchPhaseAt,
@@ -59,4 +62,16 @@ test('an uppercut lifts; a hook twists; a flurry covers up', () => {
   assert.ok(hitReaction('hook').twist > hitReaction('jab').twist);
   assert.equal(hitReaction('flurry').cover, 1);
   assert.equal(hitReaction('jab').cover, 0);
+});
+
+test('a knockdown starts from standing on the canvas, with no pop into the air', () => {
+  assert.ok(knockdownTilt(0) === 0);
+  assert.equal(knockdownY(0), 0);
+  assert.equal(knockdownY(KNOCKDOWN_FALL * 0.5), 0);
+});
+
+test('a knocked-out boxer falls backward, away from the winner, and comes to rest', () => {
+  for (let age = 0.05; age < 3; age += 0.05) assert.ok(knockdownTilt(age) <= 0);
+  assert.ok(Math.abs(knockdownTilt(3) - knockdownTilt(3.5)) < 1e-3);
+  assert.ok(knockdownTilt(3) < -0.9);
 });

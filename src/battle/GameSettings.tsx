@@ -483,10 +483,8 @@ function SettingsBlock({
 }) {
   return (
     <div className="bt-settings-block">
-      <SectionLabel tone="orange">{title}</SectionLabel>
-      <p className="bt-sub" style={{ margin: '6px 0 12px' }}>
-        {subtitle}
-      </p>
+      <h3 className="bt-settings-title">{title}</h3>
+      <p className="bt-sub bt-settings-copy">{subtitle}</p>
       {children}
     </div>
   );

@@ -181,12 +181,8 @@ html.tv-active #root {
 .tv-locker {
   position: relative;
   z-index: 3;
-  width: min(920px, 94vw);
-}
-
-.tv-locker .ring3d--locker {
-  height: min(46vh, 440px);
-  border-radius: 18px;
+  width: min(1120px, 94vw);
+  height: min(640px, 80vh);
 }
 
 /* ---------- Lobby ---------- */
@@ -670,8 +666,8 @@ html.tv-active #root {
   width: 2em;
   height: 2em;
   border-radius: 50%;
-  background: var(--tb-ink);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--tb-ink);
   font-size: clamp(1.1rem, calc(1.9 * var(--tvw)), 2.1rem);
   font-weight: 800;
 }
@@ -701,6 +697,38 @@ html.tv-active #root {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--tb-orange);
+}
+
+.tv-option--crown {
+  width: 100%;
+  border: 1px solid var(--tb-border);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--dur-control) var(--ease-standard),
+    border-color var(--dur-control) var(--ease-standard);
+}
+
+.tv-option--crown:hover,
+.tv-option--crown:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--tb-gold);
+  outline: none;
+}
+
+.tv-option__crown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-left: auto;
+  padding: 0.5em 1em;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f5cf5b, var(--tb-gold));
+  color: #1a1206;
+  font-size: clamp(0.9rem, calc(1.4 * var(--tvw)), 1.5rem);
+  font-weight: 800;
 }
 
 .tv-foot {

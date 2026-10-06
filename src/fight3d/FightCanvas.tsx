@@ -2,31 +2,17 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import BoxerRig, { headWorldY } from './BoxerRig';
-import RingScene, { PunchingBag } from './RingScene';
+import RingScene from './RingScene';
 import Referee, { type RefCall } from './Referee';
 import Nametag from './Nametag';
 import RingScoreboard, { type ScoreboardData } from './Scoreboard';
 import ArenaCrowd, { houseFans, type CrowdPerson } from './ArenaCrowd';
-import { BAG_GLB, GlbBag } from './GlbAssets';
 import type { FighterLoadout } from './loadout';
 import type { BoxerPose } from './punchDirector';
 import { comboContacts, contactAt, weightOf, type MotionPunch } from './motion';
 import Walkout, { type Walker } from './Walkout';
+import type { Dance } from './dances';
 import './fight3d.css';
-
-function useAsset(url: string): boolean {
-  const [ok, setOk] = useState(false);
-  useEffect(() => {
-    let live = true;
-    fetch(url, { method: 'HEAD' })
-      .then((r) => live && setOk(r.ok))
-      .catch(() => live && setOk(false));
-    return () => {
-      live = false;
-    };
-  }, [url]);
-  return ok;
-}
 
 export interface RingFighter {
   name: string;
@@ -38,13 +24,15 @@ export interface RingFighter {
   hits?: number;
   songTitle?: string;
   votes?: number;
+  /** Danced whenever the pose is `taunt`, and as the victory celebration. */
+  dance?: Dance | null;
 }
 
 type RingMode = 'bout' | 'locker' | 'parade' | 'walkout';
 
 const CAMERA: Record<RingMode, { position: [number, number, number]; lookAt: [number, number, number]; fov: number }> = {
   bout: { position: [0.12, 1.4, 2.4], lookAt: [0, 1.0, 0], fov: 50 },
-  locker: { position: [0, 1.35, 3.2], lookAt: [0, 0.9, 0.2], fov: 38 },
+  locker: { position: [0, 1.0, 3.7], lookAt: [0, 0.74, 0], fov: 36 },
   parade: { position: [0, 1.9, 7.1], lookAt: [0, 0.95, 0.2], fov: 34 },
   walkout: { position: [0, 2, -6], lookAt: [0, 1.4, -13], fov: 42 },
 };
@@ -236,6 +224,49 @@ function ImpactBurst({ hit }: { hit: Contact }) {
   );
 }
 
+/** The creator's stage: a lit plinth the fighter turns on. */
+function Turntable({ yaw, children }: { yaw: number; children: React.ReactNode }) {
+  const spin = useRef<THREE.Group>(null);
+  const ring = useRef<THREE.MeshStandardMaterial>(null);
+  const footShadow = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d')!;
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(0,0,0,0.85)');
+    grad.addColorStop(0.45, 'rgba(0,0,0,0.5)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }, []);
+  useEffect(() => () => footShadow.dispose(), [footShadow]);
+  useFrame(({ clock }) => {
+    if (spin.current) spin.current.rotation.y = THREE.MathUtils.lerp(spin.current.rotation.y, yaw, 0.12);
+    if (ring.current) ring.current.emissiveIntensity = 1.6 + Math.sin(clock.elapsedTime * 2.2) * 0.5;
+  });
+  return (
+    <group position={[0, 0, 0.35]}>
+      <mesh position={[0, 0.03, 0]} receiveShadow castShadow>
+        <cylinderGeometry args={[0.62, 0.68, 0.06, 64]} />
+        <meshStandardMaterial color="#17121f" roughness={0.25} metalness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.6, 0.012, 8, 96]} />
+        <meshStandardMaterial ref={ring} color="#fd9c07" emissive="#fd9c07" emissiveIntensity={1.6} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0.064, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+        <planeGeometry args={[0.95, 0.95]} />
+        <meshBasicMaterial map={footShadow} transparent depthWrite={false} toneMapped={false} />
+      </mesh>
+      {/* The soles' underside is ~1 cm above the rig's origin, so the rig sits that much below the deck. */}
+      <group ref={spin} position={[0, 0.05, 0]}>
+        {children}
+      </group>
+    </group>
+  );
+}
+
 function Scene({
   mode,
   a,
@@ -248,6 +279,7 @@ function Scene({
   walker,
   walkSeconds,
   walkOffset,
+  lockerYaw,
 }: {
   mode: RingMode;
   a?: RingFighter;
@@ -260,8 +292,8 @@ function Scene({
   walker?: Walker;
   walkSeconds: number;
   walkOffset: number;
+  lockerYaw: number;
 }) {
-  const hasBag = useAsset(BAG_GLB);
   const crowd = useMemo(() => {
     const taken = new Set(
       [a?.name, b?.name, ...fans.map((f) => f.name)].filter((n): n is string => Boolean(n)).map((n) => n.toLowerCase())
@@ -287,7 +319,7 @@ function Scene({
 
   return (
     <>
-      <RingScene />
+      <RingScene studio={mode === 'locker'} proceduralRing={mode !== 'locker'} />
       {mode === 'bout' && (
         <Suspense fallback={null}>
           <ArenaCrowd people={crowd} hype={Math.min(1.2, hit.level + 0.15)} />
@@ -295,12 +327,9 @@ function Scene({
       )}
       <Suspense fallback={null}>
         {mode === 'locker' && a && (
-          <>
-            <group position={[0, 0, 0.35]}>
-              <BoxerRig loadout={a.loadout} pose={a.pose} facing={1} faceCamera />
-            </group>
-            {hasBag ? <GlbBag /> : <PunchingBag />}
-          </>
+          <Turntable yaw={lockerYaw}>
+            <BoxerRig loadout={a.loadout} pose={a.pose} beat={a.beat} facing={1} faceCamera dance={a.dance} />
+          </Turntable>
         )}
         {mode === 'bout' && a && b && (
           <>
@@ -310,6 +339,7 @@ function Scene({
                 pose={a.pose}
                 beat={a.beat}
                 facing={1}
+                dance={a.dance}
                 hits={a.hits}
                 hitTimes={timesFrom(b)}
                 foe={[CORNER_X, headB, 0]}
@@ -323,6 +353,7 @@ function Scene({
                 pose={b.pose}
                 beat={b.beat}
                 facing={-1}
+                dance={b.dance}
                 hits={b.hits}
                 hitTimes={timesFrom(a)}
                 foe={[-CORNER_X, headA, 0]}
@@ -367,6 +398,7 @@ export default function FightCanvas({
   walker,
   walkSeconds = 30,
   walkOffset = 0,
+  lockerYaw = 0,
 }: {
   mode: RingMode;
   a?: RingFighter;
@@ -381,6 +413,8 @@ export default function FightCanvas({
   walkSeconds?: number;
   /** Seconds into the walker's song. */
   walkOffset?: number;
+  /** Turntable angle in locker mode, radians. */
+  lockerYaw?: number;
 }) {
   const [live, setLive] = useState(true);
   const reduced =
@@ -422,6 +456,7 @@ export default function FightCanvas({
           walker={walker}
           walkSeconds={walkSeconds}
           walkOffset={walkOffset}
+          lockerYaw={lockerYaw}
         />
       </Canvas>
     </div>

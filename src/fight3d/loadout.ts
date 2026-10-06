@@ -6,6 +6,8 @@
  * the locker still gets a distinct boxer, hashed from their display name.
  */
 
+import { DANCES, danceFor, type Dance } from './dances.ts';
+
 export const HAIR_STYLES = ['buzz', 'fade', 'afro', 'long', 'mohawk', 'none'] as const;
 export type HairStyle = (typeof HAIR_STYLES)[number];
 
@@ -20,6 +22,8 @@ export interface FighterLoadout {
   gloves: number;
   boots: number;
   body: BodyType;
+  /** Signature walkout dance. */
+  dance: Dance;
 }
 
 /** Mascot body paints. Orange and blue are the TuneBoxed notes. */
@@ -64,12 +68,14 @@ export function defaultLoadout(seed: string): FighterLoadout {
     gloves: Math.floor(h / 19) % CLOTH_HEX.length,
     boots: Math.floor(h / 23) % CLOTH_HEX.length,
     body: BODY_TYPES[Math.floor(h / 29) % BODY_TYPES.length],
+    dance: danceFor(seed || 'tuneboxed'),
   };
 }
 
 export function encodeLoadout(loadout: FighterLoadout): string {
   const hair = HAIR_STYLES.indexOf(loadout.hair);
   const body = BODY_TYPES.indexOf(loadout.body);
+  const dance = DANCES.indexOf(loadout.dance);
   return [
     PREFIX,
     wrap(loadout.skin, SKIN_HEX.length),
@@ -79,6 +85,7 @@ export function encodeLoadout(loadout: FighterLoadout): string {
     wrap(loadout.gloves, CLOTH_HEX.length),
     wrap(loadout.boots, CLOTH_HEX.length),
     body < 0 ? 1 : body,
+    dance < 0 ? 0 : dance,
   ].join('.');
 }
 
@@ -95,6 +102,8 @@ export function parseLoadout(raw: string | null | undefined, seed: string): Figh
     gloves: wrap(parts[4], CLOTH_HEX.length),
     boots: wrap(parts[5], CLOTH_HEX.length),
     body: BODY_TYPES[wrap(parts[6], BODY_TYPES.length)],
+    // Looks saved before dances existed have seven parts.
+    dance: parts.length > 7 ? DANCES[wrap(parts[7], DANCES.length)] : fallback.dance,
   };
 }
 

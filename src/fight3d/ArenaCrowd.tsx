@@ -11,7 +11,7 @@ export interface CrowdPerson {
 }
 
 const STAND_INNER = RING_HALF + 1.7;
-const STAND_ROWS = 8;
+const STAND_ROWS = 10;
 
 /** Ringside spots for room players, along the back apron. */
 function vipSpots(count: number) {
