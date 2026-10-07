@@ -32,6 +32,7 @@ import BoxingMatch from '../battle/ui/BoxingMatch';
 import { bracketFighters, loadoutFromPlayer, pairFighters, spectators } from '../battle/bout';
 import DemoChat, { type ChatLine } from '../battle/ui/DemoChat';
 import { useChatFeed } from '../battle/useChatFeed';
+import { useChatVotes } from '../battle/useChatVotes';
 import FightCanvas from '../fight3d/FightCanvas';
 import LockerRoom from '../fight3d/LockerRoom';
 import { CheckIcon, CrownIcon, TrophyIcon } from '../battle/ui/icons';
@@ -155,6 +156,17 @@ export default function BattleTV() {
 
   const isHost = Boolean(room && stored && room.host_player_id === stored.playerId);
   const usedGenres = useUsedGenres(roomId, round?.id ?? null);
+
+  // A streamer watches this tab, not the room tab, so the host's board counts
+  // chat itself and the room tab stands down while it does.
+  useChatVotes({
+    enabled: isHost && !demo,
+    channel: room?.format === 'bracket' && !room.host_judges ? room.host_twitch_login ?? null : null,
+    round,
+    submissions,
+    token,
+    prefer: true,
+  });
 
   const pick = usePickSeconds();
   const audio = useAudioSettings(submissions);
