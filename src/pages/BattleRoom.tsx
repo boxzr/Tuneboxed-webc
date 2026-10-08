@@ -150,8 +150,7 @@ export default function BattleRoom() {
 
   // Only the host reads chat. Every viewer opening an IRC connection would
   // multiply the load for no gain, and the tally is host-only to write anyway.
-  const chatChannel =
-    isHost && room?.format === 'bracket' && !room.host_judges ? room.host_twitch_login ?? null : null;
+  const chatChannel = isHost && room && !room.host_judges ? room.host_twitch_login ?? null : null;
   const chat = useChatVotes({
     enabled: isHost,
     channel: chatChannel,

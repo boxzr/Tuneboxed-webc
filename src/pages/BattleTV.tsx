@@ -159,9 +159,9 @@ export default function BattleTV() {
 
   // A streamer watches this tab, not the room tab, so the host's board counts
   // chat itself and the room tab stands down while it does.
-  useChatVotes({
+  const chatVotes = useChatVotes({
     enabled: isHost && !demo,
-    channel: room?.format === 'bracket' && !room.host_judges ? room.host_twitch_login ?? null : null,
+    channel: room && !room.host_judges ? room.host_twitch_login ?? null : null,
     round,
     submissions,
     token,
@@ -247,10 +247,16 @@ export default function BattleTV() {
   const championId =
     matches.find((m) => m.next_match_id === null && m.winner_player_id)?.winner_player_id ?? null;
 
-  // Chat decides in a room tied to a Twitch channel. The board is never the
-  // client reading chat, so it shows whatever the host last published. A
-  // judging host makes the call themselves, so chat does not.
-  const chatTally = room.host_twitch_login && !judging ? round?.chat_tally ?? {} : null;
+  // Chat decides in a room tied to a Twitch channel. The host's board reads
+  // chat itself, so it shows its own live count; anyone else's board shows
+  // what the host last published. A judging host makes the call themselves,
+  // so chat does not.
+  const chatTally =
+    room.host_twitch_login && !judging
+      ? isHost && Object.keys(chatVotes.counts).length > 0
+        ? chatVotes.counts
+        : round?.chat_tally ?? {}
+      : null;
 
   const isCompetitor = (p: BattlePlayer) =>
     Boolean(

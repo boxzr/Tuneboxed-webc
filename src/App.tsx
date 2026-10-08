@@ -1,14 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import './App.css';
 import tuneboxedLogo from './assets/tuneboxed-battle-logo.png';
-import { trackPageView } from './firebase';
-import AdminDashboard from './components/AdminDashboard';
-import PasswordReset from './pages/PasswordReset';
-import BattleHome from './pages/BattleHome';
-import BattleRoom from './pages/BattleRoom';
-import BattleTV from './pages/BattleTV';
+import { trackPageView } from './lib/analytics';
 import BattleEntry from './battle/BattleEntry';
 import FightDemo from './battle/ui/FightDemo';
 import Rules from './pages/Rules';
@@ -23,6 +18,14 @@ import LanguagePicker from './i18n/LanguagePicker';
 import { useCopy } from './i18n/LanguageContext';
 import './battle/battle.css';
 import './pages/pages.css';
+
+// Pages most visitors never open load on demand, so the home page is not
+// waiting on their code (or the 3D engine the room pages pull in).
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const PasswordReset = lazy(() => import('./pages/PasswordReset'));
+const BattleHome = lazy(() => import('./pages/BattleHome'));
+const BattleRoom = lazy(() => import('./pages/BattleRoom'));
+const BattleTV = lazy(() => import('./pages/BattleTV'));
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/tuneboxed/id6747647968';
 
@@ -102,7 +105,9 @@ function MainWebsite() {
             </button>
           </div>
         </nav>
-        <AdminDashboard />
+        <Suspense fallback={null}>
+          <AdminDashboard />
+        </Suspense>
       </div>
     );
   }
@@ -290,6 +295,7 @@ function App() {
   return (
     <>
       <ScrollToTop />
+      <Suspense fallback={null}>
       <Routes>
       <Route path="/reset-password" element={<PasswordReset />} />
       {/* /join/:code is the shareable form a streamer reads out on air. */}
@@ -312,6 +318,7 @@ function App() {
       <Route path="/winners" element={<Winners />} />
       <Route path="/*" element={<MainWebsite />} />
     </Routes>
+      </Suspense>
     </>
   );
 }

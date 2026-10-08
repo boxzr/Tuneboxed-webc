@@ -4,11 +4,12 @@ import {
   useMemo,
   useRef,
   useState,
+  lazy,
+  Suspense,
 } from "react";
 import { CrownIcon } from "./icons";
 import { type FightScore, fightScore } from "../fight";
 import type { BattleRoundPhase } from "../../types/battle";
-import FightCanvas from "../../fight3d/FightCanvas";
 import { COMBO_EVERY, HEAT_MAX } from "../../fight3d/punchDirector";
 import { usePunchDirector } from "../../fight3d/usePunchDirector";
 import { pickWalkStyles } from "../../fight3d/walkStyles";
@@ -16,6 +17,13 @@ import { encoreFor } from "../../fight3d/dances";
 import { defaultLoadout, type FighterLoadout } from "../../fight3d/loadout";
 import type { RefCall } from "../../fight3d/Referee";
 import "./fight.css";
+
+// three.js is most of the site's weight. Splitting it out lets the scoreboard,
+// chat and the rest of the page paint first; the download starts as soon as
+// this module loads, so the ring is not waiting on a render to ask for it.
+const loadFightCanvas = () => import("../../fight3d/FightCanvas");
+void loadFightCanvas();
+const FightCanvas = lazy(loadFightCanvas);
 
 export interface Fighter {
   name: string;
@@ -200,6 +208,7 @@ export default function BoxingMatch({
         />
 
       <div className="fight__ring">
+        <Suspense fallback={null}>
         <FightCanvas
           mode={walkoutSide ? "walkout" : "bout"}
           walkSeconds={walkSeconds}
@@ -256,6 +265,7 @@ export default function BoxingMatch({
             votes: b.votes,
           }}
         />
+        </Suspense>
         {walkoutSide && (
           <Entrance
             key={walkoutSide}

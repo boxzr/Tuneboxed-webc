@@ -19,8 +19,8 @@ type HandoffMessage =
  * Turns Twitch chat into votes for the current matchup.
  *
  * Only runs for the host, and only while judging. Viewers type the number of
- * the song they want, which works because the web rooms are brackets and a
- * matchup is always two songs.
+ * the song they want: 1 or 2 in a bracket matchup, or its place in the list
+ * in a party round, which numbers every song the same way on the board.
  *
  * Votes are kept in a ref rather than state. Chat can be fast, and a
  * re-render per message would be wasteful when the display only needs to move
