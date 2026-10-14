@@ -9,7 +9,7 @@ import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
 import { useClipSeconds } from '../battle/useClipSeconds';
 import { usePickSeconds } from '../battle/usePickSeconds';
-import { useAudioSettings } from '../battle/useAudioSettings';
+import { useAudioSettings, useBoardAudioClaim } from '../battle/useAudioSettings';
 import { BRACKET_CAP, PARTY_ROUNDS } from '../battle/rules';
 import { type HostContext, nextHostAction } from '../battle/hostActions';
 import { resolvedVoting } from '../battle/GameSettings';
@@ -170,15 +170,24 @@ export default function BattleTV() {
 
   const pick = usePickSeconds();
   const audio = useAudioSettings(submissions);
-  const hearBoard = audio.where === 'board';
-  // The host chooses which tab sounds. A streamer captures this board, so
-  // when they send audio here the stream hears the songs. The other tab
-  // stays quiet so the two do not play half a second apart.
-  const playback = useSyncedPlayback(round, submissions, hearBoard && round?.phase === 'playing', undefined, {
+  // The board is what OBS and a captured tab hear. It used to stay silent
+  // unless the room tab was also open and had sent audio here — a Browser
+  // Source has empty storage, so it never got that flag. The board now
+  // plays on its own whenever the round is playing.
+  const hearBoard = round?.phase === 'playing';
+  useBoardAudioClaim(true);
+  const playback = useSyncedPlayback(round, submissions, Boolean(hearBoard), undefined, {
     volume: audio.volume,
     gainFor: audio.gainFor,
     sinkId: audio.sinkId,
   });
+  const primeRef = useRef(playback.prime);
+  primeRef.current = playback.prime;
+  useEffect(() => {
+    const unlock = () => primeRef.current();
+    window.addEventListener('pointerdown', unlock);
+    return () => window.removeEventListener('pointerdown', unlock);
+  }, []);
 
   // Same preference the room page reads, since a host can drive the game from
   // either tab and both have to agree on how long a song plays for.

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   KNOCKDOWN_FALL,
   hitReaction,
+  knockdownMotion,
   knockdownTilt,
   knockdownY,
   punchDuration,
@@ -74,4 +75,15 @@ test('a knocked-out boxer falls backward, away from the winner, and comes to res
   for (let age = 0.05; age < 3; age += 0.05) assert.ok(knockdownTilt(age) <= 0);
   assert.ok(Math.abs(knockdownTilt(3) - knockdownTilt(3.5)) < 1e-3);
   assert.ok(knockdownTilt(3) < -0.9);
+});
+
+test('knockdown styles do not share the same fall', () => {
+  const classic = knockdownMotion(0.5, 'down');
+  const spin = knockdownMotion(0.5, 'downSpin');
+  const flat = knockdownMotion(0.5, 'downFlat');
+  const sit = knockdownMotion(0.2, 'downSit');
+  assert.ok(Math.abs(spin.spin) > Math.abs(classic.spin));
+  assert.ok(Math.abs(flat.roll) > Math.abs(classic.roll));
+  assert.ok(sit.tilt > 0);
+  assert.ok(Math.abs(knockdownMotion(0, 'down').tilt) < 1e-9);
 });

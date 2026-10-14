@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const zh: Copy = {
   nav: {
     play: '开玩',
+    songBattle: '歌曲对战',
     rules: '游戏规则',
     faq: '常见问题',
     streamers: '主播专区',

@@ -165,8 +165,8 @@ export function GameSettingsPanel({
         title="Sound comes from"
         subtitle={
           audio.where === 'board'
-            ? 'The stream board tab plays the songs. Capture that tab and the stream hears them.'
-            : 'This room tab plays the songs. If you capture the board instead, the stream stays silent.'
+            ? 'This room tab stays quiet. The stream board plays on its own — capture that tab or drop it in OBS and the songs go out.'
+            : 'This room tab plays the songs. If a stream board is open, it takes over so the stream is the one that sounds.'
         }
       >
         <Segmented

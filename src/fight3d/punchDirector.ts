@@ -9,7 +9,20 @@ export const HEAT_MAX = 6;
 
 export type Side = 'a' | 'b';
 export type PunchKind = 'jab' | 'cross' | 'hook' | 'body' | 'uppercut' | 'flurry' | 'combo';
-export type BoxerPose = 'idle' | PunchKind | 'hurt' | 'down' | 'won' | 'lost' | 'walk' | 'taunt';
+export type KnockdownPose = 'down' | 'downSpin' | 'downFlat' | 'downSit';
+export type BoxerPose = 'idle' | PunchKind | 'hurt' | KnockdownPose | 'won' | 'lost' | 'walk' | 'taunt';
+
+export const KNOCKDOWN_POSES: KnockdownPose[] = ['down', 'downSpin', 'downFlat', 'downSit'];
+
+export function isKnockdown(pose: BoxerPose): pose is KnockdownPose {
+  return pose === 'down' || pose === 'downSpin' || pose === 'downFlat' || pose === 'downSit';
+}
+
+/** Pick a fall from the fight so the same result does not always drop the same way. */
+export function knockdownFor(seed = 0): KnockdownPose {
+  const i = ((seed % KNOCKDOWN_POSES.length) + KNOCKDOWN_POSES.length) % KNOCKDOWN_POSES.length;
+  return KNOCKDOWN_POSES[i];
+}
 
 export interface DirectorState {
   votesA: number;
@@ -194,12 +207,14 @@ export function tickDirector(
 export function posesFor(
   event: PunchEvent | null,
   winner: Side | null,
-  knockout: boolean
+  knockout: boolean,
+  seed = 0
 ): { a: BoxerPose; b: BoxerPose } {
   if (winner) {
+    const fall = knockout ? knockdownFor(seed) : null;
     return {
-      a: winner === 'a' ? 'won' : knockout ? 'down' : 'lost',
-      b: winner === 'b' ? 'won' : knockout ? 'down' : 'lost',
+      a: winner === 'a' ? 'won' : fall ?? 'lost',
+      b: winner === 'b' ? 'won' : fall ?? 'lost',
     };
   }
   if (!event) return { a: 'idle', b: 'idle' };

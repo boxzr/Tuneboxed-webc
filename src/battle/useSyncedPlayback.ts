@@ -92,6 +92,7 @@ export function useSyncedPlayback(
   if (!audioRef.current && typeof Audio !== 'undefined') {
     const audio = new Audio();
     audio.preload = 'auto';
+    audio.autoplay = true;
     audioRef.current = audio;
   }
 
@@ -100,6 +101,29 @@ export function useSyncedPlayback(
     if (!enabled) return;
     const t = setInterval(() => setTick((n) => n + 1), 250);
     return () => clearInterval(t);
+  }, [enabled]);
+
+  // A captured board or OBS source often starts without a gesture. Retry
+  // play() when the tab is shown again rather than staying paused forever.
+  useEffect(() => {
+    if (!enabled) return;
+    const retry = () => {
+      const media = activeRef.current;
+      if (!media?.src || media.src === SILENCE || !media.paused) return;
+      media.play().then(
+        () => setBlocked(false),
+        () => setBlocked(true)
+      );
+    };
+    const onVis = () => {
+      if (document.visibilityState === 'visible') retry();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', retry);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', retry);
+    };
   }, [enabled]);
 
   const order = useMemo(() => {

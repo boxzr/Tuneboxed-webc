@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const es: Copy = {
   nav: {
     play: 'Jugar',
+    songBattle: 'Batalla de canciones',
     rules: 'Reglas del juego',
     faq: 'FAQ',
     streamers: 'Para streamers',

@@ -7,6 +7,7 @@ import { trackPageView } from './lib/analytics';
 import BattleEntry from './battle/BattleEntry';
 import FightDemo from './battle/ui/FightDemo';
 import Rules from './pages/Rules';
+import SongBattle from './pages/SongBattle';
 import Faq from './pages/Faq';
 import Streamers from './pages/Streamers';
 import About from './pages/About';
@@ -311,6 +312,7 @@ function App() {
       {/* Content routes. scripts/prerender.mjs emits a real HTML file for each
           of these, so they return 200 and can be indexed rather than being
           served by GitHub's 404 handler. Keep the two lists in step. */}
+      <Route path="/song-battle" element={<SongBattle />} />
       <Route path="/rules" element={<Rules />} />
       <Route path="/faq" element={<Faq />} />
       <Route path="/streamers" element={<Streamers />} />

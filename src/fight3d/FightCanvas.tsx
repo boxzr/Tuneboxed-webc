@@ -8,7 +8,7 @@ import Nametag from './Nametag';
 import RingScoreboard, { type ScoreboardData } from './Scoreboard';
 import ArenaCrowd, { houseFans, type CrowdPerson } from './ArenaCrowd';
 import type { FighterLoadout } from './loadout';
-import type { BoxerPose } from './punchDirector';
+import { isKnockdown, type BoxerPose } from './punchDirector';
 import { comboContacts, contactAt, weightOf, type MotionPunch } from './motion';
 import Walkout, { type Walker } from './Walkout';
 import type { Dance } from './dances';
@@ -103,7 +103,7 @@ function useContact(a?: RingFighter, b?: RingFighter, live = true): Contact {
   const [hit, setHit] = useState<Contact>({ level: 0, x: 0, y: 1.5, key: 0 });
   const moveA = a?.pose;
   const moveB = b?.pose;
-  const ko = a?.pose === 'down' || b?.pose === 'down';
+  const ko = isKnockdown(a?.pose ?? 'idle') || isKnockdown(b?.pose ?? 'idle');
 
   useEffect(() => {
     if (!live || !a || !b) return;
@@ -421,7 +421,7 @@ export default function FightCanvas({
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const hit = useContact(a, b, mode === 'bout');
   const impact = mode === 'bout' ? hit.level : 0;
-  const ko = Boolean(mode === 'bout' && (a?.pose === 'down' || b?.pose === 'down'));
+  const ko = Boolean(mode === 'bout' && (isKnockdown(a?.pose ?? 'idle') || isKnockdown(b?.pose ?? 'idle')));
 
   useEffect(() => {
     const onVis = () => setLive(document.visibilityState === 'visible');

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ROUTES, SITELINKS, ORIGIN, jsonLdFor, sitemapXml, absoluteUrl } from './seo.mjs';
+import { staticBody, rich } from './staticBody.mjs';
 
 test('every indexable page is named TuneBoxed, not Tuneboxed', () => {
   for (const r of ROUTES) {
@@ -49,6 +50,30 @@ test('inner pages carry a breadcrumb back to TuneBoxed', () => {
   assert.equal(crumbs[0].name, 'TuneBoxed');
   assert.equal(crumbs[1].name, 'Game rules');
   assert.equal(crumbs[1].item, absoluteUrl('/rules'));
+});
+
+test('the home page and its guide both lead with "song battle"', () => {
+  const home = ROUTES.find((r) => r.path === '/');
+  const guide = ROUTES.find((r) => r.path === '/song-battle');
+  assert.match(home.title, /Song Battle/);
+  assert.match(home.description.split('.')[0], /song battle/i);
+  assert.match(guide.title, /^What Is a Song Battle\?/);
+});
+
+test('every indexable page ships its text in the static HTML', () => {
+  for (const r of ROUTES) {
+    const html = staticBody(r.path);
+    assert.match(html, /<h1>[^<]+/, `${r.path} has no heading`);
+    for (const other of ROUTES) assert.ok(html.includes(`href="${other.path}"`), `${r.path} does not link ${other.path}`);
+  }
+  const guide = staticBody('/song-battle');
+  assert.ok(guide.includes('What is a song battle?'));
+  assert.ok(guide.includes('Villain arc'));
+  assert.ok(guide.includes('<a href="/battle">tuneboxed.com/battle</a>'));
+});
+
+test('static HTML escapes copy and converts inline markup', () => {
+  assert.equal(rich('Type **1** & `x` in [chat](/faq) <b>'), 'Type <strong>1</strong> &amp; <code>x</code> in <a href="/faq">chat</a> &lt;b&gt;');
 });
 
 test('sitemap lists every indexable URL once', () => {

@@ -11,18 +11,19 @@
  * visitors but silently goes back to returning 404 for crawlers.
  */
 
+import { songBattle } from '../src/pages/songBattleCopy.ts';
+
 export const ORIGIN = 'https://tuneboxed.com';
 
 export const ROUTES = [
   {
     path: '/',
     name: 'Home',
-    // Leads on the boxing match rather than on being like another product.
-    // "Song battle" is the term people search and the competitors own it, so
-    // the description has to say what is different in the first line.
-    title: 'TuneBoxed | Song battles fought as boxing matches',
+    // "Song battle" is the term people search, so it leads the title and the
+    // first line of the description. /song-battle is the long-form answer.
+    title: 'TuneBoxed | Song Battle Game, Free Online and on Twitch',
     description:
-      'Two songs enter the ring and every vote from the room or your Twitch chat lands a punch until one is knocked out. Play free in the browser, on a call, or on stream.',
+      'Play a free song battle online. Everyone picks a song, two square up in a boxing ring, and every vote or Twitch chat message lands a punch. No app, no account.',
   },
   {
     path: '/battle',
@@ -30,6 +31,12 @@ export const ROUTES = [
     title: 'Play | TuneBoxed',
     description:
       'Host or join a TuneBoxed song battle in your browser. Share a five-letter code, pick tracks, and vote through a bracket. No app, no account.',
+  },
+  {
+    path: '/song-battle',
+    name: 'Song battle',
+    title: songBattle.title,
+    description: songBattle.description,
   },
   {
     path: '/rules',

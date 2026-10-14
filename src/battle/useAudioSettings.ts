@@ -20,13 +20,10 @@ const SINK_KEY = 'tb.sinkId';
 const WHERE_KEY = 'tb.audioWhere';
 
 /**
- * Which of the host's tabs plays the songs.
- *
- * A streamer captures the board at /tv, and the board never sounded: the
- * songs came out of the room tab, which is not the one going to the stream.
- * That was the "stream can't hear the songs" report. The host now chooses,
- * and the choice is shared through localStorage so the tab that is not
- * chosen goes quiet rather than the two playing half a second apart.
+ * Which of the host's tabs plays the songs when both are open in this
+ * browser. The stream board at /tv always plays on its own — including in
+ * OBS, which has empty storage and used to stay silent until the room tab
+ * sent audio there. This preference only mutes the room tab.
  */
 export type AudioWhere = 'room' | 'board';
 
@@ -148,4 +145,81 @@ export function useAudioSettings(submissions: readonly BattleSubmission[]): Audi
     setTrim,
     gainFor,
   };
+}
+
+const AUDIO_CLAIM = 'tb-audio-board';
+
+const hasLocks = () => typeof navigator !== 'undefined' && 'locks' in navigator;
+
+/**
+ * The stream board announces it is open so the room tab can go quiet.
+ * OBS only captures /tv; if that tab stays silent until the room tab is
+ * also open, the stream hears nothing. The board always plays; the room
+ * yields while the board is up.
+ *
+ * The board holds a Web Lock for as long as it is open. A background board
+ * has its timers throttled to as little as once a minute, so heartbeat pings
+ * alone let the room decide the board had gone and play over it. A lock does
+ * not depend on the board's timers and drops the moment the tab closes. The
+ * BroadcastChannel ping stays as the fallback where locks are missing.
+ */
+export function useBoardAudioClaim(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    let release: (() => void) | null = null;
+    let done = false;
+    if (hasLocks()) {
+      // The lock can be granted after this effect has already been torn down,
+      // and a hold nobody releases would mute the room until the tab closes.
+      void navigator.locks
+        .request(AUDIO_CLAIM, { mode: 'shared' }, () =>
+          done ? Promise.resolve() : new Promise<void>((resolve) => (release = resolve))
+        )
+        .catch(() => {});
+    }
+    const ch = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(AUDIO_CLAIM);
+    const ping = () => ch?.postMessage({ type: 'claim', at: Date.now() });
+    ping();
+    const t = window.setInterval(ping, 800);
+    return () => {
+      done = true;
+      window.clearInterval(t);
+      ch?.close();
+      release?.();
+    };
+  }, [active]);
+}
+
+/** True while a stream board tab in this browser is claiming the speakers. */
+export function useBoardAudioPresent() {
+  const [present, setPresent] = useState(false);
+  useEffect(() => {
+    let last = 0;
+    let held = false;
+    const update = () => setPresent(held || (last > 0 && Date.now() - last < 2500));
+    const ch = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(AUDIO_CLAIM);
+    if (ch) {
+      ch.onmessage = () => {
+        last = Date.now();
+        update();
+      };
+    }
+    const check = () => {
+      if (!hasLocks()) return update();
+      void navigator.locks
+        .query()
+        .then((state) => {
+          held = (state.held ?? []).some((l) => l.name === AUDIO_CLAIM);
+          update();
+        })
+        .catch(update);
+    };
+    check();
+    const t = window.setInterval(check, 500);
+    return () => {
+      window.clearInterval(t);
+      ch?.close();
+    };
+  }, []);
+  return present;
 }

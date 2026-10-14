@@ -124,7 +124,11 @@ export function usePunchDirector(
       window.clearTimeout(timer.current);
       busy.current = false;
       queue.current = [];
-      setLive((cur) => ({ ...posesFor(null, winner, knockout), beat: cur.beat + 1, hits: 0 }));
+      setLive((cur) => ({
+        ...posesFor(null, winner, knockout, votesA + votesB * 10 + (winner === 'a' ? 1 : 2)),
+        beat: cur.beat + 1,
+        hits: 0,
+      }));
       return;
     }
 

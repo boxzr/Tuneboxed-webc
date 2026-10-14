@@ -13,13 +13,16 @@ export {
   writeLocalLoadout,
   type FighterLoadout,
 } from './loadout';
-export { punchOut, punchDuration, weightOf, hitReaction, stepIn } from './motion';
+export { punchOut, punchDuration, weightOf, hitReaction, stepIn, knockdownMotion } from './motion';
 export {
   tickDirector,
   emptyDirector,
   posesFor,
+  isKnockdown,
+  knockdownFor,
   HEAT_MAX,
   PUNCH_HOLD_MS,
   type BoxerPose,
+  type KnockdownPose,
   type DirectorState,
 } from './punchDirector';

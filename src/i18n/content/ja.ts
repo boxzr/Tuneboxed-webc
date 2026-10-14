@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const ja: Copy = {
   nav: {
     play: 'プレイ',
+    songBattle: 'ソングバトル',
     rules: 'ルール',
     faq: 'よくある質問',
     streamers: '配信者の方へ',

@@ -9,6 +9,7 @@
 export const en = {
   nav: {
     play: 'Play',
+    songBattle: 'Song battle',
     rules: 'Game rules',
     faq: 'FAQ',
     streamers: 'For streamers',
@@ -22,7 +23,7 @@ export const en = {
   },
 
   home: {
-    title: 'TuneBoxed | Song battles fought as boxing matches',
+    title: 'TuneBoxed | Song Battle Game, Free Online and on Twitch',
     headline: 'We turned song battles into',
     headlineEm: 'boxing fights',
     lede: 'Two songs enter the ring. You decide who walks out.',
@@ -256,7 +257,7 @@ export const en = {
       },
       {
         q: 'How does Twitch chat voting work?',
-        a: 'During voting your viewers type 1 or 2 for the song they prefer. Each Twitch account gets one vote per matchup, and voting again moves that vote rather than adding a second one.',
+        a: 'During voting your viewers type 1 or 2 for the song they prefer. Each 1 or 2 is a punch — spam the number to throw more. The song with more punches wins.',
       },
       {
         q: 'Does this need a bot in my chat?',
@@ -331,7 +332,7 @@ export const en = {
           'Every room has a board at its own address, built to be the thing your audience looks at. Each matchup plays out as a full boxing match: the walkouts, the bell, the fight, health bars, combos and live vote counts. Open it in another tab and run the battle from there — reveal songs and advance rounds without clicking back to the room.',
           'No OBS? Share that board tab as your stream. Your buttons fade when you stop moving, so they stay off camera. This works on every platform and needs nothing installed.',
           'Have OBS, Streamlabs, or anything with a Browser Source? Paste the same URL in and set it to 1920 by 1080. A Browser Source has no login, so it cannot show your buttons. It is a full scene rather than a transparent strip, so it does not need anything behind it.',
-          'Songs do not play on the board until you send audio there. In Game settings, set “Sound comes from” to Stream board, then tap the board once so the browser will play. That is also where the volume slider and song levelling live.',
+          'Songs play on the board itself, including in OBS. Open the board tab or paste it as a Browser Source and the clips start when the round does — you do not need the room tab open for sound. Volume and song levelling live in Game settings.',
         ],
       },
       {

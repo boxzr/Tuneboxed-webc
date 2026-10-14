@@ -12,6 +12,7 @@ export const APP_STORE_URL = 'https://apps.apple.com/us/app/tuneboxed/id67476479
 /** Every content route, in the order they appear in the footer and sitemap. Labels come from `copy.nav`. */
 export const CONTENT_PAGES = [
   { path: '/battle', key: 'play' },
+  { path: '/song-battle', key: 'songBattle' },
   { path: '/rules', key: 'rules' },
   { path: '/faq', key: 'faq' },
   { path: '/streamers', key: 'streamers' },

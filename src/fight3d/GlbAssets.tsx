@@ -4,11 +4,11 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { CLOTH_HEX, SKIN_HEX, hexOf, type FighterLoadout } from './loadout';
-import type { BoxerPose } from './punchDirector';
+import { isKnockdown, type BoxerPose } from './punchDirector';
 import {
   hitReaction,
   idleMotion,
-  knockdownY,
+  knockdownMotion,
   punchOut,
   punchPhaseAt,
   stepIn,
@@ -253,13 +253,26 @@ export function GlbBoxer({
         spring.current.vz = -2.4 * wt.knock * hr.knock;
         spring.current.vy = 2.2 * wt.knock * hr.lift;
       }
-      if (pose === 'down') {
-        spring.current.vz = -1.4;
-        spring.current.vy = 2.4;
+      if (isKnockdown(pose)) {
+        if (pose === 'downSpin') {
+          spring.current.vz = -0.7;
+          spring.current.vy = 3.1;
+        } else if (pose === 'downFlat') {
+          spring.current.vz = -2.3;
+          spring.current.vy = 1.3;
+        } else if (pose === 'downSit') {
+          spring.current.vz = -0.35;
+          spring.current.vy = 0.7;
+        } else {
+          spring.current.vz = -1.4;
+          spring.current.vy = 2.4;
+        }
       }
     }
     const t = clock.elapsedTime;
     const age = t - poseAt.current;
+    const falling = isKnockdown(pose);
+    const km = falling ? knockdownMotion(age, pose) : null;
     const wt = weightOf(loadout.body);
     const punch = asPunch(pose);
     const out = punch ? punchOut(age * wt.speed, punch) : 0;
@@ -272,15 +285,15 @@ export function GlbBoxer({
 
     if (root.current) {
       const s = spring.current;
-      if (pose === 'hurt' || pose === 'down') {
+      if (pose === 'hurt' || falling) {
         s.vy -= 12 * dtClamped;
         s.vz *= Math.pow(0.05, dtClamped);
         s.z += s.vz * dtClamped;
-        const floor = pose === 'down' ? 0.04 : 0;
+        const floor = falling ? 0.04 : 0;
         s.y = Math.max(floor, s.y + s.vy * dtClamped);
         if (s.y <= floor && s.vy < 0) {
           s.y = floor;
-          s.vy *= pose === 'down' ? -0.4 : -0.12;
+          s.vy *= falling ? -0.4 : -0.12;
         }
       } else {
         s.z = THREE.MathUtils.lerp(s.z, 0, 0.22);
@@ -290,24 +303,27 @@ export function GlbBoxer({
       }
       const lunge = punch ? stepIn(age * wt.speed, punch) * wt.lunge : 0;
       const hop = pose === 'won' ? Math.abs(Math.sin(t * 8)) * 0.1 : 0;
-      root.current.position.y = pose === 'down' ? knockdownY(age) : idle.y * 0.55 + s.y + hop;
+      root.current.position.y = km ? km.y : idle.y * 0.55 + s.y + hop;
       root.current.position.z = lunge + s.z;
       root.current.position.x = pose === 'idle' ? idle.x * 0.6 : THREE.MathUtils.lerp(root.current.position.x, 0, 0.25);
       root.current.rotation.z = THREE.MathUtils.lerp(
         root.current.rotation.z,
-        pose === 'down' ? facing * 0.55 : pose === 'hurt' && hr ? facing * -0.12 * hr.twist : idle.weave * 0.12,
+        km ? facing * (pose === 'down' ? 0.55 : km.roll) : pose === 'hurt' && hr ? facing * -0.12 * hr.twist : idle.weave * 0.12,
         0.18
       );
       root.current.rotation.x = THREE.MathUtils.lerp(
         root.current.rotation.x,
-        pose === 'down' ? 1.05 : pose === 'hurt' && hr ? 0.1 + hr.lift * 0.16 : pose === 'lost' ? 0.14 : 0,
-        pose === 'down' ? 0.14 : 0.18
+        km ? (pose === 'down' ? 1.05 : -km.tilt) : pose === 'hurt' && hr ? 0.1 + hr.lift * 0.16 : pose === 'lost' ? 0.14 : 0,
+        falling ? 0.14 : 0.18
       );
-      root.current.rotation.y = THREE.MathUtils.lerp(
-        root.current.rotation.y,
-        pose === 'hook' ? -0.35 * ext : pose === 'hurt' && hr ? hr.twist * 0.28 : 0,
-        0.22
-      );
+      root.current.rotation.y =
+        pose === 'downSpin' && km
+          ? km.spin
+          : THREE.MathUtils.lerp(
+              root.current.rotation.y,
+              km ? km.spin : pose === 'hook' ? -0.35 * ext : pose === 'hurt' && hr ? hr.twist * 0.28 : 0,
+              0.22
+            );
     }
 
     const spine = bone(clone, 'Spine02') ?? bone(clone, 'Spine01') ?? bone(clone, 'Spine');
@@ -353,11 +369,29 @@ export function GlbBoxer({
       r = { x: -0.2, y: -0.15, z: -2.4 };
       lf = { x: 0, y: 0, z: 0.15 };
       rf = { x: 0, y: 0, z: -0.15 };
-    } else if (pose === 'down') {
-      l = { x: 0.35, y: 0.12, z: 0.35 };
-      r = { x: 0.35, y: -0.12, z: -0.35 };
-      lf = { x: 0.2, y: 0, z: 0.4 };
-      rf = { x: 0.2, y: 0, z: -0.4 };
+    } else if (falling) {
+      if (pose === 'downSpin') {
+        const flail = Math.sin(age * 10);
+        l = { x: 0.2 + flail * 0.35, y: 0.35, z: 0.55 };
+        r = { x: 0.2 - flail * 0.35, y: -0.35, z: -0.55 };
+        lf = { x: 0.15, y: 0.1, z: 0.55 };
+        rf = { x: 0.15, y: -0.1, z: -0.55 };
+      } else if (pose === 'downFlat') {
+        l = { x: 0.15, y: 0.55, z: 0.15 };
+        r = { x: 0.15, y: -0.55, z: -0.15 };
+        lf = { x: 0.35, y: 0, z: 0.15 };
+        rf = { x: 0.35, y: 0, z: -0.15 };
+      } else if (pose === 'downSit') {
+        l = { x: 0.55, y: 0.22, z: 0.55 };
+        r = { x: 0.55, y: -0.22, z: -0.55 };
+        lf = { x: 0.45, y: 0.05, z: 0.35 };
+        rf = { x: 0.45, y: -0.05, z: -0.35 };
+      } else {
+        l = { x: 0.35, y: 0.12, z: 0.35 };
+        r = { x: 0.35, y: -0.12, z: -0.35 };
+        lf = { x: 0.2, y: 0, z: 0.4 };
+        rf = { x: 0.2, y: 0, z: -0.4 };
+      }
     } else if (pose === 'lost') {
       l = { x: 0.45, y: 0.2, z: 0.7 };
       r = { x: 0.45, y: -0.2, z: -0.7 };

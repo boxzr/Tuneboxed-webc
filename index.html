@@ -8,7 +8,7 @@
     <meta name="robots" content="index, follow" />
     <meta
       name="description"
-      content="Two songs enter the ring and every vote from the room or your Twitch chat lands a punch until one is knocked out. Play free in the browser, on a call, or on stream."
+      content="Play a free song battle online. Everyone picks a song, two square up in a boxing ring, and every vote or Twitch chat message lands a punch. No app, no account."
     />
     <!-- Flattened onto white, because iOS composites a transparent icon onto
          black and the mark's dark outlines vanish into it. -->
@@ -23,10 +23,10 @@
     <link rel="canonical" href="https://tuneboxed.com/" />
     <meta property="og:site_name" content="TuneBoxed" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="TuneBoxed | Song battles fought as boxing matches" />
+    <meta property="og:title" content="TuneBoxed | Song Battle Game, Free Online and on Twitch" />
     <meta
       property="og:description"
-      content="Two songs enter the ring and every vote from the room or your Twitch chat lands a punch until one is knocked out. Play free in the browser, on a call, or on stream."
+      content="Play a free song battle online. Everyone picks a song, two square up in a boxing ring, and every vote or Twitch chat message lands a punch. No app, no account."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tuneboxed.com/" />
@@ -39,10 +39,10 @@
       content="TuneBoxed: blue and orange music-note boxers square up. Song battles fought as boxing matches, every vote lands a punch."
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="TuneBoxed | Song battles fought as boxing matches" />
+    <meta name="twitter:title" content="TuneBoxed | Song Battle Game, Free Online and on Twitch" />
     <meta
       name="twitter:description"
-      content="Two songs enter the ring and every vote from the room or your Twitch chat lands a punch until one is knocked out. Play free in the browser, on a call, or on stream."
+      content="Play a free song battle online. Everyone picks a song, two square up in a boxing ring, and every vote or Twitch chat message lands a punch. No app, no account."
     />
     <meta name="twitter:image" content="https://tuneboxed.com/og-image.png" />
     <meta
@@ -50,7 +50,17 @@
       content="TuneBoxed: blue and orange music-note boxers square up. Song battles fought as boxing matches, every vote lands a punch."
     />
 
-    <title>TuneBoxed | Song battles fought as boxing matches</title>
+    <!-- The prerendered page text (scripts/staticBody.mjs) that the app
+         replaces on boot. It fades in only if the app has not loaded by then,
+         so normal visits do not flash unstyled text. -->
+    <style>
+      .prerender { max-width: 760px; margin: 0 auto; padding: 32px 20px; font: 16px/1.6 system-ui, sans-serif; color: #f4f4f5; background: #0d0d12; opacity: 0; animation: prerender-in 0.3s 1.5s forwards; }
+      .prerender a { color: #ffa04d; }
+      .prerender nav { margin-bottom: 24px; }
+      @keyframes prerender-in { to { opacity: 1; } }
+    </style>
+
+    <title>TuneBoxed | Song Battle Game, Free Online and on Twitch</title>
 
     <script type="application/ld+json">
       {

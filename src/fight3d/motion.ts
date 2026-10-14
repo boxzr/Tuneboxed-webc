@@ -171,6 +171,18 @@ function bounceOut(t: number): number {
 /** How long a knocked-out boxer takes to tip from standing onto the canvas. */
 export const KNOCKDOWN_FALL = 0.55;
 
+export type KnockdownStyle = 'down' | 'downSpin' | 'downFlat' | 'downSit';
+
+export interface KnockdownMotion {
+  y: number;
+  /** Pitch in radians. Negative tips them away from the foe. */
+  tilt: number;
+  /** Roll magnitude; the rig multiplies by facing. */
+  roll: number;
+  /** Yaw, used by the corkscrew fall. */
+  spin: number;
+}
+
 /**
  * Backward lean during a knockdown, in radians (negative tips them away from
  * the foe). Gravity-eased so the drop accelerates, then a small rebound off
@@ -191,6 +203,70 @@ export function knockdownY(age: number): number {
   if (age < KNOCKDOWN_FALL) return 0;
   const after = age - KNOCKDOWN_FALL;
   return 0.03 + Math.abs(Math.sin(after * 11)) * 0.06 * Math.exp(-after * 6);
+}
+
+function landBounce(after: number, freq: number, decay: number, lift: number): number {
+  return lift + Math.abs(Math.sin(after * freq)) * lift * 2 * Math.exp(-after * decay);
+}
+
+/**
+ * How a knocked-out boxer hits the canvas.
+ *
+ * `down` is the original backward tip. The others are the extra falls: a
+ * corkscrew, a flat face-plant, and a sit that tips over.
+ */
+export function knockdownMotion(age: number, style: KnockdownStyle = 'down'): KnockdownMotion {
+  if (style === 'downSpin') {
+    const u = Math.min(1, age / 0.72);
+    const after = Math.max(0, age - 0.72);
+    return {
+      y: age < 0.72 ? 0.16 * Math.sin(u * Math.PI) : landBounce(after, 12, 6.5, 0.025),
+      tilt: -1.12 * u * u,
+      roll: 0.22 * u,
+      spin: u * Math.PI * 2,
+    };
+  }
+  if (style === 'downFlat') {
+    const fall = 0.38;
+    const u = Math.min(1, age / fall);
+    const after = Math.max(0, age - fall);
+    return {
+      y: age < fall ? 0 : landBounce(after, 14, 7, 0.02),
+      tilt: -1.38 * u * u,
+      roll: 0.82 * u,
+      spin: 0.12 * u,
+    };
+  }
+  if (style === 'downSit') {
+    const sit = 0.4;
+    const tip = 0.55;
+    if (age < sit) {
+      const t = age / sit;
+      return { y: 0, tilt: 0.42 * t, roll: 0.06 * t, spin: 0 };
+    }
+    if (age < sit + tip) {
+      const t = (age - sit) / tip;
+      return {
+        y: 0,
+        tilt: 0.42 + (-1.18 - 0.42) * t * t,
+        roll: 0.06 + 0.22 * t,
+        spin: 0.1 * t,
+      };
+    }
+    const after = age - sit - tip;
+    return {
+      y: landBounce(after, 10, 6, 0.02),
+      tilt: -1.18 + Math.abs(Math.sin(after * 10)) * 0.08 * Math.exp(-after * 6),
+      roll: 0.28,
+      spin: 0.1,
+    };
+  }
+  return {
+    y: knockdownY(age),
+    tilt: knockdownTilt(age),
+    roll: 0.25,
+    spin: 0,
+  };
 }
 
 export function idleMotion(t: number, bounce: number): { y: number; x: number; weave: number } {

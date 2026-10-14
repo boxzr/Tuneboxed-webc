@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CLOTH_HEX, HAIR_HEX, SKIN_HEX, hexOf, type FighterLoadout } from './loadout';
-import type { BoxerPose } from './punchDirector';
+import { isKnockdown, type BoxerPose } from './punchDirector';
 import { GAIT, type WalkStyle } from './walkStyles';
 import { ANKLE, HIP, blankFrame, danceFrame, type Dance } from './dances';
 import { SHIN, THIGH, solveLeg } from './legIK';
@@ -12,8 +12,7 @@ import {
   comboMove,
   hitReaction,
   idleMotion,
-  knockdownTilt,
-  knockdownY,
+  knockdownMotion,
   punchOut,
   punchPhaseAt,
   stepIn,
@@ -488,12 +487,25 @@ export default function BoxerRig({
       lastDance.current = dance;
       poseAt.current = t;
       landedHits.current = 0;
-      if (pose === 'down') {
-        spring.current.vz = -1.4;
-        spring.current.vy = 2.4;
+      if (isKnockdown(pose)) {
+        if (pose === 'downSpin') {
+          spring.current.vz = -0.7;
+          spring.current.vy = 3.1;
+        } else if (pose === 'downFlat') {
+          spring.current.vz = -2.3;
+          spring.current.vy = 1.3;
+        } else if (pose === 'downSit') {
+          spring.current.vz = -0.35;
+          spring.current.vy = 0.7;
+        } else {
+          spring.current.vz = -1.4;
+          spring.current.vy = 2.4;
+        }
       }
     }
     const age = t - poseAt.current;
+    const falling = isKnockdown(pose);
+    const km = falling ? knockdownMotion(age, pose) : null;
     const wt = weightOf(loadout.body);
     const combo = pose === 'combo' ? comboMove(age * wt.speed, hits) : null;
     const punch = combo ? combo.kind : asPunch(pose);
@@ -546,15 +558,15 @@ export default function BoxerRig({
 
     if (root.current) {
       const s = spring.current;
-      if (struck || pose === 'down') {
+      if (struck || falling) {
         s.vy -= 12 * step;
         s.vz *= Math.pow(0.05, step);
         s.z += s.vz * step;
-        const floor = pose === 'down' ? 0.04 : 0;
+        const floor = falling ? 0.04 : 0;
         s.y = Math.max(floor, s.y + s.vy * step);
         if (s.y <= floor && s.vy < 0) {
           s.y = floor;
-          s.vy *= pose === 'down' ? -0.4 : -0.12;
+          s.vy *= falling ? -0.4 : -0.12;
         }
       } else {
         s.z = THREE.MathUtils.lerp(s.z, 0, 0.22);
@@ -577,12 +589,12 @@ export default function BoxerRig({
       const lunge = Math.min(advance, Math.max(0, room));
       const hop = pose === 'won' ? Math.abs(Math.sin(t * 8)) * 0.1 : poseHop;
       const walkBob = walking ? Math.abs(stride) * (gait.bob + gait.hop) : 0;
-      root.current.position.y = pose === 'down' ? knockdownY(age) : Math.max(0, idle.y) * 0.55 + s.y + hop + walkBob;
+      root.current.position.y = km ? km.y : Math.max(0, idle.y) * 0.55 + s.y + hop + walkBob;
       root.current.position.z = lunge + s.z;
       root.current.position.x = pose === 'idle' ? idle.x * 0.6 : THREE.MathUtils.lerp(root.current.position.x, shimmy, 0.25);
       root.current.rotation.z = THREE.MathUtils.lerp(
         root.current.rotation.z,
-        pose === 'down' ? facing * 0.25 : hr
+        km ? facing * km.roll : hr
             ? facing * -0.12 * hr.twist
             : walking
               ? stride * gait.roll
@@ -592,16 +604,18 @@ export default function BoxerRig({
         0.18
       );
       root.current.rotation.x =
-        pose === 'down'
-          ? knockdownTilt(age)
+        km
+          ? km.tilt
           : THREE.MathUtils.lerp(root.current.rotation.x, hr ? -0.1 - hr.lift * 0.16 : pose === 'lost' ? 0.14 : 0, 0.18);
-      if (spin > 0) {
+      if (km && pose === 'downSpin') {
+        root.current.rotation.y = km.spin;
+      } else if (spin > 0) {
         root.current.rotation.y = spin;
       } else {
         const ry = root.current.rotation.y;
         root.current.rotation.y = THREE.MathUtils.lerp(
           Math.atan2(Math.sin(ry), Math.cos(ry)),
-          hr ? hr.twist * 0.28 : walking ? stride * 0.1 : 0,
+          km ? km.spin : hr ? hr.twist * 0.28 : walking ? stride * 0.1 : 0,
           0.22
         );
       }
@@ -781,8 +795,11 @@ export default function BoxerRig({
         keepClear(arm.target, arm.shoulder);
       } else if (pose === 'lost') {
         arm.target.set(0.27 * s, -0.14, 0.08);
-      } else if (pose === 'down') {
-        arm.target.set(0.4 * s, 0.05, -0.04);
+      } else if (falling) {
+        if (pose === 'downSpin') arm.target.set(0.56 * s, 0.2 + Math.sin(age * 10 + s) * 0.16, -0.1);
+        else if (pose === 'downFlat') arm.target.set(0.64 * s, -0.04, 0.14);
+        else if (pose === 'downSit') arm.target.set(0.2 * s, 0.16, 0.3);
+        else arm.target.set(0.4 * s, 0.05, -0.04);
       } else if (dancing) {
         const hand = key === 'l' ? dancing.l : dancing.r;
         keepClear(arm.target.set(hand[0], hand[1], hand[2]), arm.shoulder);
@@ -840,8 +857,8 @@ export default function BoxerRig({
       } else {
         const swing =
           s < 0
-            ? walking ? stride * gait.stride : punch ? 0.18 : pose === 'down' ? 0.55 : bounce + 0.12 + wide
-            : walking ? -stride * gait.stride : punch ? -0.22 : pose === 'down' ? 0.3 : -bounce - 0.14 - wide;
+            ? walking ? stride * gait.stride : punch ? 0.18 : falling ? (pose === 'downSit' ? 1.05 : pose === 'downFlat' ? 0.78 : 0.55) : bounce + 0.12 + wide
+            : walking ? -stride * gait.stride : punch ? -0.22 : falling ? (pose === 'downSit' ? 0.95 : pose === 'downFlat' ? 0.72 : 0.3) : -bounce - 0.14 - wide;
         hip.rotation.y = lerp(hip.rotation.y, 0, 0.3);
         leg.rotation.x = lerp(leg.rotation.x, -swing, 0.22);
         leg.rotation.z = lerp(leg.rotation.z, -0.1 * s, 0.35);

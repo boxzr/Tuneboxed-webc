@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as battle from '../lib/battleClient';
 import { connectToChat, parseVote } from './twitchChat';
 import { uniqueLeader } from './voteLeader';
+import { addPunch, mergePunches, punchesAllowed } from './chatPunches';
 import type { BattleRound, BattleSubmission } from '../types/battle';
 
 /** How often the accumulated tally is pushed up. */
@@ -13,26 +14,26 @@ const CLAIM_TTL_MS = 3500;
 
 type HandoffMessage =
   | { type: 'claim' }
+  | { type: 'counts'; counts: Record<string, number> }
   | { type: 'ballots'; entries: [string, string][] };
 
 /**
- * Turns Twitch chat into votes for the current matchup.
+ * Turns Twitch chat into punches for the current matchup.
  *
  * Only runs for the host, and only while judging. Viewers type the number of
  * the song they want: 1 or 2 in a bracket matchup, or its place in the list
- * in a party round, which numbers every song the same way on the board.
+ * in a party round. Each valid 1 or 2 is a punch — spam adds more.
  *
- * Votes are kept in a ref rather than state. Chat can be fast, and a
- * re-render per message would be wasteful when the display only needs to move
- * at the reporting interval.
+ * Counts live in a ref. Chat can be fast, and the ring reads the running
+ * tally immediately so a burst of 1s lands as a burst of punches rather
+ * than one ballot that moves every couple of seconds.
  *
  * The host can have both the room tab and the board open, and a streamer
  * watches the board while the room tab sits in the background, where the
- * browser throttles its timers to as little as once a minute. So a report
- * also goes out as chat arrives, since socket messages are not throttled, and
- * a board passes `prefer` to take the count over: it claims the round on a
- * BroadcastChannel, the room tab hands its ballots across and stops reporting,
- * and picks the count back up if the board closes.
+ * browser throttles its timers. A board passes `prefer` to take the count
+ * over: it claims the round on a BroadcastChannel, the room tab hands its
+ * counts across and stops reporting, and picks the count back up if the
+ * board closes.
  */
 export function useChatVotes({
   enabled,
@@ -52,9 +53,8 @@ export function useChatVotes({
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [connected, setConnected] = useState(false);
 
-  // Which submission each chat user picked, so a viewer changing their mind
-  // moves their vote instead of adding a second one.
-  const ballots = useRef(new Map<string, string>());
+  const punches = useRef<Record<string, number>>({});
+  const rate = useRef(new Map<string, number[]>());
 
   const judging = round?.phase === 'judging';
   const active = enabled && judging && Boolean(channel) && Boolean(token);
@@ -65,7 +65,8 @@ export function useChatVotes({
   const idsKey = submissions.map((s) => s.id).join(',');
 
   useEffect(() => {
-    ballots.current.clear();
+    punches.current = {};
+    rate.current.clear();
     setCounts({});
   }, [roundId]);
 
@@ -78,18 +79,20 @@ export function useChatVotes({
     let claimedAt = 0;
     const yielding = () => !prefer && Date.now() - claimedAt < CLAIM_TTL_MS;
 
+    const tallied = () => {
+      const next: Record<string, number> = {};
+      for (const id of ids) next[id] = punches.current[id] ?? 0;
+      return next;
+    };
+
     const flush = () => {
       lastReport = Date.now();
-      const tallied: Record<string, number> = {};
-      for (const id of ids) tallied[id] = 0;
-      for (const submissionId of ballots.current.values()) {
-        if (submissionId in tallied) tallied[submissionId] += 1;
-      }
-      setCounts(tallied);
+      const next = tallied();
+      setCounts(next);
       if (yielding()) return;
       // Best effort. The next flush resends the whole tally, so a failure
-      // here costs a couple of seconds of staleness rather than losing votes.
-      if (token) void battle.reportChatTally(token, roundId, tallied).catch(() => {});
+      // here costs a couple of seconds of staleness rather than losing punches.
+      if (token) void battle.reportChatTally(token, roundId, next).catch(() => {});
     };
 
     const handoff =
@@ -98,12 +101,17 @@ export function useChatVotes({
       handoff.onmessage = (e: MessageEvent<HandoffMessage>) => {
         const msg = e.data;
         if (msg?.type === 'claim' && !prefer) {
-          if (!yielding()) handoff.postMessage({ type: 'ballots', entries: [...ballots.current] });
+          if (!yielding()) handoff.postMessage({ type: 'counts', counts: { ...punches.current } });
           claimedAt = Date.now();
+        } else if (msg?.type === 'counts' && prefer) {
+          punches.current = mergePunches(punches.current, msg.counts);
+          flush();
         } else if (msg?.type === 'ballots' && prefer) {
-          for (const [user, submissionId] of msg.entries) {
-            if (!ballots.current.has(user)) ballots.current.set(user, submissionId);
+          const incoming: Record<string, number> = {};
+          for (const [, submissionId] of msg.entries) {
+            incoming[submissionId] = (incoming[submissionId] ?? 0) + 1;
           }
+          punches.current = mergePunches(punches.current, incoming);
           flush();
         }
       };
@@ -116,7 +124,11 @@ export function useChatVotes({
       (msg) => {
         const choice = parseVote(msg.text, ids.length);
         if (choice === null) return;
-        ballots.current.set(msg.user, ids[choice - 1]);
+        const gate = punchesAllowed(rate.current.get(msg.user) ?? [], Date.now());
+        rate.current.set(msg.user, gate.recent);
+        if (!gate.ok) return;
+        punches.current = addPunch(punches.current, ids[choice - 1]);
+        setCounts(tallied());
         if (Date.now() - lastReport >= REPORT_MS) flush();
       },
       setConnected

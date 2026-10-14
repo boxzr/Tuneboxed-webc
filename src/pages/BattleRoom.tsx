@@ -11,7 +11,7 @@ import { useUsedGenres } from '../battle/useUsedGenres';
 import { secondsUntil, syncClock } from '../battle/clock';
 import { useClipSeconds } from '../battle/useClipSeconds';
 import { usePickSeconds } from '../battle/usePickSeconds';
-import { useAudioSettings } from '../battle/useAudioSettings';
+import { useAudioSettings, useBoardAudioPresent } from '../battle/useAudioSettings';
 import { BRACKET_CAP, PARTY_ROUNDS, PICK_SECONDS } from '../battle/rules';
 import { endBattle, type HostContext, nextHostAction } from '../battle/hostActions';
 import { uniqueLeader } from '../battle/voteLeader';
@@ -125,7 +125,11 @@ export default function BattleRoom() {
   const phase = round?.phase ?? null;
   const pick = usePickSeconds();
   const audio = useAudioSettings(submissions);
-  const hearAudio = (!room?.host_speaker_enabled || isHost) && audio.where === 'room';
+  const boardPresent = useBoardAudioPresent();
+  // The board plays itself. This tab stays quiet while a board in this
+  // browser is up, so a captured /tv tab is the only one that sounds.
+  const hearAudio =
+    (!room?.host_speaker_enabled || isHost) && audio.where === 'room' && !boardPresent;
   // A music video plays through a real element on the page, so the hook can
   // only drive it once React has put it there.
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);

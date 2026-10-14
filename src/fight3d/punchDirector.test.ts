@@ -6,6 +6,8 @@ import {
   emptyDirector,
   voteBoost,
   kindForBurst,
+  isKnockdown,
+  knockdownFor,
   posesFor,
   tickDirector,
 } from './punchDirector.ts';
@@ -98,6 +100,14 @@ test('a knockout puts the loser on the canvas', () => {
   const poses = posesFor(null, 'a', true);
   assert.equal(poses.a, 'won');
   assert.equal(poses.b, 'down');
+  assert.ok(isKnockdown(poses.b));
+});
+
+test('knockouts cycle through different falls', () => {
+  const falls = [0, 1, 2, 3].map((seed) => posesFor(null, 'a', true, seed).b);
+  assert.deepEqual(falls, ['down', 'downSpin', 'downFlat', 'downSit']);
+  assert.equal(knockdownFor(4), 'down');
+  assert.ok(falls.every(isKnockdown));
 });
 
 test('a decision leaves the loser standing', () => {

@@ -195,6 +195,26 @@
   margin-top: 10px;
 }
 
+/* ---------- Idea list ---------- */
+
+.page-ideas {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.page-ideas li {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 /* ---------- FAQ ---------- */
 
 .page-faq {

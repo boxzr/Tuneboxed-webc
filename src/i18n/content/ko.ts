@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const ko: Copy = {
   nav: {
     play: '플레이',
+    songBattle: '노래 배틀',
     rules: '게임 규칙',
     faq: 'FAQ',
     streamers: '스트리머용',

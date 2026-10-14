@@ -14,10 +14,11 @@
  * that path, so it answers 200, and each copy carries its own title,
  * description, canonical and JSON-LD instead of the home page's.
  *
- * This prerenders metadata, not markup: the body is still the app shell that
- * boots and renders the page. That is enough for indexing, because search
- * engines execute the JavaScript. Titles, descriptions and sitelink labels
- * come from scripts/seo.mjs so they cannot drift from the sitemap.
+ * Each page also carries its text as plain HTML inside #root (see
+ * scripts/staticBody.mjs), so crawlers that do not run JavaScript still read
+ * the headings and copy. The app replaces it when it boots. Titles,
+ * descriptions and sitelink labels come from scripts/seo.mjs so they cannot
+ * drift from the sitemap.
  *
  * Run after `vite build`.
  */
@@ -26,6 +27,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROUTES, jsonLdFor, sitemapXml, absoluteUrl } from './seo.mjs';
+import { staticBody } from './staticBody.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -80,6 +82,7 @@ async function main() {
       `$1${url}$2`
     );
     html = setJsonLd(html, jsonLdFor(route));
+    html = html.replace('<div id="root"></div>', `<div id="root">${staticBody(route.path)}</div>`);
 
     if (route.path === '/') {
       await writeFile(join(DIST, 'index.html'), html);
