@@ -50,6 +50,16 @@
       content="TuneBoxed: blue and orange music-note boxers square up. Song battles fought as boxing matches, every vote lands a punch."
     />
 
+    <!-- The prerendered page text (scripts/staticBody.mjs) that the app
+         replaces on boot. It fades in only if the app has not loaded by then,
+         so normal visits do not flash unstyled text. -->
+    <style>
+      .prerender { max-width: 760px; margin: 0 auto; padding: 32px 20px; font: 16px/1.6 system-ui, sans-serif; color: #f4f4f5; background: #0d0d12; opacity: 0; animation: prerender-in 0.3s 1.5s forwards; }
+      .prerender a { color: #ffa04d; }
+      .prerender nav { margin-bottom: 24px; }
+      @keyframes prerender-in { to { opacity: 1; } }
+    </style>
+
     <title>Winners | TuneBoxed</title>
 
     <script type="application/ld+json">
@@ -86,6 +96,11 @@
           "@type": "WebPage",
           "name": "Play",
           "url": "https://tuneboxed.com/battle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Song battle",
+          "url": "https://tuneboxed.com/song-battle"
         },
         {
           "@type": "WebPage",
@@ -148,14 +163,14 @@
   ]
 }
     </script>
-    <script type="module" crossorigin src="/assets/index-CPpsqNu7.js"></script>
+    <script type="module" crossorigin src="/assets/index-CBsxZltC.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-DuXYpFKP.js">
     <link rel="modulepreload" crossorigin href="/assets/supabase-BB1iaL-l.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-B0g_IV21.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-Cso24PeI.css">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root"><div class="prerender"><nav><a href="/">TuneBoxed</a> · <a href="/battle">Play</a> · <a href="/song-battle">Song battle</a> · <a href="/rules">Game rules</a> · <a href="/faq">FAQ</a> · <a href="/streamers">For streamers</a> · <a href="/winners">Winners</a> · <a href="/about">About</a></nav><main><h1>Winners</h1><p>Songs that made it through a whole bracket. Hosts choose whether a battle lands here.</p><p>Read the <a href="/rules">game rules</a> or <a href="/battle">start a battle</a>.</p></main></div></div>
 
     <!--
       Pairs with the redirect in public/404.html. GitHub Pages serves 404.html for

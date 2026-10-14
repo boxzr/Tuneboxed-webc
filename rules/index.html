@@ -50,6 +50,16 @@
       content="TuneBoxed: blue and orange music-note boxers square up. Song battles fought as boxing matches, every vote lands a punch."
     />
 
+    <!-- The prerendered page text (scripts/staticBody.mjs) that the app
+         replaces on boot. It fades in only if the app has not loaded by then,
+         so normal visits do not flash unstyled text. -->
+    <style>
+      .prerender { max-width: 760px; margin: 0 auto; padding: 32px 20px; font: 16px/1.6 system-ui, sans-serif; color: #f4f4f5; background: #0d0d12; opacity: 0; animation: prerender-in 0.3s 1.5s forwards; }
+      .prerender a { color: #ffa04d; }
+      .prerender nav { margin-bottom: 24px; }
+      @keyframes prerender-in { to { opacity: 1; } }
+    </style>
+
     <title>Game rules | TuneBoxed</title>
 
     <script type="application/ld+json">
@@ -86,6 +96,11 @@
           "@type": "WebPage",
           "name": "Play",
           "url": "https://tuneboxed.com/battle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Song battle",
+          "url": "https://tuneboxed.com/song-battle"
         },
         {
           "@type": "WebPage",
@@ -148,14 +163,14 @@
   ]
 }
     </script>
-    <script type="module" crossorigin src="/assets/index-CPpsqNu7.js"></script>
+    <script type="module" crossorigin src="/assets/index-CBsxZltC.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-DuXYpFKP.js">
     <link rel="modulepreload" crossorigin href="/assets/supabase-BB1iaL-l.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-B0g_IV21.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-Cso24PeI.css">
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root"><div class="prerender"><nav><a href="/">TuneBoxed</a> · <a href="/battle">Play</a> · <a href="/song-battle">Song battle</a> · <a href="/rules">Game rules</a> · <a href="/faq">FAQ</a> · <a href="/streamers">For streamers</a> · <a href="/winners">Winners</a> · <a href="/about">About</a></nav><main><h1>Game rules</h1><p>Two ways to play in the browser. Same songs, same room code, and the same ring, with a different path to a winner.</p><section><h2>Party</h2><p>The same Battle Mode as the iOS app. Built for a group around a table or on a call.</p><ol><li><h3>Start a Party room</h3><p>You get a five-letter code. Share it in a group chat or read it out. Everyone joins in their browser. No app, no account.</p></li><li><h3>Everyone picks a song</h3><p>Three or more players. Each round, everyone except the judge locks in a track, with 90 seconds on the clock by default. The host can give more time or turn the clock off. Miss it and you are out of the round. While you wait, dress your fighter in the locker room.</p></li><li><h3>The songs play together</h3><p>Each pick plays for 30 seconds by default, in sync for everyone in the room at the same moment. The host can shorten it. When exactly two songs are in, the round goes to the ring: each song is its fighter’s walkout.</p></li><li><h3>A rotating judge crowns a winner</h3><p>One player sits out the pick and chooses the song they liked more. In the ring, the judge crowns a corner. The judge role moves each round.</p></li><li><h3>Best of three</h3><p>Three rounds, then the player with the most crowns wins.</p></li></ol></section><section><h2>Bracket</h2><p>Head to head until one song is left. The format a stream can put on screen. Classic is the default: one vibe, songs in first. Switch to TuneBoxed mode in game settings if you want a fresh random vibe each matchup and a live pick clock.</p><ol><li><h3>Start a Bracket room</h3><p>Up to 16 players. Share the code however suits you, including on a stream. Bracket opens in Classic.</p></li><li><h3>Pick one vibe, then lock songs in</h3><p>The host names the vibe for the whole game — sunset, 2016 rap, whatever they want. Players submit before anything starts. There is no clock and nothing is live yet, so nobody is rushed.</p></li><li><h3>Two songs walk out</h3><p>Every matchup is a boxing match. Each fighter walks out to their song, one corner then the other, for 30 seconds by default and in sync for everyone in the room. The host can change the clip length. Those are the songs people locked in, not a new pick each round.</p></li><li><h3>The room throws the punches</h3><p>When both songs have played, the bell rings and voting opens. Everyone in the room picks the track they liked more, except the two in the matchup. If the host is on Twitch, chat votes too by typing 1 or 2. Every vote is a punch.</p></li><li><h3>The winner advances</h3><p>The song with more votes moves up the bracket, by knockout or on the judges’ decision. A tie, or no votes at all, is a coin flip. Repeat until one track is left standing.</p></li></ol></section><section><h2>The fight</h2><p>Every head-to-head is fought in a 3D ring by two music-note boxers, one in the blue corner and one in the orange. Each walks out to their own song with an entrance picked at random from five, so no two fights open the same way. Everyone else in the room is in the crowd, and the referee calls it.</p><h3>Votes are punches</h3><p>Once both songs have played, the bell goes and every vote lands a punch on the other song. The health bars at the top follow the vote: the further one song pulls ahead, the more the other one’s bar drains.</p><h3>Combos</h3><p>Three votes in a row for the same song, with none for the other, is a combo: a string of punches instead of one. Keep the run going and it grows. Six in a row is a huge combo and nine is a mega combo. A single vote for the other corner breaks the streak.</p><h3>Small rooms hit harder</h3><p>A quiet chat should not feel like a quiet fight. When only a few votes are coming in, each one counts for more on screen: with five or fewer in the last 15 seconds, one vote is a full combo, and up to twelve doubles it. This only changes how hard the punches land. The winner is always decided by the real vote count.</p><h3>Knockout or decision</h3><p>A song nobody votes for, once at least five votes are in, has its bar emptied and goes down: that is a knockout. Anything closer goes to a decision, and the song with more votes takes it.</p><h3>Your fighter</h3><p>Dress your boxer in the locker room while the room locks songs in: body colour, note style, flag, trunks, gloves, sneakers and build. It is saved to you for the rest of the game. If you skip it you still get a fighter, styled from your name.</p></section><section><h2>What counts as a vote in Twitch chat</h2><p>Only a message that is exactly the number counts. Typing <strong>1</strong> votes for the first song; typing “1 is better” does not. Chat during a battle is full of digits, and matching loosely would quietly miscount the result.</p><p>Votes are counted while your hosting tab is open. If you close it mid-vote, chat votes stop being counted until you reopen it.</p></section><section><h2>Odd numbers of players</h2><p>A bracket needs pairs. When the count is odd, byes are spread across the first stage rather than piled at the end, so at most one player per matchup sits it out. A bye moves you to the next stage without playing. In TuneBoxed mode you pick again there; in Classic you keep the song you locked in.</p><p>If you ever reach a matchup with nobody opposite you, you take it without a round rather than waiting for an opponent who is never coming.</p></section><section><h2>Missing the clock</h2><p>When the pick timer hits zero the round closes on whatever is in. If only one person got a song in, they take the round: turning up beats not turning up. If nobody did, the host can put more time on the clock.</p></section><section><h2>Where songs come from</h2><p>Search covers Apple’s public music catalogue, and each result plays as a 30 second clip. Nobody needs a Spotify or Apple Music subscription, because everyone in the room plays the same preview rather than a stream only some of them can reach.</p><p>Switch search to music videos to battle with the video instead of the track. It runs on the same clock and the same clip length, so the room watches it together rather than only hearing it.</p><p>You can also paste a SoundCloud or YouTube link instead of searching, which is how to battle a song the Apple catalogue does not carry. Those play in SoundCloud’s and YouTube’s own players, so they stay on screen during the matchup. They also start a beat less precisely than a preview does, since the player has to load first and YouTube may run an ad, so expect a second or two of slack rather than the exact sync you get from search.</p></section><p><a href="/battle">Start a battle</a> or read the <a href="/faq">FAQ</a>.</p></main></div></div>
 
     <!--
       Pairs with the redirect in public/404.html. GitHub Pages serves 404.html for
