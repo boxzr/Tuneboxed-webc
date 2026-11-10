@@ -33,6 +33,13 @@ export const ROUTES = [
       'Host or join a TuneBoxed song battle in your browser. Share a five-letter code, pick tracks, and vote through a bracket. No app, no account.',
   },
   {
+    path: '/how-to-play',
+    name: 'How to play',
+    title: 'How to play | TuneBoxed',
+    description:
+      'Learn TuneBoxed in six steps: start a room, pick a song, watch the walkouts, vote to throw punches, then fight a round yourself with the 3D boxers.',
+  },
+  {
     path: '/song-battle',
     name: 'Song battle',
     title: songBattle.title,

@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const it: Copy = {
   nav: {
     play: 'Gioca',
+    howToPlay: 'Come si gioca',
     songBattle: 'Sfida tra canzoni',
     rules: 'Regole del gioco',
     faq: 'FAQ',
@@ -52,6 +53,32 @@ const it: Copy = {
     streamersLink: 'Come configurarlo per lo stream',
   },
 
+  tutorial: {
+    kicker: "Come si gioca",
+    title: "Si impara in 30 secondi",
+    prev: "Passo precedente",
+    next: "Passo successivo",
+    step: "Passo",
+    slides: [
+      { title: "Crea una stanza", body: "Tocca Inizia una battaglia e leggi il codice ad alta voce, o incolla il link in chat." },
+      { title: "Scegli la canzone", body: "Ognuno sceglie un brano in tema e veste il suo pugile." },
+      { title: "Le entrate", body: "Ogni canzone suona la sua entrata. La campana suona quando entrambi sono sul ring." },
+      { title: "I voti sono pugni", body: "Scrivi 1 o 2 in chat, o tocca nella stanza. Ogni voto è un pugno, tre di fila sono una combo." },
+      { title: "KO o decisione", body: "Svuota la vita di una canzone e finisce al tappeto. Un incontro equilibrato va ai punti." },
+    ],
+    demoTitle: "Tocca a te",
+    demoHint: "Tocca 1 o 2, o usa i tasti. Tre di fila per una combo.",
+    again: "Combatti ancora",
+    cta: "Inizia una battaglia vera",
+    pageTitle: "Come si gioca | TuneBoxed",
+    pageDescription: "Impara TuneBoxed in sei passi: crea una stanza, scegli una canzone, guarda le entrate, vota per tirare pugni e prova un round con i pugili 3D.",
+    roomCode: "Codice stanza",
+    look: "Cambia look",
+    endKo: "KO",
+    endDecision: "Decisione",
+    demoGoal: "Dai i primi cinque voti alla stessa canzone ed è KO. Altrimenti dopo nove voti si va ai punti.",
+    votesLeft: "Voti rimasti: {n}",
+  },
   entry: {
     joinTitle: 'Entra nella sfida',
     hostTitle: 'Il Kahoot delle sfide musicali',

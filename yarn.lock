@@ -561,15 +561,20 @@
   resolved "https://registry.npmjs.org/@firebase/webchannel-wrapper/-/webchannel-wrapper-1.0.3.tgz"
   integrity sha512-2xCRM9q9FlzGZCdgDMJwc0gyUkWFtkosy7Xxr6sFgQwn+wMNIWd7xIvYNauU1r64B5L5rsGKy/n9TKJ0aAFeqQ==
 
-"@fontsource-variable/inter@^5.3.0":
+"@fontsource-variable/archivo@^5.3.0":
   version "5.3.0"
-  resolved "https://registry.npmjs.org/@fontsource-variable/inter/-/inter-5.3.0.tgz"
-  integrity sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==
+  resolved "https://registry.npmjs.org/@fontsource-variable/archivo/-/archivo-5.3.0.tgz"
+  integrity sha512-HogK8FJelrD1o7TlZlkIVtHgc20bO5PZRWE7mUeUTdMN055alznQV6/00J00IBeu8FQAH4s3zW9UJNvKExXf+g==
 
-"@fontsource/bebas-neue@^5.3.0":
+"@fontsource-variable/martian-mono@^5.3.0":
   version "5.3.0"
-  resolved "https://registry.npmjs.org/@fontsource/bebas-neue/-/bebas-neue-5.3.0.tgz"
-  integrity sha512-nCxMEb9Bg9sjNWm9TIOsvHKDMLRUfEZPWpLgYu6m9KavZZVSA/WoHzI5wROwqA+eNwEi/PNBAcB5Co7HA3S0Cw==
+  resolved "https://registry.npmjs.org/@fontsource-variable/martian-mono/-/martian-mono-5.3.0.tgz"
+  integrity sha512-0wVODx9ILwNnaYC4XCuSaFRYtj1Prd89MRVaSuv2ng6zLiQkS4SepaWEPefs7vqCZS8sbEOA8jb/4F5KNMnGdg==
+
+"@fontsource-variable/mona-sans@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.npmjs.org/@fontsource-variable/mona-sans/-/mona-sans-5.3.0.tgz"
+  integrity sha512-PkxRB3KI4z9Gjpk7vVqgO3GMSyQuOIIj4TaRDbvbcDj8SzWwI38jvLTQxJM/cTRorhcT7h8qjcllR+qjRtM/Fg==
 
 "@grpc/grpc-js@~1.9.0":
   version "1.9.15"
@@ -1645,6 +1650,10 @@ picomatch@^2.3.1:
   version "2.3.1"
   resolved "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz"
   integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
+
+"pixelfx@github:patch-gg/pixelfx":
+  version "0.3.0"
+  resolved "git+ssh://git@github.com/patch-gg/pixelfx.git#a84159688af3ca37a4be05a0d422b94451b2e24e"
 
 pkg-dir@^4.1.0:
   version "4.2.0"

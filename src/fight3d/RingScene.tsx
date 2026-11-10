@@ -153,13 +153,15 @@ export function ProceduralRing() {
               <boxGeometry args={[span + 0.22, 0.04, 0.2]} />
               <meshStandardMaterial color="#d4af37" metalness={0.7} roughness={0.3} />
             </mesh>
-            <pointLight position={[midX, 0.12, midZ]} intensity={4} distance={3.2} color="#ffd36b" />
+            <pointLight position={[midX, 0.12, midZ]} intensity={2.4} distance={3.2} color="#ffd36b" />
           </group>
         );
       })}
     </group>
   );
 }
+
+const ARENA_FOG: [number, number] = [6, 17];
 
 /**
  * Lights, fog and the square canvas. Crowd and the jumbotron sit in FightCanvas
@@ -168,10 +170,13 @@ export function ProceduralRing() {
 export default function RingScene({
   proceduralRing = true,
   studio = false,
+  fog = ARENA_FOG,
 }: {
   proceduralRing?: boolean;
   /** Create-a-fighter: a lit studio floor, no ropes cutting the silhouette. */
   studio?: boolean;
+  /** Fog near and far, in metres from the camera. The walkout looks down a long aisle and wants it further out. */
+  fog?: [number, number];
 }) {
   if (studio) {
     return (
@@ -198,32 +203,40 @@ export default function RingScene({
     );
   }
 
+  // Lit like a broadcast: one hard key straight down on the canvas, the
+  // corners' colours as rims from behind, and the house left in the dark.
   return (
     <group>
-      <color attach="background" args={['#07050c']} />
-      <fog attach="fog" args={['#07050c', 12, 26]} />
+      <color attach="background" args={['#040308']} />
+      <fog attach="fog" args={['#040308', fog[0], fog[1]]} />
 
-      <hemisphereLight args={['#6b5a8a', '#1a1020', 0.34]} />
-      <ambientLight intensity={0.18} />
-      <spotLight position={[0, 7.5, 1.2]} angle={0.52} penumbra={0.45} intensity={62} distance={16} color="#fff4e0" />
+      <hemisphereLight args={['#4a4066', '#0c0812', 0.2]} />
+      <ambientLight intensity={0.08} />
+      <spotLight
+        position={[0, 8.2, 0.6]}
+        angle={0.4}
+        penumbra={0.5}
+        intensity={120}
+        distance={18}
+        decay={1.6}
+        color="#fff1dc"
+      />
       <directionalLight
-        position={[4, 8, 4]}
-        intensity={0.85}
+        position={[3, 8, 4.5]}
+        intensity={0.7}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-bias={-0.0004}
         shadow-normalBias={0.02}
       />
-      <spotLight position={[-3.2, 5.2, -4.6]} angle={0.5} penumbra={0.7} intensity={38} distance={14} color="#9cc9ff" />
-      <spotLight position={[3.2, 5.2, -4.6]} angle={0.5} penumbra={0.7} intensity={38} distance={14} color="#ffc48a" />
-      <spotLight position={[-4, 7, 2]} angle={0.45} intensity={18} color="#4ea8ff" penumbra={0.5} />
-      <spotLight position={[4, 7, 2]} angle={0.45} intensity={18} color="#ff9a3c" penumbra={0.5} />
-      <pointLight position={[0, 4.2, -2]} intensity={14} color="#f4efe6" distance={14} />
+      <spotLight position={[-3.2, 5.2, -4.6]} angle={0.42} penumbra={0.7} intensity={30} distance={12} color="#7fb6ff" />
+      <spotLight position={[3.2, 5.2, -4.6]} angle={0.42} penumbra={0.7} intensity={30} distance={12} color="#ffb070" />
+      <pointLight position={[0, 2.4, 3.2]} intensity={3.2} color="#f4efe6" distance={6} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]} receiveShadow>
         <circleGeometry args={[14, 48]} />
-        <meshStandardMaterial color="#100c14" roughness={1} />
+        <meshStandardMaterial color="#09070d" roughness={1} />
       </mesh>
 
       {proceduralRing && <ProceduralRing />}

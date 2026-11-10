@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import BoxingMatch from './BoxingMatch';
-import { defaultLoadout } from '../../fight3d/loadout';
+import { cornerLoadout } from '../../fight3d/loadout';
 import type { Dance } from '../../fight3d/dances';
 import DemoChat, { NAME_COLORS, type ChatLine } from './DemoChat';
 
@@ -231,16 +231,30 @@ function chatUpTo(tick: number): ChatLine[] {
   return lines.slice(-16);
 }
 
+/**
+ * Development only: `?demoTick=97&demoHold=1` opens the demo on one moment
+ * and keeps it there, so a single frame (a knockout card, say) can be looked
+ * at for as long as it takes. Production builds always start at the bell.
+ */
+function devStart(): { tick: number; hold: boolean } {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return { tick: 0, hold: false };
+  const q = new URLSearchParams(window.location.search);
+  const tick = Number(q.get('demoTick'));
+  return { tick: Number.isFinite(tick) && tick > 0 ? Math.floor(tick) : 0, hold: q.has('demoHold') };
+}
+
 export default function FightDemo() {
-  const [tick, setTick] = useState(0);
+  const [start] = useState(devStart);
+  const [tick, setTick] = useState(start.tick);
 
   useEffect(() => {
+    if (start.hold) return;
     // Paused for anyone who has asked for less motion. They get the opening
     // position of the first bout, which is still a readable fight card.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = setInterval(() => setTick((n) => n + 1), TICK_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [start.hold]);
 
   const fight = Math.floor(tick / BOUT_TICKS);
   const bout = BOUTS[fight % BOUTS.length];
@@ -262,7 +276,7 @@ export default function FightDemo() {
     <BoxingMatch
       a={{
         name: bout.aName,
-        loadout: { ...defaultLoadout(bout.aName), dance: bout.aDance },
+        loadout: { ...cornerLoadout('a', bout.aName), dance: bout.aDance },
         songTitle: bout.aTitle,
         songArtist: bout.aArtist,
         artworkUrl: bout.aArt,
@@ -271,7 +285,7 @@ export default function FightDemo() {
       }}
       b={{
         name: bout.bName,
-        loadout: { ...defaultLoadout(bout.bName), dance: bout.bDance },
+        loadout: { ...cornerLoadout('b', bout.bName), dance: bout.bDance },
         songTitle: bout.bTitle,
         songArtist: bout.bArtist,
         artworkUrl: bout.bArt,

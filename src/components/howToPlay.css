@@ -1,0 +1,638 @@
+/* How to play: the steps on one side, the game's own 3D ring on the other. */
+
+.htp {
+  display: grid;
+  grid-template-columns: clamp(270px, 27vw, 340px) minmax(0, 1fr);
+  grid-template-areas:
+    'head stage'
+    'caption stage'
+    'foot stage'
+    'nav stage';
+  grid-template-rows: auto auto auto 1fr;
+  column-gap: clamp(28px, 3.6vw, 56px);
+  row-gap: 16px;
+  align-items: start;
+  color: var(--tb-ink);
+}
+
+.htp__head {
+  grid-area: head;
+  min-width: 0;
+}
+
+.htp__stage {
+  grid-area: stage;
+  min-width: 0;
+}
+
+.htp__foot {
+  grid-area: foot;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Nothing to add on a step with no controls of its own. */
+.htp__foot:empty {
+  display: none;
+}
+
+/* ---------- Heading ---------- */
+
+.htp__kicker {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--tb-orange);
+  font-family: var(--tb-font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.htp__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 2.9vw, 2.5rem);
+  font-weight: var(--tb-display-weight);
+  line-height: 1.04;
+}
+
+/* ---------- Steps ----------
+   Numbered stops on one line. The line behind them fills as far as the step
+   that is showing, so it doubles as the progress bar. */
+
+.htp__steps {
+  --pip: 32px;
+  --done: 0;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin: 24px 0 6px;
+}
+
+.htp__steps::before,
+.htp__steps::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--pip) / 2);
+  right: calc(var(--pip) / 2);
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.htp__steps::after {
+  background: var(--tb-orange);
+  transform-origin: left center;
+  transform: scaleX(var(--done));
+  transition: transform 320ms var(--ease-out, ease-out);
+}
+
+.htp__pip {
+  position: relative;
+  z-index: 1;
+  width: var(--pip);
+  height: var(--pip);
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: #1c1724;
+  color: var(--tb-ink-faint);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
+}
+
+/* A finger-sized target around a small stop. */
+.htp__pip::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.htp__pip:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--tb-ink);
+}
+
+.htp__pip.is-done {
+  border-color: var(--tb-orange);
+  color: var(--tb-orange);
+}
+
+.htp__pip.is-active {
+  border-color: var(--tb-orange);
+  background: var(--tb-orange);
+  color: #1a1206;
+  transform: scale(1.14);
+}
+
+.htp__pip:focus-visible,
+.htp__prev:focus-visible,
+.htp__next:focus-visible,
+.htp__ghost:focus-visible,
+.htp-song:focus-visible,
+.htp-vote:focus-visible,
+.htp-seg button:focus-visible {
+  outline: 2px solid var(--tb-orange);
+  outline-offset: 3px;
+}
+
+/* Tall enough for the longest step, so the buttons under it hold still. */
+.htp__caption {
+  grid-area: caption;
+  min-width: 0;
+  min-height: 10.4rem;
+  animation: htp-caption 260ms var(--ease-out, ease-out);
+}
+
+.htp__count {
+  color: var(--tb-ink-faint);
+  font-family: var(--tb-font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.htp__name {
+  margin: 8px 0 10px;
+  font-size: clamp(1.5rem, 2.3vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.htp__body {
+  margin: 0;
+  color: var(--tb-ink-muted);
+  font-size: 1.03rem;
+  line-height: 1.55;
+}
+
+@keyframes htp-caption {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- Stage ---------- */
+
+.htp__stage .fight {
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* The lobby and the locker wear the fight card's frame, with the strip a
+   scoreboard would fill carrying the room code or the song picks. Sized to
+   the fight card's own HUD, so stepping on to the walkout does not move the
+   page. */
+.htp-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: clamp(80px, 11.5cqw, 86px);
+}
+
+.htp-code {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.htp-code__label {
+  color: var(--tb-ink-faint);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.htp-code__value {
+  color: var(--tb-orange);
+  font-family: var(--tb-font-mono);
+  font-size: clamp(1.6rem, 7cqw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+
+.htp-code__link {
+  flex: none;
+  padding: 8px clamp(9px, 2.2cqw, 14px);
+  border: 1px solid var(--tb-hairline);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--tb-ink-muted);
+  font-size: clamp(0.69rem, 2.9cqw, 0.95rem);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.htp-songs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: clamp(6px, 1.6cqw, 12px);
+}
+
+.htp-song {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px;
+  border: 1.5px solid var(--tb-hairline);
+  border-radius: var(--tb-r-row);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tb-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.htp-song:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.htp-song.is-picked {
+  border-color: var(--tb-blue);
+  background: rgba(0, 159, 253, 0.14);
+}
+
+.htp-song img {
+  flex: none;
+  width: clamp(40px, 8cqw, 56px);
+  height: clamp(40px, 8cqw, 56px);
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.htp-song__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.htp-song strong,
+.htp-song small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.htp-song strong {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.htp-song small {
+  color: var(--tb-ink-faint);
+  font-size: 0.8rem;
+}
+
+/* A narrow card has no room for a cover beside a title, so the cover goes on top. */
+@container (max-width: 520px) {
+  .htp-song {
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  .htp-song__text {
+    width: 100%;
+  }
+
+  .htp-song strong {
+    font-size: 0.74rem;
+  }
+
+  .htp-song small {
+    display: none;
+  }
+}
+
+/* ---------- Under the caption ---------- */
+
+.htp__ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--tb-r-row);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--tb-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.htp__ghost:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.htp__ghost svg {
+  width: 18px;
+  height: 18px;
+}
+
+.htp__chat {
+  display: grid;
+  height: 174px;
+}
+
+.htp__chat .demo-chat {
+  min-height: 0;
+}
+
+/* The channel-points row is set dressing; the lines are the lesson. */
+.htp__chat .demo-chat__actions {
+  display: none;
+}
+
+.htp-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--tb-hairline);
+  border-radius: var(--tb-r-row);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.htp-seg button {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--tb-ink-muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.htp-seg button:hover {
+  color: var(--tb-ink);
+}
+
+.htp-seg button[aria-pressed='true'] {
+  background: var(--tb-ink);
+  color: #14101a;
+}
+
+.htp-play {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.htp-play__votes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.htp-vote {
+  --side: var(--tb-blue);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 0 12px;
+  border: 1.5px solid color-mix(in srgb, var(--side) 55%, transparent);
+  border-radius: var(--tb-r-row);
+  background: color-mix(in srgb, var(--side) 12%, transparent);
+  color: var(--tb-ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 110ms ease,
+    background-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.htp-vote--b {
+  --side: var(--tb-orange);
+}
+
+.htp-vote:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--side) 22%, transparent);
+}
+
+.htp-vote:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.htp-vote:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.htp-vote__num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--side);
+  color: #0d0a12;
+  font-weight: 900;
+}
+
+.htp-vote__song {
+  min-width: 0;
+  font-size: 0.92rem;
+  line-height: 1.15;
+}
+
+.htp-play__hint {
+  margin: 0;
+  color: var(--tb-ink-faint);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.htp-play__hint strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--tb-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sits on the ring's bottom edge whatever the step puts above it, so "next"
+   is in the same place on every step. */
+.htp__nav {
+  grid-area: nav;
+  align-self: end;
+  display: flex;
+  gap: 10px;
+}
+
+.htp__prev {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--tb-r-row);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--tb-ink);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.htp__prev:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.htp__prev:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Written against .page-main so the page's inline-link underline stays off it. */
+.htp__next,
+.page-main .htp a.htp__next {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--tb-r-row);
+  background: #ff7a00;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-hover, 160ms) var(--ease-standard, ease);
+}
+
+.htp__next:hover,
+.page-main .htp a.htp__next:hover {
+  background: #e56e00;
+  color: #fff;
+}
+
+.htp__arrow {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- One column ----------
+   The ring comes first, straight under the step numbers, so it is on screen
+   without scrolling on a phone; what the step says sits under it. */
+@media (max-width: 940px) {
+  .htp {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'head'
+      'stage'
+      'caption'
+      'foot'
+      'nav';
+    grid-template-rows: none;
+    row-gap: 14px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .htp__kicker {
+    margin-bottom: 6px;
+  }
+
+  .htp__title {
+    font-size: 1.5rem;
+  }
+
+  .htp__steps {
+    margin: 14px 0 4px;
+  }
+
+  /* The numbered stops already say which step this is. */
+  .htp__count {
+    display: none;
+  }
+
+  .htp__name {
+    margin-top: 0;
+  }
+
+  /* Room for a three-line step, so what follows holds its place. */
+  .htp__caption {
+    min-height: 7.4rem;
+  }
+
+  /* Pinned to the bottom of the screen for as long as the walkthrough is on
+     it. Each step puts something different under the ring, and a button that
+     moved every time it was tapped could not be tapped twice. */
+  .htp__nav {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 0 -18px;
+    padding: 10px 18px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--tb-hairline);
+    background: rgba(12, 10, 18, 0.88);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    backdrop-filter: saturate(160%) blur(14px);
+  }
+
+  .htp__chat {
+    height: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .htp__caption {
+    animation: none;
+  }
+
+  .htp__steps::after,
+  .htp__pip,
+  .htp-vote {
+    transition: none;
+  }
+}

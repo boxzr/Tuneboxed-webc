@@ -38,6 +38,8 @@ import {
 import BracketTree from '../battle/ui/BracketTree';
 import MatchupCard from '../battle/ui/MatchupCard';
 import BoxingMatch from '../battle/ui/BoxingMatch';
+import PixelFX from '../components/PixelFX';
+import RollingNumber from '../components/RollingNumber';
 import NowPlaying from '../battle/ui/NowPlaying';
 import Roster from '../battle/ui/Roster';
 import { bracketFighters, pairFighters, spectators } from '../battle/bout';
@@ -1032,10 +1034,16 @@ export default function BattleRoom() {
               return (
                 <li key={s.id}>
                   <button
-                    className={`bt-choice${chosen ? ' bt-choice--chosen' : ''}`}
+                    className={`bt-choice tb-fx-anchor${chosen ? ' bt-choice--chosen' : ''}`}
                     disabled={busy || mine || Boolean(myVote) || !canVote}
                     onClick={() => void guard(() => battle.castVote(token!, round.id, s.id))}
                   >
+                    {chosen && <PixelFX effect="collect" scale={3} className="tb-fx" />}
+                    <span
+                      className="bt-choice__share"
+                      aria-hidden="true"
+                      style={{ transform: `scaleX(${ballotTotal > 0 ? count / ballotTotal : 0})` }}
+                    />
                     <span className="bt-choice__num">{i + 1}</span>
 
                     {s.artwork_url ? (
@@ -1051,7 +1059,9 @@ export default function BattleRoom() {
                       </span>
                     </span>
 
-                    <span className="bt-choice__count">{count}</span>
+                    <span className="bt-choice__count">
+                      <RollingNumber value={count} />
+                    </span>
                   </button>
                 </li>
               );

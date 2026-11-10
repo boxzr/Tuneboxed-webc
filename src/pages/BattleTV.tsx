@@ -29,6 +29,7 @@ import { embedSourceOf, embedStart } from '../battle/embeds';
 import { uniqueLeader } from '../battle/voteLeader';
 import { BoxerSprite, Gloves, Monogram, PromptLabel } from '../battle/ui/primitives';
 import BoxingMatch from '../battle/ui/BoxingMatch';
+import PixelFX from '../components/PixelFX';
 import { bracketFighters, loadoutFromPlayer, pairFighters, spectators } from '../battle/bout';
 import DemoChat, { type ChatLine } from '../battle/ui/DemoChat';
 import { useChatFeed } from '../battle/useChatFeed';
@@ -421,8 +422,10 @@ export default function BattleTV() {
   if (championId) {
     return (
       <Board genre={round?.genre ?? null} controls={controls} chat={chatPanel}>
-        <div className="tv-champion tv-hero">
-          <span className="tv-champion__trophy">
+        <div className="tv-champion tv-hero tb-fx-anchor">
+          <PixelFX effect="confetti" loop scale={5} className="tb-fx tv-champion__confetti" />
+          <span className="tv-champion__trophy tb-fx-anchor">
+            <PixelFX effect="halo" loop scale={4} className="tb-fx" />
             <TrophyIcon size={96} />
           </span>
           <PromptLabel>Champion</PromptLabel>

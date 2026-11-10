@@ -147,18 +147,22 @@ html.tv-active #root {
   animation: tv-drop 0.5s var(--ease-swift);
 }
 
+/* The champion's name: broadcast cut, one flat brand colour, on a hard
+   offset. A title belt is engraved, not airbrushed. */
 .tv-champion__name {
   margin: 1vh 0 0;
-  font-size: clamp(2.5rem, calc(8 * var(--tvw)), 8rem);
-  font-weight: 800;
-  /* Room for descenders, which gradient clipped text loses at line-height 1. */
-  line-height: 1.16;
-  padding-bottom: 0.06em;
+  padding: 0 0.08em 0.06em;
+  font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
+  font-size: clamp(3rem, calc(10.5 * var(--tvw)), 10.5rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.92;
+  letter-spacing: 0;
+  text-transform: uppercase;
   overflow-wrap: break-word;
-  background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--tb-orange);
+  text-shadow: 0.03em 0.03em 0 rgba(0, 0, 0, 0.55);
 }
 
 .tv-champion__sub {
@@ -211,7 +215,7 @@ html.tv-active #root {
   margin: 1vh 0;
   font-size: clamp(3rem, calc(11 * var(--tvw)), 11rem);
   font-weight: 800;
-  font-family: ui-rounded, 'SF Pro Rounded', var(--tb-font);
+  font-family: var(--tb-font-mono);
   letter-spacing: 0.14em;
   text-indent: 0.14em;
   line-height: 1;
@@ -377,7 +381,7 @@ html.tv-active #root {
   display: block;
   font-size: clamp(1.4rem, calc(2.6 * var(--tvw)), 2.8rem);
   font-weight: 800;
-  font-family: ui-rounded, 'SF Pro Rounded', var(--tb-font);
+  font-family: var(--tb-font-mono);
   letter-spacing: 0.12em;
   line-height: 1.1;
   color: var(--tb-orange);
@@ -386,9 +390,11 @@ html.tv-active #root {
 .tv-genre {
   max-width: 94%;
   margin: 0.6vh auto 0;
-  font-family: ui-rounded, 'SF Pro Rounded', var(--tb-font);
-  font-weight: 800;
-  line-height: 1.12;
+  font-family: var(--tb-font-headline);
+  font-stretch: var(--tb-display-stretch);
+  font-weight: var(--tb-display-weight);
+  letter-spacing: var(--tb-display-tracking);
+  line-height: 1.08;
   padding-bottom: 0.04em;
   text-wrap: balance;
   overflow-wrap: break-word;
@@ -681,9 +687,13 @@ html.tv-active #root {
 .tv-option__text strong {
   font-size: clamp(1.1rem, calc(2 * var(--tvw)), 2.2rem);
   font-weight: 700;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 
 .tv-option__text span {
@@ -743,11 +753,19 @@ html.tv-active #root {
 
 /* ---------- Reveal ---------- */
 
+/* The round's winner, in the ring's broadcast cut. */
 .tv-reveal__name {
   margin: 0.6vh 0 0;
-  font-size: clamp(2rem, calc(5.5 * var(--tvw)), 5.5rem);
-  font-weight: 800;
-  line-height: 1;
+  padding: 0 0.08em;
+  font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
+  font-size: clamp(2.4rem, calc(7.4 * var(--tvw)), 7.4rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.92;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
 }
 
 .tv-reveal__song {
@@ -1012,4 +1030,10 @@ html.tv-active #root {
   .tv-chat .demo-chat__head {
     padding: 6px 10px;
   }
+}
+
+.tv-champion__confetti {
+  top: 10%;
+  max-width: 100%;
+  height: auto !important;
 }

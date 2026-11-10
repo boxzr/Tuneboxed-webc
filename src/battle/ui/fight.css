@@ -32,7 +32,10 @@
   color: var(--tb-ink);
 }
 
-/* ---------- Health bars ---------- */
+/* ---------- HUD ----------
+   Laid out like a fight game's broadcast HUD: each corner's name, song and
+   bars against its own edge, bars draining toward the middle. One accent per
+   side, quiet type, and the numbers small and secondary. */
 
 .fight__hud {
   display: grid;
@@ -42,23 +45,33 @@
      size and their health bars stop being comparable, which is the one thing
      the bars have to be. */
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(8px, 1.2vw, 20px);
-  gap: clamp(8px, 1.2cqw, 20px);
+  /* Stretched, with the name block taking the slack, so a two-line title in
+     one corner still leaves both health bars on the same line. */
+  align-items: stretch;
+  gap: clamp(10px, 2.2vw, 40px);
+  gap: clamp(10px, 2.2cqw, 40px);
 }
 
 .fight__seat {
+  --side: var(--tb-blue);
+  --side-soft: var(--tb-sky);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+}
+
+.fight__seat--b {
+  --side: var(--tb-orange);
+  --side-soft: var(--tb-peach);
 }
 
 .fight__seat-top {
   display: flex;
+  flex: 1 0 auto;
   align-items: center;
-  gap: clamp(6px, 0.7vw, 12px);
-  gap: clamp(6px, 0.7cqw, 12px);
+  gap: clamp(8px, 0.9vw, 14px);
+  gap: clamp(8px, 0.9cqw, 14px);
   min-width: 0;
 }
 
@@ -68,66 +81,49 @@
   flex-direction: row-reverse;
 }
 
-/* The digit chat types, in its corner's colour.
-   This is the one piece of the board a viewer has to act on, so it gets the
-   weight of a scoreboard number rather than sitting inside a sentence. */
+/* The digit chat types. Small, but solid in the corner's colour: it is the
+   one thing on the HUD a viewer acts on. */
 .fight__num {
   flex: none;
   display: grid;
   place-items: center;
-  width: clamp(28px, 3.2vw, 60px);
-  width: clamp(28px, 3.2cqw, 60px);
-  height: clamp(28px, 3.2vw, 60px);
-  height: clamp(28px, 3.2cqw, 60px);
-  border-radius: 14px;
+  width: clamp(22px, 2.3vw, 40px);
+  width: clamp(22px, 2.3cqw, 40px);
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: var(--side);
   color: #fff;
-  font-size: clamp(0.95rem, 1.9vw, 2.1rem);
-  font-size: clamp(0.95rem, 1.9cqw, 2.1rem);
-  font-weight: 900;
+  font-size: clamp(0.8rem, 1.3vw, 1.4rem);
+  font-size: clamp(0.8rem, 1.3cqw, 1.4rem);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-}
-
-.fight__seat--a .fight__num {
-  background: linear-gradient(160deg, var(--tb-sky), var(--tb-blue-deep));
-  box-shadow: var(--tb-shadow-blue);
-}
-
-.fight__seat--b .fight__num {
-  background: linear-gradient(160deg, var(--tb-peach), var(--tb-orange-deep));
-  box-shadow: var(--tb-shadow-orange);
+  line-height: 1;
 }
 
 .fight__art {
-  width: clamp(42px, 5vw, 92px);
-  width: clamp(42px, 5cqw, 92px);
-  height: clamp(42px, 5vw, 92px);
-  height: clamp(42px, 5cqw, 92px);
-  border-radius: 12px;
-  object-fit: cover;
   flex: none;
-  box-shadow: var(--tb-shadow-card);
+  width: clamp(36px, 4.4vw, 76px);
+  width: clamp(36px, 4.4cqw, 76px);
+  aspect-ratio: 1;
+  border-radius: 6px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: box-shadow 0.3s var(--ease-standard);
+}
+
+.fight__seat--playing .fight__art {
+  box-shadow: 0 0 0 2px var(--side), 0 0 16px var(--side);
 }
 
 .fight__label {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 1px;
+  flex: 1;
   min-width: 0;
-  width: 100%;
   line-height: 1.15;
   text-align: left;
-}
-
-/* The name and the artist stay on one line and truncate: both are secondary,
-   and a wrapped one pushes the health bars out of alignment with each other.
-   The song title is handled separately below, because it is the one thing
-   here that has to be readable in full. */
-.fight__player,
-.fight__artist {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .fight__seat--b .fight__label {
@@ -139,28 +135,49 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: clamp(0.7rem, 1vw, 1.15rem);
-  font-size: clamp(0.7rem, 1cqw, 1.15rem);
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  max-width: 100%;
+  font-size: clamp(0.66rem, 0.95vw, 1.05rem);
+  font-size: clamp(0.66rem, 0.95cqw, 1.05rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--tb-ink-muted);
+  color: var(--side-soft);
+}
+
+.fight__seat--b .fight__player {
+  flex-direction: row-reverse;
+}
+
+.fight__player svg {
+  flex: none;
+}
+
+.fight__player-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fight__seat--won .fight__player {
-  color: var(--tb-orange-deep);
+  color: var(--tb-gold);
 }
 
-/* Whichever song is sounding takes the eyebrow slot and pulses, because a
+/* Whichever song is sounding gets a pulsing note by the name, because a
    viewer who just tuned in cannot tell the two apart by ear. */
-.fight__seat--playing .fight__player {
-  color: var(--tb-blue-deep);
+.fight__live {
+  flex: none;
+  letter-spacing: 0;
   animation: fight-pulse 1.4s var(--ease-standard) infinite;
 }
 
-.fight__seat--playing .fight__art {
-  outline: 3px solid var(--tb-blue);
-  outline-offset: 2px;
+.fight__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 @keyframes fight-pulse {
@@ -173,54 +190,55 @@
   }
 }
 
+/* The song is what the room is voting on, so it wraps rather than
+   truncating, but stops at two lines so a long remaster title cannot push
+   one corner's bars below the other's. */
 .fight__song {
-  font-size: clamp(1.05rem, 2vw, 2.4rem);
-  font-size: clamp(1.05rem, 2cqw, 2.4rem);
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--tb-ink);
-  /* Wraps onto a second line rather than truncating on one.
-     This was a single line with an ellipsis, which stopped titles printing
-     over the round pill but did it by cutting them off: "Never Gonna Give
-     You Up" came out as "Never ...". The song is what the room is voting on
-     and what a viewer has to be able to read, so it gets two lines and only
-     clips beyond that. Safe now that both corners are minmax(0, 1fr) tracks,
-     which is what actually keeps a long title inside its own column.
-     Three lines, not two: a remaster or a "feat." credit still fits on a
-     phone, where the corner is only a couple of hundred pixels wide. */
   width: 100%;
-  max-width: 100%;
+  font-size: clamp(0.92rem, 1.6vw, 1.9rem);
+  font-size: clamp(0.92rem, 1.6cqw, 1.9rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--tb-ink);
   white-space: normal;
   overflow-wrap: break-word;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 
 .fight__artist {
-  font-size: clamp(0.78rem, 1.15vw, 1.3rem);
-  font-size: clamp(0.78rem, 1.15cqw, 1.3rem);
+  max-width: 100%;
+  font-size: clamp(0.72rem, 1vw, 1.1rem);
+  font-size: clamp(0.72rem, 1cqw, 1.1rem);
   color: var(--tb-ink-muted);
+  opacity: 0.8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Health: a slim bar with the inner end cut on an angle. */
 .fight__bar {
   position: relative;
   width: 100%;
-  height: clamp(18px, 3vh, 40px);
-  border-radius: 999px;
-  background: var(--tb-surface-sunken);
-  border: 1px solid var(--tb-hairline);
+  height: clamp(8px, 1.1vw, 16px);
+  height: clamp(8px, 1.1cqw, 16px);
+  background: rgba(255, 255, 255, 0.07);
   overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.fight__seat--b .fight__bar {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%);
 }
 
 /* Damage shows through instantly underneath; the coloured fill eases down to
-   meet it, so a hit reads as a red flash resolving rather than a silent jump.
+   meet it, so a hit reads as a flash resolving rather than a silent jump.
 
-   Both layers are the full width of the pill and shrink with scaleX from
+   Both layers are the full width of the bar and shrink with scaleX from
    the fighter's own edge. The orange corner used to set `right: 0` and an
    inline width percentage, which iOS Safari treats as a left-anchored box:
    the fill grew the wrong way, spilled out of the pill, or vanished. */
@@ -238,7 +256,7 @@
 }
 
 .fight__bar-hurt {
-  background: var(--tb-red);
+  background: #fff1dc;
   transition: transform 0.08s linear;
 }
 
@@ -254,37 +272,92 @@
   background: linear-gradient(270deg, var(--tb-orange-deep), var(--tb-peach));
 }
 
-.fight__bar-votes {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: clamp(0.7rem, 1.1vw, 1.25rem);
-  font-size: clamp(0.7rem, 1.1cqw, 1.25rem);
-  font-weight: 800;
+/* Momentum under the health bar, the vote count at its inner end. */
+.fight__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fight__seat--b .fight__meta {
+  flex-direction: row-reverse;
+}
+
+.fight__heat {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  max-width: 62%;
+  height: clamp(3px, 0.4vw, 6px);
+  height: clamp(3px, 0.4cqw, 6px);
+}
+
+.fight__seat--b .fight__heat {
+  flex-direction: row-reverse;
+}
+
+.fight__heat span {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.2s var(--ease-standard);
+}
+
+.fight__heat span.is-on {
+  background: var(--side-soft);
+}
+
+.fight__heat.is-full span {
+  background: var(--tb-gold);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.7);
+}
+
+.fight__finisher {
+  flex: none;
+  font-size: clamp(0.56rem, 0.75vw, 0.8rem);
+  font-size: clamp(0.56rem, 0.75cqw, 0.8rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tb-gold);
+  animation: fight-pulse 1s var(--ease-standard) infinite;
+}
+
+.fight__count {
+  flex: none;
+  font-size: clamp(0.66rem, 0.9vw, 1rem);
+  font-size: clamp(0.66rem, 0.9cqw, 1rem);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--tb-ink);
-  opacity: 0.55;
+  color: var(--tb-ink-muted);
+  white-space: nowrap;
 }
 
-.fight__seat--a .fight__bar-votes {
-  right: 10px;
+.fight__seat--a .fight__count {
+  margin-left: auto;
 }
 
-.fight__seat--b .fight__bar-votes {
-  left: 10px;
+.fight__seat--b .fight__count {
+  margin-right: auto;
+}
+
+.fight__count small {
+  font-size: 0.85em;
+  font-weight: 500;
+  opacity: 0.7;
 }
 
 .fight__round {
-  align-self: center;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: #1a1020;
-  border: 1px solid rgba(212, 175, 55, 0.55);
+  align-self: start;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
   color: var(--tb-gold);
-  font-size: clamp(0.6rem, 0.8vw, 0.85rem);
-  font-size: clamp(0.6rem, 0.8cqw, 0.85rem);
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: clamp(0.58rem, 0.8vw, 0.85rem);
+  font-size: clamp(0.58rem, 0.8cqw, 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -376,207 +449,663 @@
   white-space: nowrap;
 }
 
+/* Darkens the edges of the picture so the lit ring holds the eye. A CSS
+   gradient over the canvas, not a postprocessing pass. */
+.fight__ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 75% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+/* ---------- Bell ---------- */
+
 .fight__bell {
   position: absolute;
   inset: 0;
+  z-index: 4;
   display: grid;
   place-items: center;
   pointer-events: none;
-  z-index: 4;
-  background: radial-gradient(ellipse at center, rgba(7, 5, 12, 0.5) 0%, transparent 62%);
 }
 
 .fight__bell-copy {
+  padding-left: 0.2em;
   font-family: var(--tb-font-display);
-  font-size: clamp(2.4rem, 8.5vw, 5.4rem);
-  font-size: clamp(2.4rem, 8.5cqw, 5.4rem);
-  letter-spacing: 0.1em;
+  font-size: clamp(2.2rem, 7vw, 5rem);
+  font-size: clamp(2.2rem, 7cqw, 5rem);
+  letter-spacing: 0.2em;
+  line-height: 1;
+  text-transform: uppercase;
   color: #fff8e8;
-  text-align: center;
-  padding: 0.08em 0.42em 0.12em;
-  border-radius: 14px;
-  background: rgba(7, 5, 12, 0.78);
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.55);
-  text-shadow: 0 0 22px rgba(253, 156, 7, 0.45);
-  animation: fight-bell-pop 0.32s ease-out;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.75);
+  animation: fight-bell-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.fight__bell-copy--lets,
-.fight__bell-copy--over {
+@keyframes fight-bell-in {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- Tale of the tape ---------- */
+
+.fight__versus {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: clamp(6px, 1.2vw, 18px);
+  gap: clamp(6px, 1.2cqw, 18px);
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(4, 3, 8, 0.78) 0%, rgba(4, 3, 8, 0.45) 60%, rgba(4, 3, 8, 0.2) 100%);
+  animation: fight-versus-fade 1.4s ease both;
+}
+
+.fight__versus-round {
+  font-size: clamp(0.6rem, 1vw, 0.95rem);
+  font-size: clamp(0.6rem, 1cqw, 0.95rem);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
   color: var(--tb-gold);
 }
 
-@keyframes fight-bell-pop {
+.fight__versus-row {
+  --art: clamp(64px, 13vw, 180px);
+  --art: clamp(64px, 13cqw, 180px);
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: clamp(36px, 10vw, 150px);
+  gap: clamp(36px, 10cqw, 150px);
+}
+
+.fight__versus-side {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: clamp(110px, 24vw, 320px);
+  width: clamp(110px, 24cqw, 320px);
+  text-align: center;
+  animation: fight-versus-in-a 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.fight__versus-side--b {
+  animation-name: fight-versus-in-b;
+}
+
+.fight__versus-art {
+  width: var(--art);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--tb-blue), 0 14px 34px rgba(0, 0, 0, 0.6);
+}
+
+.fight__versus-side--b .fight__versus-art {
+  box-shadow: 0 0 0 2px var(--tb-orange), 0 14px 34px rgba(0, 0, 0, 0.6);
+}
+
+.fight__versus-name {
+  max-width: 100%;
+  margin-top: 6px;
+  font-family: var(--tb-font-display);
+  font-size: clamp(1.1rem, 3.2vw, 2.6rem);
+  font-size: clamp(1.1rem, 3.2cqw, 2.6rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #fff8e8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fight__versus-song {
+  max-width: 100%;
+  font-size: clamp(0.68rem, 1.2vw, 1.05rem);
+  font-size: clamp(0.68rem, 1.2cqw, 1.05rem);
+  line-height: 1.2;
+  color: var(--tb-ink-muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.fight__versus-vs {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--art) / 2);
+  transform: translate(-50%, -50%);
+  font-family: var(--tb-font-display);
+  font-size: clamp(1.3rem, 3.6vw, 3rem);
+  font-size: clamp(1.3rem, 3.6cqw, 3rem);
+  letter-spacing: 0.06em;
+  color: var(--tb-gold);
+  animation: fight-versus-fade 1.4s ease both;
+}
+
+@keyframes fight-versus-fade {
   from {
-    transform: scale(0.7);
     opacity: 0;
   }
-  to {
-    transform: scale(1);
+  12%,
+  85% {
     opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fight-versus-in-a {
+  from {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+  20%,
+  85% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes fight-versus-in-b {
+  from {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  20%,
+  85% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+/* ---------- Result ----------
+   The win, called the way a fight broadcast calls it. Two pieces:
+
+     - on a knockout, "K.O." slams into the middle of the picture as the
+       loser lands, holds for a beat and clears;
+     - a lower third then names the winner along the bottom edge, where it
+       covers canvas and boots rather than the referee or either face.
+
+   Everything waits for the knockdown's slow motion before it arrives. */
+
+.fight__result {
+  --accent: var(--tb-blue);
+  --ink-on-accent: #04121d;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  /* The homepage centres its text on a phone; this is a lower third. */
+  text-align: left;
+}
+
+.fight__result--b {
+  --accent: var(--tb-orange);
+  --ink-on-accent: #1d0f00;
+}
+
+.fight__result-stamp {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  padding-right: 0.08em;
+  font-family: var(--tb-font-display);
+  font-stretch: 75%;
+  font-size: clamp(3.6rem, 21vw, 13rem);
+  font-size: clamp(3.6rem, 21cqw, 13rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: #fff8e8;
+  text-shadow:
+    0.035em 0.035em 0 var(--accent),
+    0 0.1em 0.5em rgba(0, 0, 0, 0.6);
+  transform: translate(-50%, -50%);
+  animation: fight-ko-slam 1.7s cubic-bezier(0.2, 0.9, 0.2, 1) 0.9s both;
+}
+
+/* In hard, a short recoil, a held beat, then out through the top. */
+@keyframes fight-ko-slam {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.6) rotate(-4deg);
+  }
+  9% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.94) rotate(-4deg);
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.03) rotate(-4deg);
+  }
+  20%,
+  78% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(-4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(1.06) rotate(-4deg);
+  }
+}
+
+.fight__result-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(8px, 1.6vw, 20px);
+  gap: clamp(8px, 1.6cqw, 20px);
+  padding: clamp(20px, 7vw, 84px) clamp(10px, 2.6vw, 30px) clamp(8px, 2.2vw, 24px);
+  padding: clamp(20px, 7cqw, 84px) clamp(10px, 2.6cqw, 30px) clamp(8px, 2.2cqw, 24px);
+  /* A scrim rather than a box, so the ring still shows through the top of it. */
+  background: linear-gradient(
+    to top,
+    rgba(4, 3, 8, 0.94) 0%,
+    rgba(4, 3, 8, 0.82) 42%,
+    rgba(4, 3, 8, 0) 100%
+  );
+  animation: fight-result-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both;
+}
+
+.fight__result--ko .fight__result-bar {
+  animation-delay: 2.1s;
+}
+
+/* The rule the card stands on, drawn from the winner's side. */
+.fight__result-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(3px, 0.5vw, 5px);
+  height: clamp(3px, 0.5cqw, 5px);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 55%, rgba(255, 255, 255, 0) 100%);
+  transform-origin: left center;
+  animation: fight-result-rule 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s both;
+}
+
+.fight__result--b .fight__result-bar::after {
+  background: linear-gradient(270deg, var(--accent) 0%, var(--accent) 55%, rgba(255, 255, 255, 0) 100%);
+  transform-origin: right center;
+}
+
+.fight__result--ko .fight__result-bar::after {
+  animation-delay: 2.2s;
+}
+
+.fight__result-art {
+  flex: none;
+  width: clamp(40px, 8.4vw, 104px);
+  width: clamp(40px, 8.4cqw, 104px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 10px 28px rgba(0, 0, 0, 0.6);
+}
+
+.fight__result-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(2px, 0.5vw, 6px);
+  gap: clamp(2px, 0.5cqw, 6px);
+  min-width: 0;
+}
+
+/* "Winner", on a slab in the corner's colour, with how it was won beside it. */
+.fight__result-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  max-width: 100%;
+  font-size: clamp(0.56rem, 1.25vw, 0.95rem);
+  font-size: clamp(0.56rem, 1.25cqw, 0.95rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tb-gold);
+  white-space: nowrap;
+}
+
+.fight__result-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.36em 0.7em 0.34em 0.6em;
+  font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
+  font-size: 1.45em;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: var(--ink-on-accent);
+  background: var(--accent);
+  /* Raked on the trailing edge, like a broadcast name strap. */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 0.5em) 100%, 0 100%);
+  padding-right: 1.1em;
+}
+
+.fight__result-tag svg {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+
+.fight__result-name {
+  max-width: 100%;
+  padding-right: 0.08em;
+  font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
+  font-size: clamp(1.3rem, 7.4vw, 5.2rem);
+  font-size: clamp(1.3rem, 7.4cqw, 5.2rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.86;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  color: #fff8e8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+
+.fight__result-song {
+  max-width: 100%;
+  font-size: clamp(0.66rem, 1.5vw, 1.1rem);
+  font-size: clamp(0.66rem, 1.5cqw, 1.1rem);
+  line-height: 1.2;
+  color: rgba(255, 248, 232, 0.74);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fight__result-song strong {
+  font-weight: 600;
+  color: #fff8e8;
+}
+
+/* The final tally, set like a scoreline: big tabular figures over a unit. */
+.fight__result-score {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: clamp(1px, 0.3vw, 4px);
+  gap: clamp(1px, 0.3cqw, 4px);
+  padding-left: clamp(8px, 1.6vw, 20px);
+  padding-left: clamp(8px, 1.6cqw, 20px);
+  border-left: 1px solid rgba(255, 248, 232, 0.18);
+  text-align: right;
+}
+
+.fight__result-score b {
+  font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
+  font-size: clamp(1.1rem, 5.6vw, 4rem);
+  font-size: clamp(1.1rem, 5.6cqw, 4rem);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 0.86;
+  font-variant-numeric: tabular-nums;
+  color: #fff8e8;
+  white-space: nowrap;
+}
+
+.fight__result-score b i {
+  font-style: inherit;
+  color: rgba(255, 248, 232, 0.42);
+}
+
+.fight__result-score small {
+  font-size: clamp(0.52rem, 1.1vw, 0.82rem);
+  font-size: clamp(0.52rem, 1.1cqw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 248, 232, 0.6);
+}
+
+@keyframes fight-result-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fight-result-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fight__result-stamp {
+    display: none;
+  }
+
+  .fight__result-bar,
+  .fight__result-bar::after {
+    animation: none;
   }
 }
 
 /* ---------- Walkout lower third ---------- */
 
 .fight__entrance {
-  --accent: #3b9eff;
-  --accent-glow: rgba(59, 158, 255, 0.55);
+  --accent: var(--tb-blue);
   position: absolute;
   left: 3%;
-  bottom: 5%;
-  display: flex;
-  align-items: stretch;
-  max-width: 44%;
-  pointer-events: none;
+  bottom: 4.5%;
   z-index: 3;
-  /* The homepage centres its text on a phone; the card is a lower third. */
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.1vw, 16px);
+  gap: clamp(8px, 1.1cqw, 16px);
+  box-sizing: border-box;
+  max-width: min(46%, 540px);
+  padding: clamp(6px, 0.8vw, 10px) clamp(12px, 1.5vw, 22px) clamp(8px, 1vw, 12px) clamp(6px, 0.8vw, 10px);
+  padding: clamp(6px, 0.8cqw, 10px) clamp(12px, 1.5cqw, 22px) clamp(8px, 1cqw, 12px) clamp(6px, 0.8cqw, 10px);
+  background: linear-gradient(90deg, rgba(6, 5, 10, 0.9), rgba(6, 5, 10, 0.72));
+  border-left: 3px solid var(--accent);
+  pointer-events: none;
+  /* The homepage centres its text on a phone; this is a lower third. */
   text-align: left;
-  animation: fight-entrance-in 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+  animation: fight-entrance-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .fight__entrance--b {
-  --accent: #fd7a1a;
-  --accent-glow: rgba(253, 122, 26, 0.55);
+  --accent: var(--tb-orange);
   left: auto;
   right: 3%;
   flex-direction: row-reverse;
+  padding: clamp(6px, 0.8vw, 10px) clamp(6px, 0.8vw, 10px) clamp(8px, 1vw, 12px) clamp(12px, 1.5vw, 22px);
+  padding: clamp(6px, 0.8cqw, 10px) clamp(6px, 0.8cqw, 10px) clamp(8px, 1cqw, 12px) clamp(12px, 1.5cqw, 22px);
+  background: linear-gradient(270deg, rgba(6, 5, 10, 0.9), rgba(6, 5, 10, 0.72));
+  border-left: 0;
+  border-right: 3px solid var(--accent);
   text-align: right;
   animation-name: fight-entrance-in-b;
 }
 
-.fight__entrance-bar {
-  width: 10px;
-  background: var(--accent);
-  box-shadow: 0 0 18px var(--accent);
+.fight__entrance-art {
+  flex: none;
+  width: clamp(36px, 5vw, 64px);
+  width: clamp(36px, 5cqw, 64px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 3px;
 }
 
 .fight__entrance-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 18px 12px;
-  background: linear-gradient(90deg, rgba(7, 5, 12, 0.92), rgba(7, 5, 12, 0.7));
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  gap: 3px;
+  min-width: 0;
 }
 
 .fight__entrance--b .fight__entrance-body {
-  background: linear-gradient(270deg, rgba(7, 5, 12, 0.92), rgba(7, 5, 12, 0.7));
-}
-
-.fight__entrance-kicker {
-  font-size: clamp(0.6rem, 1.6vw, 0.8rem);
-  font-size: clamp(0.6rem, 1.6cqw, 0.8rem);
-  font-weight: 800;
-  letter-spacing: 0.24em;
-  color: var(--accent);
+  align-items: flex-end;
 }
 
 .fight__entrance-name {
-  font-family: var(--tb-font-display);
-  font-size: clamp(1.3rem, 4.2vw, 2.4rem);
-  font-size: clamp(1.3rem, 4.2cqw, 2.4rem);
-  line-height: 1;
-  letter-spacing: 0.05em;
-  color: #fff8e8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fight__entrance-song {
-  font-size: clamp(0.75rem, 2vw, 1rem);
-  font-size: clamp(0.75rem, 2cqw, 1rem);
-  font-weight: 700;
-  color: rgba(255, 248, 232, 0.82);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fight__entrance-art {
-  width: clamp(56px, 10vw, 92px);
-  width: clamp(56px, 10cqw, 92px);
-  aspect-ratio: 1;
-  object-fit: cover;
-  flex: none;
-  background: #07050c;
-  box-shadow: 0 0 22px var(--accent-glow);
-}
-
-.fight__entrance-art--blank {
-  display: grid;
-  place-items: center;
-  font-size: clamp(1.6rem, 5vw, 2.6rem);
-  font-size: clamp(1.6rem, 5cqw, 2.6rem);
-  color: var(--accent);
-  background: radial-gradient(circle, #1d1a24 0 30%, #07050c 31% 100%);
-}
-
-.fight__entrance-song strong {
-  color: #fff8e8;
-}
-
-.fight__entrance-clock {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
+  align-items: baseline;
+  gap: 0.6em;
+  min-width: 0;
+  max-width: 100%;
+  font-family: var(--tb-font-display);
+  font-size: clamp(1.05rem, 2.6vw, 2rem);
+  font-size: clamp(1.05rem, 2.6cqw, 2rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #fff8e8;
+  white-space: nowrap;
 }
 
-.fight__entrance--b .fight__entrance-clock {
+.fight__entrance-who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fight__entrance--b .fight__entrance-name {
   flex-direction: row-reverse;
 }
 
-.fight__entrance-track {
-  position: relative;
-  flex: 1;
-  min-width: 90px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 248, 232, 0.16);
+.fight__entrance-corner {
+  flex: none;
+  font-family: var(--tb-font);
+  font-size: clamp(0.52rem, 0.75vw, 0.75rem);
+  font-size: clamp(0.52rem, 0.75cqw, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.fight__entrance-song {
+  font-size: clamp(0.7rem, 1.2vw, 0.98rem);
+  font-size: clamp(0.7rem, 1.2cqw, 0.98rem);
+  line-height: 1.2;
+  color: rgba(255, 248, 232, 0.72);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
+}
+
+.fight__entrance-song strong {
+  font-weight: 600;
+  color: #fff8e8;
+}
+
+.fight__entrance-left {
+  flex: none;
+  align-self: flex-end;
+  font-size: clamp(0.6rem, 0.8vw, 0.8rem);
+  font-size: clamp(0.6rem, 0.8cqw, 0.8rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 248, 232, 0.5);
+  white-space: nowrap;
+}
+
+.fight__entrance-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 248, 232, 0.1);
 }
 
 .fight__entrance-track > span {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset: 0;
   background: var(--accent);
-  transition: width 0.75s linear;
+  transform-origin: left center;
+  transition: transform 0.75s linear;
 }
 
 .fight__entrance--b .fight__entrance-track > span {
-  inset: 0 0 0 auto;
+  transform-origin: right center;
 }
 
-.fight__entrance-left {
-  font-size: clamp(0.65rem, 1.7vw, 0.85rem);
-  font-size: clamp(0.65rem, 1.7cqw, 0.85rem);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: rgba(255, 248, 232, 0.75);
-  white-space: nowrap;
-}
-
-@keyframes fight-entrance-in-b {
-  from {
-    transform: translateX(30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+.fight__cover-blank {
+  display: grid;
+  place-items: center;
+  color: var(--tb-gold);
+  font-size: 1.4em;
+  background: radial-gradient(circle, #1d1a24 0 30%, #07050c 31% 100%);
 }
 
 @keyframes fight-entrance-in {
   from {
-    transform: translateX(-30px);
     opacity: 0;
+    transform: translateX(-24px);
   }
   to {
-    transform: translateX(0);
     opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fight-entrance-in-b {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -795,6 +1324,7 @@
 
 .fight__vs {
   font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
   font-size: clamp(1.6rem, 3.8vw, 4.4rem);
   font-size: clamp(1.6rem, 3.8cqw, 4.4rem);
   font-weight: 900;
@@ -891,7 +1421,7 @@
   padding: 0.05em 0.4em;
   border-radius: 8px;
   background: var(--tb-ink);
-  color: #fff;
+  color: #14101a;
 }
 
 .fight__call--won {
@@ -914,18 +1444,18 @@
     display: none;
   }
 
+  /* The progress line along the bottom still shows the clock. */
+  .fight__entrance-left,
+  .fight__entrance-corner {
+    display: none;
+  }
+
   /* The track count has to come down with it. A display:none grid item is not
      placed at all, so leaving three tracks here drops fighter B into the
      middle auto column, sizes their corner to its text, and leaves the third
      column empty. */
   .fight__hud {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  /* Titles wrap at this width. Two lines are held for both corners so a
-     one-line title and a two-line one leave the health bars level. */
-  .fight__song {
-    min-height: 2.2em;
   }
 }
 
@@ -936,12 +1466,13 @@
     display: none;
   }
 
-  .fight__hud {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  .fight__entrance-left,
+  .fight__entrance-corner {
+    display: none;
   }
 
-  .fight__song {
-    min-height: 2.2em;
+  .fight__hud {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -954,8 +1485,9 @@
 
   .fight__entrance {
     left: 2%;
-    bottom: 4%;
-    max-width: 82%;
+    bottom: 3%;
+    max-width: 58%;
+    gap: 7px;
   }
 
   .fight__entrance--b {
@@ -963,33 +1495,8 @@
     right: 2%;
   }
 
-  .fight__entrance-art {
-    width: 48px;
-  }
-
-  .fight__entrance-bar {
-    width: 6px;
-  }
-
-  .fight__entrance-body {
-    padding: 6px 10px 8px;
-  }
-
-  .fight__entrance-kicker {
-    font-size: 0.56rem;
-    letter-spacing: 0.16em;
-  }
-
-  .fight__entrance-name {
-    font-size: 1.15rem;
-  }
-
-  .fight__entrance-song {
-    font-size: 0.7rem;
-  }
-
-  .fight__entrance-clock {
-    margin-top: 3px;
+  .fight__result-art {
+    display: none;
   }
 }
 
@@ -997,17 +1504,13 @@
 @media (max-width: 520px) {
   .fight__entrance {
     left: 2%;
-    bottom: 4%;
-    max-width: 82%;
+    bottom: 3%;
+    max-width: 58%;
   }
 
   .fight__entrance--b {
     left: auto;
     right: 2%;
-  }
-
-  .fight__entrance-body {
-    padding: 6px 10px 8px;
   }
 }
 
@@ -1031,14 +1534,12 @@
   }
 
   .fight__num {
-    width: clamp(28px, 3vw, 60px);
-    height: clamp(28px, 3vw, 60px);
-    font-size: clamp(0.95rem, 1.75vw, 2.1rem);
+    width: clamp(22px, 2.1vw, 40px);
+    font-size: clamp(0.8rem, 1.2vw, 1.4rem);
   }
 
   .fight__art {
-    width: clamp(42px, 4.6vw, 92px);
-    height: clamp(42px, 4.6vw, 92px);
+    width: clamp(36px, 4vw, 76px);
   }
 
   .fight__player {
@@ -1046,15 +1547,11 @@
   }
 
   .fight__song {
-    font-size: clamp(1.05rem, 1.85vw, 2.4rem);
+    font-size: clamp(0.92rem, 1.5vw, 1.9rem);
   }
 
   .fight__artist {
     font-size: clamp(0.78rem, 1.05vw, 1.3rem);
-  }
-
-  .fight__bar-votes {
-    font-size: clamp(0.7rem, 1vw, 1.25rem);
   }
 
   .fight__round {
@@ -1098,7 +1595,16 @@
 @media (prefers-reduced-motion: reduce) {
   .fight__corner,
   .fight__spark,
-  .fight__verdict {
+  .fight__verdict,
+  .fight__live,
+  .fight__finisher,
+  .fight__bell-copy,
+  .fight__versus,
+  .fight__versus-side,
+  .fight__versus-vs,
+  .fight__result,
+  .fight__entrance,
+  .fight__combo {
     animation: none !important;
     transition: none;
   }
@@ -1114,71 +1620,69 @@
   }
 }
 
+/* A combo is called on its own corner's side, under the HUD, and gets out
+   of the way: the punches on screen are the show. */
 .fight__combo {
+  --accent: var(--tb-blue);
+  --dx: -14px;
   position: absolute;
-  top: 24%;
-  left: 50%;
+  top: 6%;
+  left: 3%;
   z-index: 5;
   display: grid;
-  justify-items: center;
+  justify-items: start;
+  gap: 3px;
+  max-width: 46%;
+  padding: 6px 12px 7px;
+  background: rgba(6, 5, 10, 0.8);
+  border-left: 3px solid var(--accent);
   pointer-events: none;
-  font-family: var(--tb-font-display);
-  color: #fff8e8;
-  transform: translateX(-50%);
   animation: fight-combo 1.9s ease-out forwards;
 }
 
-.fight__combo-hits {
-  font-size: clamp(1.1rem, 3.4vw, 2.2rem);
-  font-size: clamp(1.1rem, 3.4cqw, 2.2rem);
-  letter-spacing: 0.3em;
+.fight__combo--b {
+  --accent: var(--tb-orange);
+  --dx: 14px;
+  left: auto;
+  right: 3%;
+  justify-items: end;
+  border-left: 0;
+  border-right: 3px solid var(--accent);
+  text-align: right;
 }
 
 .fight__combo-label {
-  font-size: clamp(2.2rem, 8vw, 5.2rem);
-  font-size: clamp(2.2rem, 8cqw, 5.2rem);
+  font-family: var(--tb-font-display);
+  font-size: clamp(1rem, 2.4vw, 1.8rem);
+  font-size: clamp(1rem, 2.4cqw, 1.8rem);
+  line-height: 1;
   letter-spacing: 0.06em;
-  line-height: 0.95;
-  color: var(--tb-blue);
-  -webkit-text-stroke: 2px #1a1020;
-  text-shadow: 0 0 28px rgba(0, 159, 253, 0.8), 0 6px 0 #1a1020;
-}
-
-.fight__combo--b .fight__combo-label {
-  color: var(--tb-orange);
-  text-shadow: 0 0 28px rgba(253, 156, 7, 0.8), 0 6px 0 #1a1020;
+  text-transform: uppercase;
+  color: #fff8e8;
 }
 
 .fight__combo-sub {
-  margin-top: 0.3em;
-  padding: 0.15em 0.6em;
-  border-radius: 8px;
-  font-size: clamp(0.7rem, 1.6vw, 1rem);
-  font-size: clamp(0.7rem, 1.6cqw, 1rem);
-  letter-spacing: 0.14em;
+  font-size: clamp(0.56rem, 0.85vw, 0.8rem);
+  font-size: clamp(0.56rem, 0.85cqw, 0.8rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  background: rgba(7, 5, 12, 0.75);
+  color: var(--tb-ink-muted);
 }
 
 @keyframes fight-combo {
-  0% {
+  from {
     opacity: 0;
-    transform: translateX(-50%) scale(2.2) rotate(-6deg);
+    transform: translateX(var(--dx));
   }
-  12% {
+  10%,
+  85% {
     opacity: 1;
-    transform: translateX(-50%) scale(0.92) rotate(2deg);
+    transform: translateX(0);
   }
-  20% {
-    transform: translateX(-50%) scale(1.05) rotate(-1deg);
-  }
-  80% {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-  }
-  100% {
+  to {
     opacity: 0;
-    transform: translateX(-50%) scale(1.1) translateY(-14px);
+    transform: translateX(0);
   }
 }
 
@@ -1193,4 +1697,70 @@
   text-transform: uppercase;
   color: #1a1020;
   background: var(--tb-gold);
+}
+
+/* Pixel effects over the ring: hit sparks on the corner taking the combo,
+   the knockout pop on the loser, confetti over the top on a decision. */
+.fight__fx {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  max-width: 60%;
+  height: auto !important;
+}
+
+.fight__fx--a {
+  left: 34%;
+  top: 46%;
+}
+
+.fight__fx--b {
+  left: 66%;
+  top: 46%;
+}
+
+.fight__fx--top {
+  left: 50%;
+  top: 38%;
+  max-width: 90%;
+}
+
+/* ---------- Broadcast cut ----------
+   Every piece of display type inside the ring: condensed, heavy and leaning
+   forward, the way a fight broadcast sets a name. One rule, so the ring can
+   never drift into two type styles. The loose tracking the old poster face
+   needed is closed up here too. */
+.fight__bell-copy,
+.fight__versus-name,
+.fight__versus-vs,
+.fight__entrance-name,
+.fight__verdict--over,
+.fight__combo-label {
+  font-stretch: var(--tb-fight-stretch);
+  font-weight: var(--tb-fight-weight);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+.fight__versus-name,
+.fight__entrance-name {
+  text-transform: uppercase;
+  /* Italic capitals overhang their box; this keeps the last one unclipped. */
+  padding-right: 0.08em;
+}
+
+.fight__bell-copy {
+  padding-left: 0;
+  font-stretch: 75%;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-shadow:
+    0.04em 0.04em 0 var(--tb-orange),
+    0 2px 28px rgba(0, 0, 0, 0.75);
+}
+
+.fight__entrance-corner {
+  font-stretch: 100%;
+  font-style: normal;
 }

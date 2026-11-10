@@ -65,9 +65,12 @@
 
 .creator__plate-name {
   font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
   font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: var(--tb-fight-weight);
+  font-style: italic;
   line-height: 1;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
   color: #fff;
 }
@@ -473,11 +476,12 @@
 
 .creator-shell__title {
   margin: 2px 0 0;
-  font-family: var(--tb-font-display);
-  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0.04em;
+  font-family: var(--tb-font-headline);
+  font-stretch: var(--tb-display-stretch);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: var(--tb-display-weight);
+  line-height: 1.05;
+  letter-spacing: var(--tb-display-tracking);
   color: #fff;
 }
 
@@ -537,47 +541,25 @@
   }
 }
 
-.heat {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-  letter-spacing: 0.18em;
-  font-size: clamp(0.7rem, 1.4vw, 1.05rem);
-  font-size: clamp(0.7rem, 1.4cqw, 1.05rem);
-  font-weight: 900;
-  font-family: var(--tb-font-display);
-}
-
-.heat span {
-  color: rgba(255, 255, 255, 0.22);
-}
-
-.heat span.is-on {
-  color: var(--tb-blue);
-  text-shadow: 0 0 12px rgba(0, 159, 253, 0.7);
-}
-
-.heat--b span.is-on {
-  color: var(--tb-orange);
-  text-shadow: 0 0 12px rgba(253, 156, 7, 0.7);
-}
-
 .streak {
   display: flex;
-  gap: 4px;
-  justify-content: center;
+  gap: 3px;
+  justify-content: flex-start;
   align-items: center;
-  margin-top: 3px;
-  font-family: var(--tb-font-display);
-  font-size: clamp(0.6rem, 1.15vw, 0.9rem);
-  font-size: clamp(0.6rem, 1.15cqw, 0.9rem);
-  font-weight: 900;
+  font-size: clamp(0.56rem, 0.8vw, 0.8rem);
+  font-size: clamp(0.56rem, 0.8cqw, 0.8rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.streak--b {
+  flex-direction: row-reverse;
 }
 
 .streak span {
-  min-width: 1.4em;
-  padding: 0 0.2em;
-  border-radius: 5px;
+  min-width: 1.5em;
+  padding: 0.05em 0.2em;
+  border-radius: 3px;
   text-align: center;
   color: rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.06);
@@ -598,7 +580,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.5);
-  margin-left: 4px;
+  margin: 0 4px;
 }
 
 .streak--hot em {

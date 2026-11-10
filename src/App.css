@@ -88,17 +88,59 @@ html {
   align-items: center;
   justify-content: flex-end;
   gap: 1.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 1rem;
 }
 
+/* One row, whatever the language. Links that do not fit wrap onto a second
+   row that is clipped away, so a long menu drops its last entries (they are
+   all in the footer) instead of breaking the bar in two or pushing the App
+   Store button off the screen. `clip` rather than `hidden`, so tabbing to a
+   dropped link cannot scroll the row. */
 .nav-sitelinks {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.15rem;
+  justify-content: flex-end;
+  gap: 0 0.15rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Exactly one link tall: the line plus its padding. */
+  height: 2.25rem;
+  overflow: hidden;
+  overflow: clip;
+}
+
+.nav-sitelinks .nav-link {
+  line-height: 1.25rem;
 }
 
 @media (max-width: 960px) {
   .nav-sitelinks {
     display: none;
+  }
+}
+
+/* Labels stay on one line. On a small laptop the bar gives up padding rather
+   than letting "Song battle" and the App Store button break in two. */
+.nav-menu .nav-link,
+.nav-menu .app-store-btn {
+  white-space: nowrap;
+}
+
+@media (min-width: 961px) and (max-width: 1440px) {
+  .nav-menu {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .nav-links {
+    gap: 0.75rem;
+  }
+
+  .nav-menu .nav-link {
+    font-size: 0.94rem;
+    padding: 0.5rem 0.55rem;
   }
 }
 
@@ -233,17 +275,35 @@ html {
   width: auto;
 }
 
-/* The headline, in the app's own title face. Rounded heavy sets wide, so it
-   wants tight tracking and mixed case rather than the caps a condensed poster
-   face carries; uppercase rounded reads as a children's book. */
+/* The headline, in the headline cut: a little wide, heavy, tracked tight and
+   set in mixed case. Width does the shouting, so it never needs capitals. */
 .home .home-hero--split .battle-hero-title {
-  font-family: var(--tb-font-display);
-  font-size: clamp(2.4rem, 4.2vw, 4.1rem);
-  font-weight: 900;
-  line-height: 1.02;
-  letter-spacing: -0.025em;
+  font-family: var(--tb-font-headline);
+  font-stretch: var(--tb-display-stretch);
+  font-size: clamp(2.5rem, 4.4vw, 4.4rem);
+  font-weight: var(--tb-display-weight);
+  /* Room for the tails of g and y above the next line's ascenders. */
+  line-height: 1.04;
+  /* The one headline big enough to take tighter spacing than the token. */
+  letter-spacing: -0.035em;
   color: #fff;
   text-wrap: balance;
+}
+
+/* From 1280 the pitch column narrows to give the ring and its chat the room,
+   so the headline steps down with it and still sets in three lines. */
+@media (min-width: 1280px) {
+  .home .home-hero--split .battle-hero-title {
+    font-size: clamp(2.5rem, 3.8vw, 3.5rem);
+  }
+}
+
+/* On a narrow phone it scales with the screen for the same reason: three
+   lines, with the two orange words kept together on the last. */
+@media (max-width: 400px) {
+  .home .home-hero--split .battle-hero-title {
+    font-size: clamp(2rem, 10.2vw, 2.5rem);
+  }
 }
 
 /* The three words the whole page is about. */
@@ -318,6 +378,32 @@ html {
     0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
+/* The live bout leans toward the cursor, with a soft light that follows it. */
+.home-ring__tilt {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.home-ring__tilt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle at var(--tilt-x, 50%) var(--tilt-y, 50%),
+    rgba(255, 255, 255, 0.12),
+    transparent 55%
+  );
+  transition: opacity 300ms ease;
+}
+
+.home-ring__tilt:hover::after {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home-ring__dot {
     animation: none;
@@ -356,11 +442,12 @@ html {
 
 .home-how__title {
   margin: 0;
-  font-family: var(--tb-font-display);
+  font-family: var(--tb-font-headline);
+  font-stretch: var(--tb-display-stretch);
   font-size: clamp(2rem, 4vw, 3.2rem);
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
+  font-weight: var(--tb-display-weight);
+  line-height: 1.02;
+  letter-spacing: var(--tb-display-tracking);
   color: var(--tb-ink);
 }
 
@@ -393,11 +480,29 @@ html {
   color: var(--tb-ink-muted);
 }
 
+.home-points {
+  counter-reset: point;
+}
+
+/* Each point is numbered like a round card, in the technical face. */
+.home-points li::before {
+  counter-increment: point;
+  content: counter(point, decimal-leading-zero);
+  display: block;
+  margin-bottom: 14px;
+  font-family: var(--tb-font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--tb-orange);
+}
+
 .home-points strong {
   display: block;
   margin-bottom: 6px;
-  font-size: 1.05rem;
-  font-weight: 800;
+  font-size: 1.12rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
   color: var(--tb-ink);
 }
 

@@ -8,6 +8,8 @@ import { RING_HALF } from './RingScene';
 export interface CrowdPerson {
   name: string;
   loadout: FighterLoadout;
+  /** Somebody in the room, who gets a nametag. House fans fill seats unnamed. */
+  named?: boolean;
 }
 
 const STAND_INNER = RING_HALF + 1.7;
@@ -38,12 +40,12 @@ export default function ArenaCrowd({ people, hype = 0 }: { people: CrowdPerson[]
 
   return (
     <group>
-      <Risers inner={STAND_INNER} rows={STAND_ROWS} />
-      <MascotCrowd seats={seats} hype={hype} />
+      <Risers inner={STAND_INNER} rows={STAND_ROWS} accent="#2a5a8c" glow={0.5} />
+      <MascotCrowd seats={seats} hype={hype} dim={0.55} />
       {vip.map((p) => (
         <group key={p.name} position={[p.x, 0, p.z]} scale={0.72}>
           <BoxerRig loadout={p.loadout} pose="idle" facing={1} faceCamera />
-          <Nametag name={p.name} accent="#f4efe6" y={1.82} width={0.7} />
+          {p.named && <Nametag name={p.name} accent="#f4efe6" y={1.82} width={0.7} />}
         </group>
       ))}
     </group>

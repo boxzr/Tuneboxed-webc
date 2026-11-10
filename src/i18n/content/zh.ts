@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const zh: Copy = {
   nav: {
     play: '开玩',
+    howToPlay: '玩法',
     songBattle: '歌曲对战',
     rules: '游戏规则',
     faq: '常见问题',
@@ -52,6 +53,32 @@ const zh: Copy = {
     streamersLink: '如何在直播中使用',
   },
 
+  tutorial: {
+    kicker: "玩法",
+    title: "30 秒学会",
+    prev: "上一步",
+    next: "下一步",
+    step: "第几步",
+    slides: [
+      { title: "创建房间", body: "点击「开始对战」，把房间码念出来，或把链接发到聊天里。" },
+      { title: "选歌", body: "每个人挑一首贴合主题的歌，并打扮自己的拳手。" },
+      { title: "入场", body: "每首歌都会播放入场曲，两位拳手都上台后敲响开场铃。" },
+      { title: "投票就是出拳", body: "在聊天里打 1 或 2，或在房间里点击。每一票都是一拳，连续三票就是连击。" },
+      { title: "KO 或判定", body: "把一首歌的血条打空它就倒地。势均力敌的比赛由判定决胜。" },
+    ],
+    demoTitle: "轮到你了",
+    demoHint: "点击 1 或 2，或按键盘。连续三下打出连击。",
+    again: "再打一场",
+    cta: "开始真正的对战",
+    pageTitle: "玩法 | TuneBoxed",
+    pageDescription: "六步学会 TuneBoxed：创建房间、选歌、看入场、投票出拳，再用 3D 拳手亲自打一回合。",
+    roomCode: "房间码",
+    look: "换造型",
+    endKo: "KO",
+    endDecision: "判定",
+    demoGoal: "前五票都投给同一首歌就是 KO。否则投满九票后进入判定。",
+    votesLeft: "剩余票数：{n}",
+  },
   entry: {
     joinTitle: '加入对决',
     hostTitle: '歌曲对决界的 Kahoot',

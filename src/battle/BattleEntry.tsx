@@ -5,6 +5,8 @@ import { isLocalPreview, liveRoomUrl } from '../lib/publicUrl';
 import { supabaseConfigured } from '../lib/supabase';
 import { signInWithTwitch, signOut, useTwitchIdentity } from '../lib/twitchAuth';
 import { useCopy } from '../i18n/LanguageContext';
+import PixelFX from '../components/PixelFX';
+import { useMagnetic } from '../lib/pointerFx';
 
 type Props = {
   /** Prefilled when a viewer follows a share link that already names the room. */
@@ -39,6 +41,7 @@ export default function BattleEntry({
   const [name, setName] = useState(() => battle.lastName());
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [busy, setBusy] = useState<'join' | 'create' | null>(null);
+  const actionMagnet = useMagnetic<HTMLDivElement>(0.15, 6);
   const [error, setError] = useState<string | null>(null);
   const { identity } = useTwitchIdentity();
 
@@ -180,23 +183,26 @@ export default function BattleEntry({
         </div>
       )}
 
-      {mode === 'host' ? (
-        <button
-          className="battle-btn"
-          disabled={!nameOk || busy !== null}
-          onClick={() => void run('create')}
-        >
-          {busy === 'create' ? t.creating : t.host}
-        </button>
-      ) : (
-        <button
-          className="battle-btn"
-          disabled={!nameOk || code.trim().length !== 5 || busy !== null}
-          onClick={() => void run('join')}
-        >
-          {busy === 'join' ? t.joining : t.join}
-        </button>
-      )}
+      <div ref={actionMagnet} className="tb-fx-anchor">
+        <PixelFX effect="coin" scale={3} trigger={busy} className="tb-fx" />
+        {mode === 'host' ? (
+          <button
+            className="battle-btn"
+            disabled={!nameOk || busy !== null}
+            onClick={() => void run('create')}
+          >
+            {busy === 'create' ? t.creating : t.host}
+          </button>
+        ) : (
+          <button
+            className="battle-btn"
+            disabled={!nameOk || code.trim().length !== 5 || busy !== null}
+            onClick={() => void run('join')}
+          >
+            {busy === 'join' ? t.joining : t.join}
+          </button>
+        )}
+      </div>
 
       {/* A viewer who followed a share link is being let into one room, so
           offering to host would only lead them away from it. */}

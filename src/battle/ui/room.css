@@ -199,12 +199,9 @@
   font-size: 1.85rem;
   font-weight: 800;
   line-height: 1.15;
-  /* The prompt is the question the whole round answers, so it gets the brand
-     gradient rather than sitting in body ink. */
-  background: linear-gradient(135deg, var(--tb-orange-deep), var(--tb-orange));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  /* The prompt is the question the whole round answers, so it is set in the
+     brand orange, flat, rather than sitting in body ink. */
+  color: var(--tb-orange);
 }
 
 .bt-locked {
@@ -276,7 +273,16 @@
   min-width: 0;
 }
 
-.bt-mysongs__text strong,
+.bt-mysongs__text strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
 .bt-mysongs__text span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -342,8 +348,8 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: 10px;
 }
 
@@ -370,7 +376,39 @@
 }
 
 .bt-choice:active:not(:disabled) {
-  transform: scale(0.99);
+  transform: scale(0.97);
+}
+
+/* Live share of the vote, filling behind the row so the room can see a song
+   pull ahead without reading numbers. */
+.bt-choice {
+  position: relative;
+  isolation: isolate;
+}
+
+.bt-choice__share {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(253, 156, 7, 0.16), rgba(253, 156, 7, 0.06));
+  transform-origin: left center;
+  transition: transform 600ms cubic-bezier(0.22, 1.2, 0.36, 1);
+  pointer-events: none;
+}
+
+.bt-choice--chosen .bt-choice__art {
+  animation: bt-choice-pop 420ms cubic-bezier(0.22, 1.6, 0.36, 1);
+}
+
+@keyframes bt-choice-pop {
+  40% { transform: scale(1.14) rotate(-4deg); }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bt-choice__share { transition: none; }
+  .bt-choice--chosen .bt-choice__art { animation: none; }
 }
 
 .bt-choice:disabled {
@@ -483,8 +521,16 @@
 .bt-reveal__name,
 .bt-champion__name {
   margin: 6px 0 0;
-  font-size: 1.7rem;
-  font-weight: 800;
+  padding: 0 0.08em;
+  font-family: var(--tb-font-display);
+  font-stretch: var(--tb-fight-stretch);
+  font-size: 2.4rem;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.95;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
 }
 
 .bt-reveal__song {
@@ -742,6 +788,7 @@
   text-transform: none;
   color: var(--tb-ink);
   font-family: var(--tb-font);
+  font-stretch: normal;
 }
 
 .bt-settings-copy {
@@ -776,6 +823,7 @@
   text-transform: none;
   color: var(--tb-ink);
   font-family: var(--tb-font);
+  font-stretch: normal;
 }
 
 .bt-settings-copy {
@@ -810,6 +858,7 @@
   text-transform: none;
   color: var(--tb-ink);
   font-family: var(--tb-font);
+  font-stretch: normal;
 }
 
 .bt-settings-copy {
@@ -1022,9 +1071,13 @@
 }
 
 .bt-mix__name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
   font-size: 0.82rem;
   font-weight: 700;
 }

@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const ja: Copy = {
   nav: {
     play: 'プレイ',
+    howToPlay: '遊び方',
     songBattle: 'ソングバトル',
     rules: 'ルール',
     faq: 'よくある質問',
@@ -52,6 +53,32 @@ const ja: Copy = {
     streamersLink: '配信での設定方法',
   },
 
+  tutorial: {
+    kicker: "遊び方",
+    title: "30秒でわかる",
+    prev: "前へ",
+    next: "次へ",
+    step: "ステップ",
+    slides: [
+      { title: "ルームを作る", body: "「バトルを始める」を押してコードを読み上げるか、チャットにリンクを貼ろう。" },
+      { title: "曲を選ぶ", body: "みんながテーマに合う曲を選び、ボクサーを着せ替える。" },
+      { title: "入場", body: "それぞれの曲が入場曲として流れ、2人がリングに揃うとゴングが鳴る。" },
+      { title: "投票がパンチ", body: "チャットで1か2を打つか、ルームでタップ。1票ごとにパンチ、3連続でコンボ。" },
+      { title: "KOか判定", body: "曲の体力をゼロにするとダウン。接戦は判定で決着。" },
+    ],
+    demoTitle: "やってみよう",
+    demoHint: "1か2をタップ、またはキーを押そう。3連続でコンボ。",
+    again: "もう一度",
+    cta: "本番のバトルを始める",
+    pageTitle: "遊び方 | TuneBoxed",
+    pageDescription: "6つのステップでTuneBoxedを覚えよう。ルームを作り、曲を選び、入場を見て、投票でパンチを打ち、3Dボクサーで1ラウンド試せます。",
+    roomCode: "ルームコード",
+    look: "見た目を変える",
+    endKo: "KO",
+    endDecision: "判定",
+    demoGoal: "最初の5票を同じ曲に入れるとKO。そうでなければ9票で判定へ。",
+    votesLeft: "残り票: {n}",
+  },
   entry: {
     joinTitle: 'バトルに参加',
     hostTitle: '曲バトル版のKahoot',

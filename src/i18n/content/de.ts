@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const de: Copy = {
   nav: {
     play: 'Spielen',
+    howToPlay: 'So wird gespielt',
     songBattle: 'Song-Battle',
     rules: 'Spielregeln',
     faq: 'FAQ',
@@ -52,6 +53,32 @@ const de: Copy = {
     streamersLink: 'So richtest du es im Stream ein',
   },
 
+  tutorial: {
+    kicker: "So wird gespielt",
+    title: "In 30 Sekunden gelernt",
+    prev: "Vorheriger Schritt",
+    next: "Nächster Schritt",
+    step: "Schritt",
+    slides: [
+      { title: "Raum starten", body: "Tippe auf Battle starten und lies den Code laut vor oder poste den Link im Chat." },
+      { title: "Song wählen", body: "Alle wählen einen Track, der zum Vibe passt, und stylen ihren Boxer." },
+      { title: "Einmarsch", body: "Jeder Song spielt seinen Einmarsch. Die Glocke läutet, wenn beide im Ring stehen." },
+      { title: "Stimmen sind Schläge", body: "Schreib 1 oder 2 in den Chat oder tippe im Raum. Jede Stimme ist ein Schlag, drei in Folge sind eine Kombo." },
+      { title: "K.o. oder Punktsieg", body: "Leere die Energie eines Songs und er geht zu Boden. Knappe Kämpfe gehen nach Punkten." },
+    ],
+    demoTitle: "Du bist dran",
+    demoHint: "Tippe 1 oder 2 oder nutze die Tasten. Drei in Folge ergeben eine Kombo.",
+    again: "Nochmal kämpfen",
+    cta: "Echtes Battle starten",
+    pageTitle: "So wird gespielt | TuneBoxed",
+    pageDescription: "Lerne TuneBoxed in sechs Schritten: Raum starten, Song wählen, Einmarsch ansehen, mit Stimmen zuschlagen und selbst eine Runde mit den 3D-Boxern spielen.",
+    roomCode: "Raumcode",
+    look: "Look wechseln",
+    endKo: "K.o.",
+    endDecision: "Punktsieg",
+    demoGoal: "Gib die ersten fünf Stimmen demselben Song und es ist ein K.o. Sonst geht der Kampf nach neun Stimmen nach Punkten.",
+    votesLeft: "Stimmen übrig: {n}",
+  },
   entry: {
     joinTitle: 'Steig ins Battle ein',
     hostTitle: 'Das Kahoot für Song-Battles',

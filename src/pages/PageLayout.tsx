@@ -12,6 +12,7 @@ export const APP_STORE_URL = 'https://apps.apple.com/us/app/tuneboxed/id67476479
 /** Every content route, in the order they appear in the footer and sitemap. Labels come from `copy.nav`. */
 export const CONTENT_PAGES = [
   { path: '/battle', key: 'play' },
+  { path: '/how-to-play', key: 'howToPlay' },
   { path: '/song-battle', key: 'songBattle' },
   { path: '/rules', key: 'rules' },
   { path: '/faq', key: 'faq' },
@@ -39,12 +40,16 @@ export default function PageLayout({
   description,
   heading,
   intro,
+  wide = false,
   children,
 }: {
   title: string;
   description: string;
-  heading: string;
+  /** Left out by a page that draws its own heading. */
+  heading?: string;
   intro?: string;
+  /** A page built around the ring rather than a column of text. */
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   const reduced = useReducedMotion();
@@ -77,8 +82,9 @@ export default function PageLayout({
         </div>
       </nav>
 
-      <main className="page-main">
+      <main className={`page-main${wide ? ' page-main--wide' : ''}`}>
         {/* Heading and intro are above the fold, so they arrive on mount. */}
+        {heading && (
         <motion.div
           initial={reduced ? undefined : 'hidden'}
           animate={reduced ? undefined : 'shown'}
@@ -93,6 +99,7 @@ export default function PageLayout({
             </motion.p>
           )}
         </motion.div>
+        )}
 
         {/* Each page hands over its sections as separate children, so revealing
             them one at a time here means no page has to wire up its own motion.

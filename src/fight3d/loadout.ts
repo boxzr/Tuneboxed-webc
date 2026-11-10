@@ -27,9 +27,9 @@ export interface FighterLoadout {
 }
 
 /** Mascot body paints. Orange and blue are the TuneBoxed notes. */
-export const SKIN_HEX = ['#fd7a1a', '#3b9eff', '#f4efe6', '#ef4444', '#22c55e', '#a855f7'] as const;
+export const SKIN_HEX = ['#fd8a0c', '#0f9bfa', '#f4efe6', '#ef4444', '#22c55e', '#a855f7'] as const;
 /** Note-flag paints. Index 0 matches the body when hair is "none". */
-export const HAIR_HEX = ['#fd7a1a', '#3b9eff', '#111827', '#f8fafc', '#eab308', '#7c3aed'] as const;
+export const HAIR_HEX = ['#fd8a0c', '#0f9bfa', '#111827', '#f8fafc', '#eab308', '#7c3aed'] as const;
 export const CLOTH_HEX = [
   '#1d4ed8',
   '#ea580c',
@@ -70,6 +70,22 @@ export function defaultLoadout(seed: string): FighterLoadout {
     body: BODY_TYPES[Math.floor(h / 29) % BODY_TYPES.length],
     dance: danceFor(seed || 'tuneboxed'),
   };
+}
+
+/**
+ * The house fighters: the blue note in the blue corner and the orange note in
+ * the orange corner, the two halves of the logo. Each wears gloves in a deeper
+ * cut of its own colour, midnight trunks with a white stripe, and white boots.
+ * Anyone who has not built a boxer fights as one of these, so the front page
+ * shows the brand's mascots rather than a random kit. The note on the head
+ * still comes from the name, which keeps two house fighters from being clones.
+ */
+export function cornerLoadout(side: 'a' | 'b', seed: string): FighterLoadout {
+  const base = defaultLoadout(seed);
+  const kit = { trunks: 5, boots: 6, body: 'mid' as const };
+  return side === 'a'
+    ? { ...base, ...kit, skin: 1, hairColor: 1, gloves: 0 }
+    : { ...base, ...kit, skin: 0, hairColor: 0, gloves: 1 };
 }
 
 export function encodeLoadout(loadout: FighterLoadout): string {

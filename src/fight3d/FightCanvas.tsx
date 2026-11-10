@@ -30,12 +30,43 @@ export interface RingFighter {
 
 type RingMode = 'bout' | 'locker' | 'parade' | 'walkout';
 
-const CAMERA: Record<RingMode, { position: [number, number, number]; lookAt: [number, number, number]; fov: number }> = {
-  bout: { position: [0.12, 1.4, 2.4], lookAt: [0, 1.0, 0], fov: 50 },
+export interface Shot {
+  position: [number, number, number];
+  lookAt: [number, number, number];
+  fov: number;
+}
+
+/**
+ * The TV camera: low, just outside the near ropes. Far enough back that both
+ * boxers are in frame from their boots to the note on their heads; any closer
+ * and the picture is two cropped torsos rather than a fight.
+ */
+const CAMERA: Record<RingMode, Shot> = {
+  bout: { position: [0.06, 1.2, 2.85], lookAt: [0, 0.94, 0], fov: 40 },
   locker: { position: [0, 1.0, 3.7], lookAt: [0, 0.74, 0], fov: 36 },
   parade: { position: [0, 1.9, 7.1], lookAt: [0, 0.95, 0.2], fov: 34 },
   walkout: { position: [0, 2, -6], lookAt: [0, 1.4, -13], fov: 42 },
 };
+
+/** Before the bell: a wider, higher establishing shot that dollies in to the bout framing. */
+const INTRO_SHOT: Shot = { position: [1.25, 1.75, 3.7], lookAt: [0, 0.95, 0], fov: 42 };
+/**
+ * After the bell on a decision: a slow drift toward the middle of the ring,
+ * aimed low so both boxers stand in the upper part of the picture and the
+ * winner's lower third has the canvas to itself.
+ */
+const RESULT_SHOT: Shot = { position: [0, 1.32, 2.95], lookAt: [0, 0.78, 0], fov: 40 };
+/** Half-width, in metres, the bout shot keeps in frame so a narrow ring still shows both corners. */
+const BOUT_HALF_WIDTH = 1.25;
+/**
+ * Fraction of the frame the walkout picture is shifted up, so the boxer stands
+ * clear of the lower third along the bottom edge.
+ */
+const WALKOUT_LIFT = 0.13;
+/** Real seconds the world freezes when a heavy punch lands. */
+const HIT_STOP_S = 0.075;
+/** Real seconds of slow motion as the loser hits the canvas. */
+const KO_SLOW_S = 1.8;
 
 /** World X of each corner. Close enough that a full extension meets the chin. */
 const CORNER_X = 0.55;
@@ -144,41 +175,137 @@ function CameraAim({
   mode,
   impact,
   ko,
+  call,
+  reduced,
+  still,
 }: {
   mode: RingMode;
+  /** Replaces the locker or parade framing. */
+  still?: Shot;
   impact: number;
-  ko: boolean;
+  /** The corner on the canvas, if anyone is. */
+  ko: 'a' | 'b' | null;
+  call: RefCall;
+  /** Cut straight to each shot, no shake. */
+  reduced: boolean;
 }) {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const shake = useRef(0);
   const zoom = useRef(0);
   const prevImpact = useRef(0);
+  const pos = useRef(new THREE.Vector3());
+  const look = useRef(new THREE.Vector3());
+  const fov = useRef(CAMERA[mode].fov);
+  const snap = useRef(true);
+  const want = useMemo(() => ({ pos: new THREE.Vector3(), look: new THREE.Vector3() }), []);
+
+  useEffect(() => {
+    const persp = camera as THREE.PerspectiveCamera;
+    if (!persp.isPerspectiveCamera) return;
+    // The offset is given in real pixels: three.js sets the camera's aspect to
+    // fullWidth / fullHeight here, so a 1 x 1 "frame" squashed every walkout
+    // to a square picture stretched across a wide canvas.
+    if (mode === 'walkout') {
+      persp.setViewOffset(size.width, size.height, 0, WALKOUT_LIFT * size.height, size.width, size.height);
+    } else {
+      persp.clearViewOffset();
+      persp.aspect = size.width / Math.max(1, size.height);
+      persp.updateProjectionMatrix();
+    }
+    snap.current = true;
+  }, [camera, mode, size.width, size.height]);
+
   useFrame(({ clock }, dt) => {
     if (mode === 'walkout') return;
     const step = Math.min(0.05, Math.max(0.001, dt || 0.016));
     if (impact > prevImpact.current + 0.08) {
       shake.current = Math.min(0.85, impact * 0.55);
-      zoom.current = Math.min(1.15, 0.25 + impact * 0.55);
+      zoom.current = Math.min(1.6, 0.3 + impact * 0.8);
     }
     prevImpact.current = impact;
-    shake.current *= Math.pow(0.08, step);
-    zoom.current = THREE.MathUtils.lerp(zoom.current, ko ? 0.7 : 0, 1 - Math.pow(0.18, step));
-    const shot = CAMERA[mode];
+    shake.current *= Math.pow(0.06, step);
+    zoom.current *= Math.pow(0.12, step);
+
     const t = clock.elapsedTime;
-    const j = shake.current * 0.045;
-    const orbit = ko && mode === 'bout' ? Math.sin(t * 0.4) * 0.22 : 0;
+    const shot =
+      mode === 'bout' && call === 'intro'
+        ? INTRO_SHOT
+        : mode === 'bout' && call === 'over' && !ko
+          ? RESULT_SHOT
+          : mode !== 'bout' && still
+            ? still
+            : CAMERA[mode];
+    want.pos.set(...shot.position);
+    want.look.set(...shot.lookAt);
+    let wantFov = shot.fov;
+    let rate = 0.12;
+    if (mode === 'bout' && ko) {
+      // Low, on the loser, who falls away from the other corner; drifting slowly across them.
+      const s = ko === 'a' ? -1 : 1;
+      want.pos.set(s * 0.45 + Math.sin(t * 0.3) * 0.2, 1.0, 2.55);
+      want.look.set(s * (CORNER_X + 0.3), 0.4, 0);
+      wantFov = 40;
+      rate = 0.35;
+    } else if (mode === 'bout' && call === 'intro') {
+      rate = 0.4;
+    }
+    if (mode === 'bout') {
+      const aspect = size.width / Math.max(1, size.height);
+      const dist = want.pos.distanceTo(want.look);
+      const fit = THREE.MathUtils.radToDeg(2 * Math.atan(BOUT_HALF_WIDTH / (dist * aspect)));
+      if (!ko) wantFov = Math.max(wantFov, Math.min(68, fit));
+    }
+    const k = snap.current || reduced ? 1 : 1 - Math.pow(rate, step);
+    snap.current = false;
+    pos.current.lerp(want.pos, k);
+    look.current.lerp(want.look, k);
+    fov.current += (wantFov - fov.current) * k;
+    if (reduced) shake.current = zoom.current = 0;
+
+    const j = shake.current * 0.04;
     camera.position.set(
-      shot.position[0] + Math.sin(t * 72) * j + orbit,
-      shot.position[1] + Math.cos(t * 55) * j * 0.38,
-      shot.position[2] - zoom.current * 0.05
+      pos.current.x + Math.sin(t * 72) * j,
+      pos.current.y + Math.cos(t * 55) * j * 0.4,
+      pos.current.z - zoom.current * 0.04
     );
-    camera.lookAt(shot.lookAt[0], shot.lookAt[1] + (ko ? -0.06 : 0), shot.lookAt[2]);
+    camera.lookAt(look.current);
     const persp = camera as THREE.PerspectiveCamera;
     if (persp.isPerspectiveCamera) {
-      persp.fov = shot.fov - zoom.current;
+      persp.fov = fov.current - zoom.current;
       persp.updateProjectionMatrix();
     }
   });
+  return null;
+}
+
+/**
+ * Hit-stop and the knockout slow motion. Everything in the ring animates off
+ * the shared clock, so slowing that clock slows the whole fight at once
+ * without a postprocessing pass. Runs before every other frame callback.
+ */
+function TimeWarp({ hit, ko }: { hit: Contact; ko: boolean }) {
+  const hold = useRef(0);
+  const slow = useRef(0);
+  useEffect(() => {
+    if (hit.level >= 0.9) hold.current = HIT_STOP_S;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hit.key]);
+  useEffect(() => {
+    if (ko) slow.current = KO_SLOW_S;
+  }, [ko]);
+  useFrame(({ clock }, dt) => {
+    const step = Math.min(0.05, Math.max(0, dt || 0));
+    let scale = 1;
+    if (hold.current > 0) {
+      hold.current -= step;
+      scale = 0.05;
+    } else if (slow.current > 0) {
+      slow.current = Math.max(0, slow.current - step);
+      const p = 1 - slow.current / KO_SLOW_S;
+      scale = 0.28 + 0.72 * p * p;
+    }
+    if (scale < 1) clock.elapsedTime -= step * (1 - scale);
+  }, -1);
   return null;
 }
 
@@ -299,7 +426,7 @@ function Scene({
       [a?.name, b?.name, ...fans.map((f) => f.name)].filter((n): n is string => Boolean(n)).map((n) => n.toLowerCase())
     );
     const extras = houseFans([...taken]).filter((f) => !taken.has(f.name.toLowerCase()));
-    return [...fans, ...extras].slice(0, 8);
+    return [...fans.map((f) => ({ ...f, named: true })), ...extras].slice(0, 8);
   }, [a?.name, b?.name, fans]);
 
   if (mode === 'walkout') {
@@ -345,7 +472,6 @@ function Scene({
                 foe={[CORNER_X, headB, 0]}
                 wear={wearFrom(a.votes, b.votes)}
               />
-              <Nametag name={a.name} accent="#4ea8ff" y={1.72} width={0.52} />
             </group>
             <group position={[CORNER_X, 0, 0]}>
               <BoxerRig
@@ -359,7 +485,6 @@ function Scene({
                 foe={[-CORNER_X, headA, 0]}
                 wear={wearFrom(b.votes, a.votes)}
               />
-              <Nametag name={b.name} accent="#fd9c07" y={1.72} width={0.52} />
             </group>
             <Referee call={call} />
             <ImpactBurst hit={hit} />
@@ -399,6 +524,7 @@ export default function FightCanvas({
   walkSeconds = 30,
   walkOffset = 0,
   lockerYaw = 0,
+  shot,
 }: {
   mode: RingMode;
   a?: RingFighter;
@@ -415,13 +541,28 @@ export default function FightCanvas({
   walkOffset?: number;
   /** Turntable angle in locker mode, radians. */
   lockerYaw?: number;
+  /**
+   * A closer framing for the locker or the line-up, for a page that shows a
+   * boxer or two rather than a full room. The stock shots stay as they are.
+   */
+  shot?: Shot;
 }) {
   const [live, setLive] = useState(true);
+  // Fixed for the life of the canvas. New options make R3F swap in a fresh
+  // camera without sizing it, which stretched the ring after every walkout;
+  // CameraAim and Walkout move this one every frame instead.
+  const [cameraOptions] = useState(() => ({
+    position: CAMERA[mode].position,
+    fov: CAMERA[mode].fov,
+    near: 0.12,
+    far: 40,
+  }));
   const reduced =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const hit = useContact(a, b, mode === 'bout');
   const impact = mode === 'bout' ? hit.level : 0;
-  const ko = Boolean(mode === 'bout' && (isKnockdown(a?.pose ?? 'idle') || isKnockdown(b?.pose ?? 'idle')));
+  const ko: 'a' | 'b' | null =
+    mode !== 'bout' ? null : isKnockdown(a?.pose ?? 'idle') ? 'a' : isKnockdown(b?.pose ?? 'idle') ? 'b' : null;
 
   useEffect(() => {
     const onVis = () => setLive(document.visibilityState === 'visible');
@@ -436,14 +577,10 @@ export default function FightCanvas({
         dpr={[1, 1.5]}
         frameloop={live && !reduced ? 'always' : 'demand'}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
-        camera={{
-          position: CAMERA[mode].position,
-          fov: CAMERA[mode].fov,
-          near: 0.12,
-          far: 40,
-        }}
+        camera={cameraOptions}
       >
-        <CameraAim mode={mode} impact={impact} ko={ko} />
+        <CameraAim mode={mode} impact={impact} ko={ko} call={call} reduced={reduced} still={shot} />
+        {mode === 'bout' && !reduced && <TimeWarp hit={hit} ko={ko !== null} />}
         <Scene
           mode={mode}
           a={a}

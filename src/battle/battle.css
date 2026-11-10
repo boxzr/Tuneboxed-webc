@@ -48,6 +48,13 @@
   background: none;
 }
 
+/* The coin burst over the Host button is drawn on a canvas wider than a
+   phone, and without this the whole page scrolled sideways to make room for
+   it. The home page clips it at the arena instead. */
+.battle:not(.battle--embedded) {
+  overflow-x: clip;
+}
+
 /* Battle hero on the marketing home page. */
 .battle-hero,
 .home-hero {
@@ -623,9 +630,13 @@
 .battle-result__text strong {
   font-size: 0.95rem;
   font-weight: 700;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .battle-result__text span {

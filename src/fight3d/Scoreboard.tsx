@@ -12,6 +12,8 @@ export interface ScoreboardData {
   votesB: number;
   healthA: number;
   healthB: number;
+  /** Defaults to votes. */
+  unit?: string;
 }
 
 function roundBox(
@@ -114,7 +116,7 @@ function paint(c: HTMLCanvasElement, data: ScoreboardData) {
   g.fillText(data.roundLabel.toUpperCase(), mid, 84);
   g.fillStyle = 'rgba(255,248,232,0.6)';
   g.font = `800 34px ${CANVAS_FONT}`;
-  g.fillText('VOTES', mid, 150);
+  g.fillText((data.unit ?? 'votes').toUpperCase(), mid, 150);
   g.textBaseline = 'alphabetic';
 }
 
@@ -122,9 +124,13 @@ function paint(c: HTMLCanvasElement, data: ScoreboardData) {
  * Jumbotron over the far ropes. Votes and health redraw whenever the bout
  * ticks, so the canvas itself is the live scoreboard.
  */
-/** Hung past the far ropes, in the strip of view above the fighters' nametags. */
+/**
+ * Hung past the far ropes, just above the tight bout shot: the HUD carries
+ * the same numbers there, and half a board cut off by the frame edge is
+ * clutter. The wider intro and parade angles take it in.
+ */
 const BOARD_W = 2.6;
-const BOARD_Y = 2.66;
+const BOARD_Y = 3.0;
 const BOARD_Z = -3.4;
 
 export default function RingScoreboard(data: ScoreboardData) {
@@ -142,7 +148,7 @@ export default function RingScoreboard(data: ScoreboardData) {
   useLayoutEffect(() => {
     paint(tex.image as HTMLCanvasElement, data);
     tex.needsUpdate = true;
-  }, [tex, fonts, data.roundLabel, data.aName, data.bName, data.aSong, data.bSong, data.votesA, data.votesB, data.healthA, data.healthB]);
+  }, [tex, fonts, data.roundLabel, data.aName, data.bName, data.aSong, data.bSong, data.votesA, data.votesB, data.healthA, data.healthB, data.unit]);
 
   return (
     <group position={[0, BOARD_Y, BOARD_Z]} rotation={[0.04, 0, 0]}>

@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import BoxerRig from './BoxerRig';
 import { PLAN, walkPlan, type WalkStyle } from './walkStyles';
 import type { Dance } from './dances';
-import { CANVAS_FONT, useCanvasFonts } from './canvasFont';
 import MascotCrowd, { Risers, standSeats, type Seat } from './MascotCrowd';
 import RingScene, { RING_HALF } from './RingScene';
 import type { FighterLoadout } from './loadout';
@@ -31,6 +30,9 @@ const APRON_Z = -(RING_HALF + 2.3);
 /** Camera stays on the aisle side of the back ropes. */
 const CAM_MAX_Z = -(RING_HALF + 0.2);
 const AISLE_HALF = 1.0;
+const WALK_FOV = 38;
+const WALK_FOV_CLOSE = 52;
+const WALK_FOG: [number, number] = [8, 24];
 const RAMP_Y = 0.32;
 const { stageEnd: STAGE_END, pauseStart: PAUSE_START, pauseEnd: PAUSE_END, arrive: ARRIVE } = PLAN;
 
@@ -45,14 +47,6 @@ function aisleSeats(): Seat[] {
     }
   }
   return out;
-}
-
-function fit(g: CanvasRenderingContext2D, text: string, max: number, px: number, weight = 900) {
-  let size = px;
-  do {
-    g.font = `${weight} ${size}px ${CANVAS_FONT}`;
-    size -= 4;
-  } while (g.measureText(text).width > max && size > 20);
 }
 
 /** Cover art, or a record sleeve in the corner's colour when there is none. */
@@ -81,107 +75,65 @@ function drawCover(g: CanvasRenderingContext2D, x: number, y: number, size: numb
   g.fill();
 }
 
-function paintMain(c: HTMLCanvasElement, walker: Walker, accent: string, art: HTMLImageElement | null) {
+/**
+ * The titantron shows the walker's cover and nothing else. Their name and
+ * song are already on the lower third; printing them again up here is what
+ * made the entrance read as two competing title cards.
+ */
+function paintTron(c: HTMLCanvasElement, accent: string, art: HTMLImageElement | null) {
   const g = c.getContext('2d')!;
   const W = c.width;
   const H = c.height;
-  const bg = g.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#06040a');
-  bg.addColorStop(0.6, accent);
-  bg.addColorStop(1, '#06040a');
-  g.fillStyle = bg;
+  g.fillStyle = '#05040a';
   g.fillRect(0, 0, W, H);
-  if (art) {
-    g.globalAlpha = 0.28;
-    g.drawImage(art, 0, -W * 0.25, W, W);
-    g.globalAlpha = 1;
-    g.fillStyle = 'rgba(6,4,10,0.45)';
-    g.fillRect(0, 0, W, H);
-  }
-  const size = H * 0.72;
-  const cx = H * 0.14;
+  const glow = g.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, W * 0.6);
+  glow.addColorStop(0, accent);
+  glow.addColorStop(1, 'rgba(5,4,10,0)');
+  g.globalAlpha = 0.32;
+  g.fillStyle = glow;
+  g.fillRect(0, 0, W, H);
+  g.globalAlpha = 1;
+
+  const size = H * 0.8;
   g.shadowColor = accent;
-  g.shadowBlur = 40;
-  drawCover(g, cx, (H - size) / 2, size, art, accent);
+  g.shadowBlur = 60;
+  drawCover(g, (W - size) / 2, (H - size) / 2, size, art, accent);
   g.shadowBlur = 0;
 
-  const tx = cx + size + 56;
-  const maxW = W - tx - 48;
-  g.textAlign = 'left';
-  g.fillStyle = accent;
-  g.font = `800 34px ${CANVAS_FONT}`;
-  g.fillText(walker.side === 'a' ? 'BLUE CORNER' : 'ORANGE CORNER', tx, H * 0.24);
-  g.fillStyle = '#fff8e8';
-  fit(g, walker.name.toUpperCase(), maxW, 150);
-  g.fillText(walker.name.toUpperCase(), tx, H * 0.5);
-  g.fillStyle = '#fff8e8';
-  fit(g, walker.songTitle ?? '', maxW, 64, 800);
-  g.fillText(walker.songTitle ?? '', tx, H * 0.68);
-  g.fillStyle = 'rgba(255,248,232,0.75)';
-  fit(g, walker.songArtist ?? '', maxW, 44, 600);
-  g.fillText(walker.songArtist ?? '', tx, H * 0.8);
-
-  g.fillStyle = 'rgba(0,0,0,0.25)';
+  g.fillStyle = 'rgba(0,0,0,0.18)';
   for (let y = 0; y < H; y += 5) g.fillRect(0, y, W, 2);
 }
 
-function paintSide(c: HTMLCanvasElement, accent: string, art: HTMLImageElement | null) {
-  const g = c.getContext('2d')!;
-  g.fillStyle = '#06040a';
-  g.fillRect(0, 0, c.width, c.height);
-  const size = Math.min(c.width, c.height) * 0.86;
-  drawCover(g, (c.width - size) / 2, (c.height - size) / 2, size, art, accent);
-  g.fillStyle = 'rgba(0,0,0,0.25)';
-  for (let y = 0; y < c.height; y += 5) g.fillRect(0, y, c.width, 2);
-}
-
-/** Titantron textures, repainted once the cover art arrives. */
-function useTitantron(walker: Walker, accent: string) {
-  const { side, name, songTitle, songArtist, artworkUrl } = walker;
-  const fonts = useCanvasFonts();
+/** Titantron texture, repainted once the cover art arrives. */
+function useTitantron(artworkUrl: string | null | undefined, accent: string) {
   const tex = useMemo(() => {
-    const walker = { side, name, songTitle, songArtist, artworkUrl, loadout: undefined as never };
-    const main = document.createElement('canvas');
-    main.width = 1280;
-    main.height = 560;
-    const sideCanvas = document.createElement('canvas');
-    sideCanvas.width = 512;
-    sideCanvas.height = 640;
-    paintMain(main, walker, accent, null);
-    paintSide(sideCanvas, accent, null);
-    const mainTex = new THREE.CanvasTexture(main);
-    const sideTex = new THREE.CanvasTexture(sideCanvas);
-    mainTex.colorSpace = sideTex.colorSpace = THREE.SRGBColorSpace;
-    return { main, sideCanvas, mainTex, sideTex, walker };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [side, name, songTitle, songArtist, artworkUrl, accent, fonts]);
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 560;
+    paintTron(canvas, accent, null);
+    const map = new THREE.CanvasTexture(canvas);
+    map.colorSpace = THREE.SRGBColorSpace;
+    return { canvas, map };
+  }, [accent]);
 
   useEffect(() => {
-    if (!tex.walker.artworkUrl) return;
+    if (!artworkUrl) return;
     let live = true;
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       if (!live) return;
-      paintMain(tex.main, tex.walker, accent, img);
-      paintSide(tex.sideCanvas, accent, img);
-      tex.mainTex.needsUpdate = true;
-      tex.sideTex.needsUpdate = true;
+      paintTron(tex.canvas, accent, img);
+      tex.map.needsUpdate = true;
     };
-    img.src = tex.walker.artworkUrl.replace(/\/\d+x\d+bb\./, '/600x600bb.');
+    img.src = artworkUrl.replace(/\/\d+x\d+bb\./, '/600x600bb.');
     return () => {
       live = false;
     };
-  }, [tex, accent]);
+  }, [tex, accent, artworkUrl]);
 
-  useEffect(
-    () => () => {
-      tex.mainTex.dispose();
-      tex.sideTex.dispose();
-    },
-    [tex]
-  );
-  return tex;
+  useEffect(() => () => tex.map.dispose(), [tex]);
+  return tex.map;
 }
 
 /** Pyro fountain. Fires while `active`, particles fall out on their own. */
@@ -284,7 +236,7 @@ function shotFor(p: number): Shot {
 
 /**
  * Entrance in the spirit of the WWE 2K14 walkouts: the fighter dances on
- * stage under the titantron (their cover art and song), walks the ramp,
+ * stage under the titantron (their cover art), walks the ramp,
  * stops halfway to break into a second dance for the crowd, and dances again
  * at the apron as the clip runs out, while the director cuts between angles.
  *
@@ -310,6 +262,7 @@ export default function Walkout({
   const target = useMemo(() => new THREE.Object3D(), []);
   const camPos = useRef(new THREE.Vector3(0, 3, STAGE_Z + 9));
   const camLook = useRef(new THREE.Vector3(0, 2, STAGE_Z));
+  const aim = useMemo(() => ({ want: new THREE.Vector3(), look: new THREE.Vector3() }), []);
   const [pose, setPose] = useState<BoxerPose>('taunt');
   const danceRef = useRef<'main' | 'encore'>('main');
   const [move, setMove] = useState<'main' | 'encore'>('main');
@@ -323,9 +276,9 @@ export default function Walkout({
 
   const aisle = useMemo(aisleSeats, []);
   const stands = useMemo(() => standSeats({ inner: RING_HALF + 1.7, rows: 10, sides: ['left', 'right', 'front'] }), []);
-  const tron = useTitantron(walker, accent);
+  const tron = useTitantron(walker.artworkUrl, accent);
 
-  useFrame(({ clock: three }) => {
+  useFrame(({ clock: three }, dt) => {
     const t = three.elapsedTime;
     const elapsed = clock.current.offset + (performance.now() - clock.current.at) / 1000;
     const p = Math.min(1.05, Math.max(0, elapsed / Math.max(1, duration)));
@@ -360,24 +313,29 @@ export default function Walkout({
     target.updateMatrixWorld();
 
     const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * 1.05)), 6);
-    if (frame.current) frame.current.emissiveIntensity = 1.1 + beat * 1.6;
+    if (frame.current) frame.current.emissiveIntensity = 0.6 + beat * 0.7;
 
     const shot = shotFor(p);
     const cut = shot !== shotRef.current;
     shotRef.current = shot;
-    const want = new THREE.Vector3();
-    const look = new THREE.Vector3(0, 1.0 + onRamp, z);
+    const { want, look } = aim;
+    look.set(0, 1.0 + onRamp, z);
     if (shot === 'stage') {
-      const k = p / STAGE_END;
-      want.set(THREE.MathUtils.lerp(-1.4, 1.4, k), THREE.MathUtils.lerp(2.6, 1.8, k), z + THREE.MathUtils.lerp(8.5, 5, k));
-      look.set(0, THREE.MathUtils.lerp(2.6, 1.6, k), z - 0.5);
+      // Crane down off the titantron and push in on the dance.
+      const k = THREE.MathUtils.smoothstep(p / STAGE_END, 0, 1);
+      want.set(THREE.MathUtils.lerp(-1.1, 0.7, k), THREE.MathUtils.lerp(2.5, 1.5, k), z + THREE.MathUtils.lerp(6.8, 4.2, k));
+      look.set(0, THREE.MathUtils.lerp(2.2, 1.2, k), z - 0.3);
     } else if (shot === 'lead') {
-      want.set(0.25 * Math.sin(t * 0.4), 0.85 + onRamp, z + 3.6);
-      look.y = 1.15 + onRamp;
+      // Dolly backing down the aisle ahead of the walker, closing in and drifting across.
+      const k = (p - STAGE_END) / (PAUSE_START - STAGE_END);
+      want.set(THREE.MathUtils.lerp(-0.5, 0.5, k), 1.0 + onRamp, z + THREE.MathUtils.lerp(3.8, 2.8, k));
+      look.y = 1.05 + onRamp;
     } else if (shot === 'crowd') {
       // Low and in front, drifting across, so the dance reads full-length with fans behind.
       const k = (p - PAUSE_START) / (PAUSE_END - PAUSE_START);
-      want.set(THREE.MathUtils.lerp(-1.6, 1.6, k), 0.75 + onRamp, z + 2.7);
+      // Kept inside the aisle barriers, which otherwise end up between the lens and the walker.
+      const drift = AISLE_HALF * 0.75;
+      want.set(THREE.MathUtils.lerp(-drift, drift, k), 0.75 + onRamp, z + 2.9);
       look.y = 0.95 + onRamp;
     } else if (shot === 'side') {
       want.set(0.85, 1.25 + onRamp, Math.min(z + 2.4, CAM_MAX_Z));
@@ -389,14 +347,18 @@ export default function Walkout({
       camPos.current.copy(want);
       camLook.current.copy(look);
     } else {
-      camPos.current.lerp(want, 0.08);
-      camLook.current.lerp(look, 0.14);
+      const step = Math.min(0.05, Math.max(0.001, dt || 0.016));
+      camPos.current.lerp(want, 1 - Math.pow(0.08, step));
+      camLook.current.lerp(look, 1 - Math.pow(0.02, step));
     }
     camera.position.copy(camPos.current);
     camera.lookAt(camLook.current);
     const persp = camera as THREE.PerspectiveCamera;
-    if (persp.isPerspectiveCamera && persp.fov !== 42) {
-      persp.fov = 42;
+    // The ropes stop the camera backing off at the apron, so those shots widen instead.
+    const fov = shot === 'side' || shot === 'apron' ? WALK_FOV_CLOSE : WALK_FOV;
+    if (persp.isPerspectiveCamera && persp.fov !== fov) {
+      persp.fov = cut ? fov : THREE.MathUtils.lerp(persp.fov, fov, 0.1);
+      if (Math.abs(persp.fov - fov) < 0.05) persp.fov = fov;
       persp.updateProjectionMatrix();
     }
   });
@@ -406,7 +368,7 @@ export default function Walkout({
 
   return (
     <>
-      <RingScene />
+      <RingScene fog={WALK_FOG} />
       <primitive object={target} />
       <Spot from={[-3, 7, STAGE_Z + 6]} color="#ffffff" target={target} />
       <Spot from={[3, 7, STAGE_Z + 3]} color={accent} target={target} />
@@ -491,27 +453,15 @@ export default function Walkout({
 
         <mesh position={[0, 3.3, -1.32]}>
           <planeGeometry args={[7, 3.06]} />
-          <meshBasicMaterial map={tron.mainTex} toneMapped={false} />
+          <meshBasicMaterial map={tron} toneMapped={false} fog={false} />
         </mesh>
         <mesh position={[0, 3.3, -1.36]}>
-          <planeGeometry args={[7.3, 3.36]} />
+          <planeGeometry args={[7.12, 3.18]} />
           <meshStandardMaterial ref={frame} color={accent} emissive={accent} emissiveIntensity={1.2} toneMapped={false} />
         </mesh>
-        {([-1, 1] as const).map((s) => (
-          <group key={s} position={[s * 5.1, 3.1, -0.9]} rotation={[0, -s * 0.38, 0]}>
-            <mesh>
-              <planeGeometry args={[2.4, 3]} />
-              <meshBasicMaterial map={tron.sideTex} toneMapped={false} />
-            </mesh>
-            <mesh position={[0, 0, -0.03]}>
-              <planeGeometry args={[2.6, 3.2]} />
-              <meshStandardMaterial color="#120e18" roughness={0.6} />
-            </mesh>
-          </group>
-        ))}
         <mesh position={[0, 5.1, -1.3]}>
           <boxGeometry args={[12.6, 0.18, 0.2]} />
-          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.4} toneMapped={false} />
+          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.8} toneMapped={false} />
         </mesh>
       </group>
 
@@ -522,9 +472,9 @@ export default function Walkout({
       <Sparks at={[RING_HALF, 1.85, -RING_HALF]} color="#ffd36b" active={pyro === 'ring'} />
       <Sparks at={[-RING_HALF, 1.85, -RING_HALF]} color="#ffd36b" active={pyro === 'ring'} />
 
-      <MascotCrowd seats={aisle} hype={0.8} />
-      <Risers inner={RING_HALF + 1.7} rows={10} sides={['left', 'right', 'front']} accent={accent} />
-      <MascotCrowd seats={stands} hype={0.5} />
+      <MascotCrowd seats={aisle} hype={0.8} dim={0.7} />
+      <Risers inner={RING_HALF + 1.7} rows={10} sides={['left', 'right', 'front']} accent={accent} glow={0.6} />
+      <MascotCrowd seats={stands} hype={0.5} dim={0.55} />
 
       <group ref={body} position={[0, RAMP_Y, STAGE_Z + 0.2]}>
         <BoxerRig

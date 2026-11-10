@@ -71,6 +71,14 @@ const MAIN = {
     ].join('');
   },
   '/battle': () => page(en.entry.hostTitle, en.entry.hostSub, ''),
+  '/how-to-play': () => {
+    const t = en.tutorial;
+    return page(
+      t.kicker,
+      t.title,
+      `${steps([...t.slides, { title: t.demoTitle, body: `${t.demoGoal} ${t.demoHint}` }])}<p><a href="/battle">${esc(t.cta)}</a></p>`
+    );
+  },
   '/song-battle': () => {
     const t = songBattle;
     return page(

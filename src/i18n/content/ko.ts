@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const ko: Copy = {
   nav: {
     play: '플레이',
+    howToPlay: '플레이 방법',
     songBattle: '노래 배틀',
     rules: '게임 규칙',
     faq: 'FAQ',
@@ -52,6 +53,32 @@ const ko: Copy = {
     streamersLink: '방송에 띄우는 방법',
   },
 
+  tutorial: {
+    kicker: "플레이 방법",
+    title: "30초면 충분해요",
+    prev: "이전 단계",
+    next: "다음 단계",
+    step: "단계",
+    slides: [
+      { title: "방 만들기", body: "배틀 시작을 누르고 코드를 읽어 주거나 채팅에 링크를 올리세요." },
+      { title: "노래 고르기", body: "모두 분위기에 맞는 곡을 고르고 복서를 꾸며요." },
+      { title: "입장", body: "곡마다 입장곡이 흘러나오고, 둘 다 링에 오르면 공이 울려요." },
+      { title: "투표가 곧 펀치", body: "채팅에 1 또는 2를 치거나 방에서 탭하세요. 한 표가 한 방, 세 번 연속이면 콤보예요." },
+      { title: "KO 또는 판정", body: "곡의 체력을 다 깎으면 다운. 접전은 판정으로 가요." },
+    ],
+    demoTitle: "직접 해보기",
+    demoHint: "1 또는 2를 탭하거나 키를 누르세요. 세 번 연속이면 콤보.",
+    again: "다시 싸우기",
+    cta: "진짜 배틀 시작하기",
+    pageTitle: "플레이 방법 | TuneBoxed",
+    pageDescription: "여섯 단계로 배우는 TuneBoxed: 방을 만들고, 노래를 고르고, 입장을 보고, 투표로 펀치를 날린 뒤 3D 복서로 직접 한 라운드 해보세요.",
+    roomCode: "방 코드",
+    look: "스타일 바꾸기",
+    endKo: "KO",
+    endDecision: "판정",
+    demoGoal: "처음 다섯 표를 한 곡에 몰아주면 KO. 아니면 아홉 표 뒤에 판정으로 가요.",
+    votesLeft: "남은 표: {n}",
+  },
   entry: {
     joinTitle: '배틀 참가하기',
     hostTitle: '노래 배틀계의 Kahoot',

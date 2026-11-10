@@ -3,6 +3,7 @@ import type { Copy } from './en';
 const fr: Copy = {
   nav: {
     play: 'Jouer',
+    howToPlay: 'Comment jouer',
     songBattle: 'Battle de chansons',
     rules: 'Règles du jeu',
     faq: 'FAQ',
@@ -52,6 +53,32 @@ const fr: Copy = {
     streamersLink: 'L’installer sur ton stream',
   },
 
+  tutorial: {
+    kicker: "Comment jouer",
+    title: "Compris en 30 secondes",
+    prev: "Étape précédente",
+    next: "Étape suivante",
+    step: "Étape",
+    slides: [
+      { title: "Crée une salle", body: "Appuie sur Lancer une battle et lis le code à voix haute, ou colle le lien dans le chat." },
+      { title: "Choisis ta chanson", body: "Chacun choisit un morceau qui colle au thème et habille son boxeur." },
+      { title: "Les entrées", body: "Chaque chanson joue son entrée. La cloche sonne quand les deux sont sur le ring." },
+      { title: "Un vote, un coup", body: "Tape 1 ou 2 dans le chat, ou appuie dans la salle. Chaque vote est un coup, trois d’affilée font un combo." },
+      { title: "KO ou décision", body: "Vide la vie d’une chanson et elle va au tapis. Un combat serré se joue à la décision." },
+    ],
+    demoTitle: "À toi",
+    demoHint: "Appuie sur 1 ou 2, ou utilise le clavier. Trois d’affilée pour un combo.",
+    again: "Rejouer",
+    cta: "Lancer une vraie battle",
+    pageTitle: "Comment jouer | TuneBoxed",
+    pageDescription: "Apprends TuneBoxed en six étapes : crée une salle, choisis une chanson, regarde les entrées, vote pour frapper, puis teste un round avec les boxeurs 3D.",
+    roomCode: "Code de la salle",
+    look: "Changer de look",
+    endKo: "KO",
+    endDecision: "Décision",
+    demoGoal: "Donne les cinq premiers votes à la même chanson et c’est le KO. Sinon, le combat va à la décision après neuf votes.",
+    votesLeft: "Votes restants : {n}",
+  },
   entry: {
     joinTitle: 'Rejoins la battle',
     hostTitle: 'Le Kahoot des battles de sons',

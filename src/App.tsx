@@ -12,8 +12,10 @@ import Faq from './pages/Faq';
 import Streamers from './pages/Streamers';
 import About from './pages/About';
 import Winners from './pages/Winners';
+import HowToPlayPage from './pages/HowToPlayPage';
 import Stats from './components/Stats';
 import Reveal, { MOTION } from './components/Reveal';
+import { useMagnetic, useTilt } from './lib/pointerFx';
 import { CONTENT_PAGES } from './pages/PageLayout';
 import LanguagePicker from './i18n/LanguagePicker';
 import { useCopy } from './i18n/LanguageContext';
@@ -27,6 +29,8 @@ const PasswordReset = lazy(() => import('./pages/PasswordReset'));
 const BattleHome = lazy(() => import('./pages/BattleHome'));
 const BattleRoom = lazy(() => import('./pages/BattleRoom'));
 const BattleTV = lazy(() => import('./pages/BattleTV'));
+const DailyFightRoom = lazy(() => import('./pages/DailyFightRoom'));
+const SharedSong = lazy(() => import('./pages/SharedSong'));
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/tuneboxed/id6747647968';
 
@@ -40,6 +44,8 @@ const heroTransition = { duration: MOTION.duration, ease: MOTION.easeOut };
 function MainWebsite() {
   const [isAdminVisible, setIsAdminVisible] = useState(false);
   const reduced = useReducedMotion();
+  const ringTilt = useTilt<HTMLDivElement>(5);
+  const ctaMagnet = useMagnetic<HTMLAnchorElement>();
   const copy = useCopy();
   const { nav, home } = copy;
 
@@ -197,7 +203,9 @@ function MainWebsite() {
                 <span className="home-ring__dot" aria-hidden="true" />
                 {home.ringTag}
               </span>
-              <FightDemo />
+              <div ref={ringTilt} className="home-ring__tilt">
+                <FightDemo />
+              </div>
             </motion.div>
           </motion.div>
         </section>
@@ -215,20 +223,12 @@ function MainWebsite() {
             ))}
           </ul>
 
-          {/* Three lines rather than a section each: the page exists to get
-              somebody into a room, so anything longer competes with the form. */}
-          <ul className="home-steps">
-            {home.steps.map((step, i) => (
-              <li key={step}>
-                <span className="home-step-num">{i + 1}</span>
-                {step}
-              </li>
-            ))}
-          </ul>
-
           <div className="home-how__cta">
-            <Link to="/battle" className="app-store-btn">
+            <Link ref={ctaMagnet} to="/battle" className="app-store-btn">
               {nav.startBattle}
+            </Link>
+            <Link to="/how-to-play" className="home-how__link">
+              {nav.howToPlay}
             </Link>
           </div>
         </Reveal>
@@ -306,12 +306,17 @@ function App() {
       {/* The board an audience watches: shared as a tab, or added as a browser
           source. Takes no session, so it can never occupy a player slot. */}
       <Route path="/tv/:code" element={<BattleTV />} />
+      {/* The app's nightly fight, replayed for a streamer to start on air. */}
+      <Route path="/fight" element={<DailyFightRoom />} />
+      {/* A song shared from the app. The details ride in the query string. */}
+      <Route path="/s/:postId" element={<SharedSong />} />
       {/* The transparent overlay this replaced. Anyone who already pasted an
           /overlay URL into OBS keeps working rather than getting the site. */}
       <Route path="/overlay/:code" element={<OverlayRedirect />} />
       {/* Content routes. scripts/prerender.mjs emits a real HTML file for each
           of these, so they return 200 and can be indexed rather than being
           served by GitHub's 404 handler. Keep the two lists in step. */}
+      <Route path="/how-to-play" element={<HowToPlayPage />} />
       <Route path="/song-battle" element={<SongBattle />} />
       <Route path="/rules" element={<Rules />} />
       <Route path="/faq" element={<Faq />} />

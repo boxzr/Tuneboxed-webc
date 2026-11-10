@@ -3,6 +3,7 @@ import * as battle from '../lib/battleClient';
 import type { PublicStats } from '../types/battle';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Copy } from '../i18n/content/en';
+import RollingNumber from './RollingNumber';
 
 /** Refresh cadence. Slow on purpose: these are cumulative totals, not a ticker. */
 const REFRESH_MS = 30_000;
@@ -58,7 +59,9 @@ export default function Stats({ heading }: { heading?: string }) {
       <div className="stats">
         {LABELS.map(([key, label]) => (
           <div className="stat" key={key}>
-            <div className="stat-num">{(stats[key] ?? 0).toLocaleString(locale)}</div>
+            <div className="stat-num">
+              <RollingNumber value={stats[key] ?? 0} locale={locale} countUpOnView />
+            </div>
             <div className="stat-label">{copy.stats[label]}</div>
           </div>
         ))}

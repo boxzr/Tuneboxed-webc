@@ -14,9 +14,42 @@ html {
 body {
   margin: 0;
   font-family: var(--tb-font);
+  font-stretch: var(--tb-body-stretch);
   color: var(--tb-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Browsers reset the width of form controls to normal; they follow the text
+   around them instead. */
+button,
+input,
+select,
+textarea {
+  font-stretch: inherit;
+}
+
+/* Headline cut, for every page title and section head: the headline face a
+   little wide and tracked tight. A heading that wants something else (the
+   stream board's room code, the ring's broadcast type) sets its own family
+   as well as its own width. */
+h1,
+h2 {
+  font-family: var(--tb-font-headline);
+  font-stretch: var(--tb-display-stretch);
+  letter-spacing: var(--tb-display-tracking);
+  text-wrap: balance;
+}
+
+h3 {
+  font-family: var(--tb-font-headline);
+  font-stretch: var(--tb-subhead-stretch);
+  letter-spacing: -0.015em;
+}
+
+/* Tallies, timers and scores keep their width as they count. */
+:where(.fight, .tv, .bt, .df) {
+  font-variant-numeric: tabular-nums;
 }
 
 code {

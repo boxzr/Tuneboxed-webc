@@ -53,7 +53,9 @@ export function usePunchDirector(
   votesA: number,
   votesB: number,
   winner: Side | null,
-  knockout: boolean
+  knockout: boolean,
+  /** The small-chat boost. Off, every vote is worth exactly one. */
+  boosted = true
 ): {
   poseA: BoxerPose;
   poseB: BoxerPose;
@@ -152,7 +154,7 @@ export function usePunchDirector(
       return;
     }
 
-    const { state, event } = tickDirector(before, votesA, votesB, performance.now());
+    const { state, event } = tickDirector(before, votesA, votesB, boosted ? performance.now() : undefined);
     prev.current = state;
     setHeatA(state.heatA);
     setHeatB(state.heatB);
@@ -162,7 +164,7 @@ export function usePunchDirector(
     if (!event) return;
     if (busy.current) queue.current = enqueue(queue.current, event);
     else play(event);
-  }, [votesA, votesB, winner, knockout]);
+  }, [votesA, votesB, winner, knockout, boosted]);
 
   return {
     poseA: live.a,

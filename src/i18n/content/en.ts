@@ -9,6 +9,7 @@
 export const en = {
   nav: {
     play: 'Play',
+    howToPlay: 'How to play',
     songBattle: 'Song battle',
     rules: 'Game rules',
     faq: 'FAQ',
@@ -58,6 +59,32 @@ export const en = {
     streamersLink: 'Setting it up on stream',
   },
 
+  tutorial: {
+    kicker: "How to play",
+    title: "Learn it in 30 seconds",
+    prev: "Previous step",
+    next: "Next step",
+    step: "Step",
+    slides: [
+      { title: "Start a room", body: "Hit Host a battle and read the code out loud, or drop the link in chat." },
+      { title: "Pick your song", body: "Everyone picks a track that fits the vibe and dresses their boxer." },
+      { title: "Walkouts", body: "Each song plays its entrance. The bell rings once both boxers are in the ring." },
+      { title: "Votes are punches", body: "Type 1 or 2 in chat, or tap in the room. Every vote lands a punch, and three in a row is a combo." },
+      { title: "Knockout or decision", body: "Drain a song’s health and it hits the canvas. A close fight goes to decision." },
+    ],
+    demoTitle: "Your turn",
+    demoHint: "Tap 1 or 2, or press the keys. Land three in a row for a combo.",
+    again: "Fight again",
+    cta: "Start a real battle",
+    pageTitle: "How to play | TuneBoxed",
+    pageDescription: "Learn TuneBoxed in six steps: start a room, pick a song, watch the walkouts, vote to throw punches, then fight a round yourself with the 3D boxers.",
+    roomCode: "Room code",
+    look: "Change look",
+    endKo: "Knockout",
+    endDecision: "Decision",
+    demoGoal: "Give one song the first five votes and it is a knockout. Otherwise the fight goes to a decision after nine.",
+    votesLeft: "Votes left: {n}",
+  },
   entry: {
     joinTitle: 'Join the battle',
     hostTitle: 'The Kahoot of song battles',

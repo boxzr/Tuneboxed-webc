@@ -79,7 +79,16 @@ const _c = new THREE.Color();
  * Back rows fall off into the dark. `hype` (0..1+) gets more of them on
  * their feet with hands up.
  */
-export default function MascotCrowd({ seats, hype = 0 }: { seats: Seat[]; hype?: number }) {
+export default function MascotCrowd({
+  seats,
+  hype = 0,
+  dim = 1,
+}: {
+  seats: Seat[];
+  hype?: number;
+  /** Multiplies every fan's paint, so the house can sit back in the dark behind a lit ring. */
+  dim?: number;
+}) {
   const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
   const hypeRef = useRef(hype);
   const smoothHype = useRef(0);
@@ -130,11 +139,11 @@ export default function MascotCrowd({ seats, hype = 0 }: { seats: Seat[]; hype?:
       const mesh = refs.current[pi];
       if (!mesh) return;
       fans.forEach((f, i) => {
-        mesh.setColorAt(i, _c.set(f.colors[p.tint]).multiplyScalar(p.tint === 'ink' ? 1 : f.shade));
+        mesh.setColorAt(i, _c.set(f.colors[p.tint]).multiplyScalar(p.tint === 'ink' ? 1 : f.shade * dim));
       });
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     });
-  }, [fans]);
+  }, [fans, dim]);
 
   useFrame(({ clock }, dt) => {
     const t = clock.elapsedTime;
@@ -241,6 +250,7 @@ export function Risers({
   rise = 0.34,
   sides = ['back', 'left', 'right'],
   accent = '#3b9eff',
+  glow = 1.4,
 }: {
   inner: number;
   rows: number;
@@ -248,6 +258,8 @@ export function Risers({
   rise?: number;
   sides?: ('back' | 'left' | 'right' | 'front')[];
   accent?: string;
+  /** Emissive strength of the trim along the front of the stands. */
+  glow?: number;
 }) {
   const items: { pos: [number, number, number]; size: [number, number, number] }[] = [];
   for (const side of sides) {
@@ -269,7 +281,7 @@ export function Risers({
       {items.map((it, i) => (
         <mesh key={i} position={it.pos} receiveShadow>
           <boxGeometry args={it.size} />
-          <meshStandardMaterial color={i % 2 ? '#1b1626' : '#221b30'} roughness={0.9} />
+          <meshStandardMaterial color={i % 2 ? '#14111c' : '#191422'} roughness={0.9} />
         </mesh>
       ))}
       {sides.map((side) => {
@@ -279,7 +291,7 @@ export function Risers({
         return (
           <mesh key={side} position={horizontal ? [0, 0.42, at] : [at, 0.42, 0]}>
             <boxGeometry args={horizontal ? [inner * 2, 0.16, 0.06] : [0.06, 0.16, inner * 2]} />
-            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.4} toneMapped={false} />
+            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={glow} toneMapped={false} />
           </mesh>
         );
       })}

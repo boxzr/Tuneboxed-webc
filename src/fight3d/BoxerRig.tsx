@@ -29,6 +29,8 @@ const UPPER = 0.22;
 /** Elbow to glove center. */
 const FORE = 0.28;
 const GLOVE_R = 0.12;
+/** Width of the trunks' side stripe, as an angle round the waist. */
+const STRIPE_ARC = 0.44;
 /**
  * Closest two boxers' roots may come on a step-in: both heads (the widest
  * part, a heavyweight's included) plus the forward lean of a body shot.
@@ -51,25 +53,35 @@ export function headWorldY(loadout: FighterLoadout): number {
   return (TORSO_Y + HEAD[1]) * bodyScale(loadout).y;
 }
 
-/** Lacquered vinyl, like a collectible figure: clearcoat over a soft base, with a rim. */
+/** A lighter cut of a paint, for the light that wraps its edge. */
+function tint(hex: string, k: number) {
+  return `#${new THREE.Color(hex).lerp(new THREE.Color('#ffffff'), k).getHexString()}`;
+}
+
+/**
+ * Soft-touch vinyl, like a designer toy: the paint stays its own colour and
+ * takes one broad highlight. The earlier lacquer (heavy clearcoat, white
+ * sheen, a cream rim) put a milky film over every surface, so a blue boxer
+ * came out powder blue and looked hollow under the ring lights. The rim is
+ * now a lighter cut of the paint itself, which outlines the figure without
+ * bleaching it.
+ */
 function gloss(color: string, opts?: { rough?: number; coat?: number; rim?: number }) {
   return withRim(
     new THREE.MeshPhysicalMaterial({
       color,
-      roughness: opts?.rough ?? 0.3,
-      metalness: 0.02,
-      clearcoat: opts?.coat ?? 0.8,
-      clearcoatRoughness: 0.12,
-      sheen: 0.1,
-      sheenColor: new THREE.Color('#ffffff'),
+      roughness: opts?.rough ?? 0.46,
+      metalness: 0,
+      clearcoat: opts?.coat ?? 0.3,
+      clearcoatRoughness: 0.34,
     }),
-    '#ffe9c7',
-    opts?.rim ?? 0.32
+    tint(color, 0.45),
+    opts?.rim ?? 0.2
   );
 }
 
 function matte(color: string, rough = 0.6) {
-  return withRim(new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 }), '#ffe9c7', 0.18);
+  return withRim(new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 }), tint(color, 0.4), 0.1);
 }
 
 function metal(color: string) {
@@ -445,21 +457,23 @@ export default function BoxerRig({
     () => ({
       body: gloss(body),
       flag: gloss(flag),
-      trunks: Object.assign(gloss(trunks, { rough: 0.3, coat: 0.9 }), { side: THREE.DoubleSide }),
-      gloves: gloss(gloves, { rough: 0.28, coat: 0.9 }),
+      // Satin cloth: no coat, so trunks read as fabric next to the vinyl body.
+      trunks: Object.assign(gloss(trunks, { rough: 0.62, coat: 0, rim: 0.12 }), { side: THREE.DoubleSide }),
+      // Leather: the one properly shiny thing on the figure.
+      gloves: gloss(gloves, { rough: 0.3, coat: 0.6, rim: 0.16 }),
       cuff: matte('#f4f1ea', 0.75),
-      shoe: gloss(shoes, { rough: 0.32, coat: 0.6 }),
+      shoe: gloss(shoes, { rough: 0.4, coat: 0.3, rim: 0.12 }),
       sole: matte('#f1f1ee', 0.5),
-      stripe: gloss('#ffffff', { rough: 0.4, coat: 0.3 }),
-      band: Object.assign(gloss(shade(trunks, 0.55), { rough: 0.35, coat: 0.9 }), { side: THREE.DoubleSide }),
+      stripe: matte('#ffffff', 0.5),
+      band: Object.assign(gloss(shade(trunks, 0.6), { rough: 0.5, coat: 0.1, rim: 0.1 }), { side: THREE.DoubleSide }),
       gold: metal('#e2b443'),
       lid: gloss(shade(body, 0.82)),
-      guard: gloss(trunks, { rough: 0.2, coat: 1 }),
-      wrap: matte('#f8fafc', 0.82),
-      eyeWhite: gloss('#ffffff', { rough: 0.15, coat: 1 }),
+      guard: gloss(trunks, { rough: 0.3, coat: 0.6 }),
+      wrap: Object.assign(matte('#f8fafc', 0.82), { side: THREE.DoubleSide }),
+      eyeWhite: gloss('#ffffff', { rough: 0.2, coat: 0.8, rim: 0 }),
       ink: matte('#0f0d14', 0.5),
       mouth: matte('#4a0d16', 0.6),
-      teeth: gloss('#ffffff', { rough: 0.2, coat: 1, rim: 0.1 }),
+      teeth: gloss('#ffffff', { rough: 0.25, coat: 0.6, rim: 0 }),
       bruise: matte('#5b2436', 0.8),
     }),
     [body, flag, trunks, gloves, shoes]
@@ -471,7 +485,8 @@ export default function BoxerRig({
     const list = Object.values(mats) as THREE.MeshStandardMaterial[];
     for (const m of list) {
       m.envMap = env;
-      m.envMapIntensity = m.metalness > 0.5 ? 1.35 : 0.55;
+      // Enough reflection to model the form; more and the paint goes chalky.
+      m.envMapIntensity = m.metalness > 0.5 ? 1.2 : 0.22;
       m.needsUpdate = true;
     }
     return () => list.forEach((m) => m.dispose());
@@ -933,21 +948,33 @@ export default function BoxerRig({
         <mesh position={[0, waist.trunksY - waist.trunksH / 2 + 0.012, 0]} material={mats.band}>
           <cylinderGeometry args={[waist.r + waist.flare + 0.004, waist.r + waist.flare + 0.006, 0.024, 40, 1, true]} />
         </mesh>
+        {/* Side stripes, cut as panels of the same cone so they lie in the cloth. */}
         {([-1, 1] as const).map((s) => (
-          <mesh
-            key={s}
-            position={[(waist.r + waist.flare / 2 + 0.002) * s, waist.trunksY + 0.005, 0]}
-            rotation={[0, 0, Math.atan2(waist.flare, waist.trunksH) * s]}
-            material={mats.wrap}
-          >
-            <boxGeometry args={[0.014, waist.trunksH - 0.035, 0.05]} />
+          <mesh key={s} position={[0, waist.trunksY + 0.012, 0]} material={mats.wrap}>
+            <cylinderGeometry
+              args={[
+                waist.r + 0.003,
+                waist.r + waist.flare + 0.003,
+                waist.trunksH - 0.026,
+                10,
+                1,
+                true,
+                (s > 0 ? Math.PI / 2 : (Math.PI * 3) / 2) - STRIPE_ARC / 2,
+                STRIPE_ARC,
+              ]}
+            />
           </mesh>
         ))}
         <mesh position={[0, waist.bandY, 0]} material={mats.band} castShadow>
-          <cylinderGeometry args={[waist.r + 0.008, waist.r + 0.003, 0.085, 32]} />
+          <cylinderGeometry args={[waist.r + 0.008, waist.r + 0.003, 0.085, 40, 1, true]} />
+        </mesh>
+        {/* The band rolls in to meet the body, so there is no flat lid to look down on. */}
+        <mesh position={[0, waist.bandY + 0.0425 + 0.015, 0]} material={mats.band}>
+          <cylinderGeometry args={[waist.r - 0.05, waist.r + 0.008, 0.03, 40, 1, true]} />
         </mesh>
         {[-0.03, 0.03].map((dy) => (
-          <mesh key={dy} position={[0, waist.bandY + dy, 0]} material={mats.gold}>
+          // Piping round the waistband. A torus is built standing up, so it is laid flat here.
+          <mesh key={dy} position={[0, waist.bandY + dy, 0]} rotation={[Math.PI / 2, 0, 0]} material={mats.gold}>
             <torusGeometry args={[waist.r + 0.007, 0.006, 6, 40]} />
           </mesh>
         ))}

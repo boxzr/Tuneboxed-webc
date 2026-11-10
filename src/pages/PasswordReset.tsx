@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import logo from '../assets/tuneboxed-battle-logo.png';
+import './passwordReset.css';
 
 const PasswordReset: React.FC = () => {
   const location = useLocation();
@@ -82,7 +84,7 @@ const PasswordReset: React.FC = () => {
       const result = await response.json();
       
       if (response.ok && result.success) {
-        showMessage('success', '✅ Password reset successful! Redirecting to app...');
+        showMessage('success', 'Password reset. Taking you back to the app…');
         
         // Redirect back to iOS app after 3 seconds
         setTimeout(() => {
@@ -101,143 +103,57 @@ const PasswordReset: React.FC = () => {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif'
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '20px',
-        padding: '40px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
-        maxWidth: '450px',
-        width: '100%',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '3em', marginBottom: '10px' }}>🎵</div>
-        <h1 style={{ color: '#333', marginBottom: '10px', fontSize: '1.8em', fontWeight: 600 }}>
-          Reset Your Password
-        </h1>
-        <p style={{ color: '#666', marginBottom: '30px', fontSize: '1em' }}>
-          Enter your new password for TuneBoxed
-        </p>
-        
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              color: '#333', 
-              fontWeight: 500, 
-              fontSize: '0.95em' 
-            }}>
-              New Password
-            </label>
+    <div className="pw">
+      <div className="pw__card">
+        <img className="pw__logo" src={logo} alt="TuneBoxed" />
+        <h1 className="pw__title">Reset your password</h1>
+        <p className="pw__sub">Pick a new password for your TuneBoxed account.</p>
+
+        <form onSubmit={handleSubmit} className="pw__form">
+          <label className="pw__field">
+            <span>New password</span>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
               minLength={8}
-              placeholder="Enter your new password"
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
               disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '16px',
-                border: '2px solid #e1e5e9',
-                borderRadius: '12px',
-                fontSize: '16px',
-                background: isLoading ? '#f8f9fa' : 'white',
-                transition: 'all 0.3s ease'
-              }}
             />
-            <div style={{ fontSize: '0.85em', color: '#666', marginTop: '5px' }}>
-              <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
-                <li>At least 8 characters long</li>
-                <li>Mix of letters and numbers recommended</li>
-                <li>Avoid common passwords</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div style={{ marginBottom: '20px', textAlign: 'left' }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              color: '#333', 
-              fontWeight: 500, 
-              fontSize: '0.95em' 
-            }}>
-              Confirm New Password
-            </label>
+          </label>
+          <p className="pw__hint">Mix letters and numbers, and skip passwords you use elsewhere.</p>
+
+          <label className="pw__field">
+            <span>Confirm new password</span>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              placeholder="Confirm your new password"
+              autoComplete="new-password"
+              placeholder="Type it again"
               disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '16px',
-                border: '2px solid #e1e5e9',
-                borderRadius: '12px',
-                fontSize: '16px',
-                background: isLoading ? '#f8f9fa' : 'white',
-                transition: 'all 0.3s ease'
-              }}
             />
-          </div>
-          
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              width: '100%',
-              padding: '16px',
-              background: isLoading ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.3s ease',
-              marginTop: '10px'
-            }}
-          >
-            {isLoading ? '🔄 Resetting...' : 'Reset Password'}
+          </label>
+
+          <button type="submit" className="pw__btn" disabled={isLoading}>
+            {isLoading ? 'Resetting…' : 'Reset password'}
           </button>
         </form>
-        
-        {/* Message Display */}
+
         {message && (
-          <div style={{
-            marginTop: '20px',
-            padding: '15px',
-            borderRadius: '10px',
-            fontWeight: 500,
-            background: messageType === 'error' ? '#fee' : 
-                       messageType === 'success' ? '#f0fff4' : '#fffaf0',
-            color: messageType === 'error' ? '#c53030' : 
-                   messageType === 'success' ? '#38a169' : '#d69e2e',
-            border: `1px solid ${messageType === 'error' ? '#feb2b2' : 
-                                 messageType === 'success' ? '#9ae6b4' : '#fbd38d'}`
-          }}>
+          <div className={`pw__msg pw__msg--${messageType || 'warning'}`} role="status">
             {message}
           </div>
         )}
-        
-        <div style={{ marginTop: '30px', fontSize: '0.9em', color: '#666' }}>
-          <p>Having trouble? <a href="mailto:support@tuneboxed.com" style={{ color: '#667eea', textDecoration: 'none' }}>Contact Support</a></p>
-          <p style={{ marginTop: '10px', fontSize: '0.8em' }}>
-            This link expires in 1 hour for security.
+
+        <div className="pw__foot">
+          <p>
+            Having trouble? <a href="mailto:support@tuneboxed.com">Contact support</a>
           </p>
+          <p>This link expires in 1 hour.</p>
         </div>
       </div>
     </div>
