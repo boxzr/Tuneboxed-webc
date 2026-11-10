@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FF8A3D" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="description"
+      content="Learn TuneBoxed in six steps: start a room, pick a song, watch the walkouts, vote to throw punches, then fight a round yourself with the 3D boxers."
+    />
+    <!-- Flattened onto white, because iOS composites a transparent icon onto
+         black and the mark's dark outlines vanish into it. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!--
+      scripts/prerender.mjs rewrites the canonical, title, description, og,
+      twitter and JSON-LD below for each route it emits, so the shapes here
+      have to stay predictable. Check that script before reformatting them.
+    -->
+    <link rel="canonical" href="https://tuneboxed.com/how-to-play" />
+    <meta property="og:site_name" content="TuneBoxed" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="How to play | TuneBoxed" />
+    <meta
+      property="og:description"
+      content="Learn TuneBoxed in six steps: start a room, pick a song, watch the walkouts, vote to throw punches, then fight a round yourself with the 3D boxers."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tuneboxed.com/how-to-play" />
+    <meta property="og:image" content="https://tuneboxed.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="TuneBoxed: blue and orange music-note boxers square up. Song battles fought as boxing matches, every vote lands a punch."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How to play | TuneBoxed" />
+    <meta
+      name="twitter:description"
+      content="Learn TuneBoxed in six steps: start a room, pick a song, watch the walkouts, vote to throw punches, then fight a round yourself with the 3D boxers."
+    />
+    <meta name="twitter:image" content="https://tuneboxed.com/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="TuneBoxed: blue and orange music-note boxers square up. Song battles fought as boxing matches, every vote lands a punch."
+    />
+
+    <!-- The prerendered page text (scripts/staticBody.mjs) that the app
+         replaces on boot. It fades in only if the app has not loaded by then,
+         so normal visits do not flash unstyled text. -->
+    <style>
+      .prerender { max-width: 760px; margin: 0 auto; padding: 32px 20px; font: 16px/1.6 system-ui, sans-serif; color: #f4f4f5; background: #0d0d12; opacity: 0; animation: prerender-in 0.3s 1.5s forwards; }
+      .prerender a { color: #ffa04d; }
+      .prerender nav { margin-bottom: 24px; }
+      @keyframes prerender-in { to { opacity: 1; } }
+    </style>
+
+    <title>How to play | TuneBoxed</title>
+
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://tuneboxed.com/#organization",
+      "name": "TuneBoxed",
+      "url": "https://tuneboxed.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://tuneboxed.com/logo512.png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://tuneboxed.com/#website",
+      "name": "TuneBoxed",
+      "alternateName": [
+        "Tune Boxed",
+        "TuneBoxed Battle"
+      ],
+      "url": "https://tuneboxed.com/",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "hasPart": [
+        {
+          "@type": "WebPage",
+          "name": "Play",
+          "url": "https://tuneboxed.com/battle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "How to play",
+          "url": "https://tuneboxed.com/how-to-play"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Song battle",
+          "url": "https://tuneboxed.com/song-battle"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Game rules",
+          "url": "https://tuneboxed.com/rules"
+        },
+        {
+          "@type": "WebPage",
+          "name": "FAQ",
+          "url": "https://tuneboxed.com/faq"
+        },
+        {
+          "@type": "WebPage",
+          "name": "For streamers",
+          "url": "https://tuneboxed.com/streamers"
+        },
+        {
+          "@type": "WebPage",
+          "name": "Winners",
+          "url": "https://tuneboxed.com/winners"
+        },
+        {
+          "@type": "WebPage",
+          "name": "About",
+          "url": "https://tuneboxed.com/about"
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://tuneboxed.com/how-to-play#webpage",
+      "url": "https://tuneboxed.com/how-to-play",
+      "name": "How to play | TuneBoxed",
+      "description": "Learn TuneBoxed in six steps: start a room, pick a song, watch the walkouts, vote to throw punches, then fight a round yourself with the 3D boxers.",
+      "isPartOf": {
+        "@id": "https://tuneboxed.com/#website"
+      },
+      "about": {
+        "@id": "https://tuneboxed.com/#organization"
+      },
+      "inLanguage": "en-US"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "TuneBoxed",
+          "item": "https://tuneboxed.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "How to play",
+          "item": "https://tuneboxed.com/how-to-play"
+        }
+      ]
+    }
+  ]
+}
+    </script>
+    <script type="module" crossorigin src="/assets/index-ccj63IoK.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-DuXYpFKP.js">
+    <link rel="modulepreload" crossorigin href="/assets/supabase-BB1iaL-l.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-BF6nNNot.css">
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"><div class="prerender"><nav><a href="/">TuneBoxed</a> · <a href="/battle">Play</a> · <a href="/how-to-play">How to play</a> · <a href="/song-battle">Song battle</a> · <a href="/rules">Game rules</a> · <a href="/faq">FAQ</a> · <a href="/streamers">For streamers</a> · <a href="/winners">Winners</a> · <a href="/about">About</a></nav><main><h1>How to play</h1><p>Learn it in 30 seconds</p><ol><li><h3>Start a room</h3><p>Hit Host a battle and read the code out loud, or drop the link in chat.</p></li><li><h3>Pick your song</h3><p>Everyone picks a track that fits the vibe and dresses their boxer.</p></li><li><h3>Walkouts</h3><p>Each song plays its entrance. The bell rings once both boxers are in the ring.</p></li><li><h3>Votes are punches</h3><p>Type 1 or 2 in chat, or tap in the room. Every vote lands a punch, and three in a row is a combo.</p></li><li><h3>Knockout or decision</h3><p>Drain a song’s health and it hits the canvas. A close fight goes to decision.</p></li><li><h3>Your turn</h3><p>Give one song the first five votes and it is a knockout. Otherwise the fight goes to a decision after nine. Tap 1 or 2, or press the keys. Land three in a row for a combo.</p></li></ol><p><a href="/battle">Start a real battle</a></p></main></div></div>
+
+    <!--
+      Pairs with the redirect in public/404.html. GitHub Pages serves 404.html for
+      any path it has no file for, which is every client-side route. That page
+      encodes the path into a query string; this restores it before React Router
+      reads the URL. Both halves must ship together or deep links break.
+    -->
+    <script>
+      (function (location) {
+        if (location.search[1] === '/') {
+          var decoded = location.search
+            .slice(1)
+            .split('&')
+            .map(function (s) {
+              return s.replace(/~and~/g, '&');
+            })
+            .join('?');
+          window.history.replaceState(
+            null,
+            '',
+            location.pathname.slice(0, -1) + decoded + location.hash
+          );
+        }
+      })(window.location);
+    </script>
+
+  </body>
+</html>
